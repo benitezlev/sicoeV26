@@ -3,23 +3,33 @@
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
 ## 🕒 Últimos 3 Cambios Importantes
-1.  **Refinamiento de Control de Acceso (RBAC):** Se implementó la restricción basada en el permiso `manage-personal`. Ahora, funciones críticas como la creación de nuevos elementos/usuarios están limitadas a Super Admins y Administradores de Entidad autorizados.
-2.  **Mejoras en Módulos Administrativos:** Se habilitó la edición robusta de usuarios y corporaciones, incluyendo la funcionalidad de restablecimiento de contraseñas y actualización de logos/nombres de entidades.
-3.  **Aislamiento de Datos por Jurisdicción:** Se aplicaron filtros para asegurar que los administradores solo tengan acceso a la información correspondiente a su sede o entidad, evitando fugas de datos transversales.
+1.  **Migración de Módulo de Grupos (Volt):** Se rediseñó completamente la gestión de grupos. Ahora incluye inscripción dinámica de alumnos, asignación de docentes desde API externa (SAD) y gestión de expedientes digitales, todo bajo la arquitectura Volt y Flux UI.
+2.  **Consolidación de Catálogo Académico:** Los módulos de Cursos y Materias fueron migrados a Volt, permitiendo la edición inline de tiras académicas y la generación profesional de reportes PDF institucionalizados.
+3.  **Refinamiento de Control de Acceso (RBAC):** Se implementó la restricción basada en el permiso `manage-personal`. Ahora, funciones críticas como la creación de nuevos elementos/usuarios están limitadas a Super Admins y Administradores de Entidad autorizados.
 
 ## 🛠️ Contexto de Ejecución: Dependencias Críticas
 El proyecto está construido sobre el ecosistema modern de Laravel y requiere los siguientes componentes clave:
-- **Core:** Laravel 12 & PHP 8.2+
-- **Frontend Interactivo:** [Livewire 3](https://livewire.laravel.com/) con [PowerGrid v6](https://livewire-powergrid.com/) para el manejo de tablas dinámicas.
-- **Seguridad:** [Spatie Laravel Permission](https://spatie.be/docs/laravel-permission/v6) para el manejo de roles y permisos.
-- **Estilo & Build:** Tailwind CSS 3, AlpineJS y Vite para un entorno ágil de desarrollo.
-- **Reportes:** `Maatwebsite Excel` para exportaciones y `DomPDF`/`Snappy` para la generación de documentos oficiales en PDF.
+- **Estándar:** `Laravel 12` + `Livewire 3 (Volt)` + `Flux UI`.
+- **API Externa:** Sincronización con el sistema `SAD` para datos de docentes por plantel.
+- **Tablas:** [PowerGrid v6](https://livewire-powergrid.com/) para el manejo de tablas dinámicas.
+- **Reportes:** `Barryvdh\DomPDF` para exportaciones institucionales PDF.
 
 ## 🚀 Pendientes y Próximos Pasos (Priorizados)
-1.  **[COMPLETADO] Validación de Botones por Permiso:** Se implementó la protección con `@can('manage-personal')` en `mostrar-docente.blade.php` y `mostrar-alumnos.blade.php`.
-2.  **[COMPLETADO] Consolidación de Importación de Usuarios:** Se depuró `AlumnoController.php`, eliminando versiones comentadas y asegurando la integridad del proceso.
-3.  **[COMPLETADO] Implementación de Fechas en Grupos:** Se integraron los campos de fecha, horario y horas totales en la vista de edición (`grupos/edit.blade.php`).
-4.  **[COMPLETADO] Sincronización de Logs:** Se estandarizó el uso de `Log::channel('expedientes')` en `DocumentoExpedienteController.php` y `ExpedienteController.php` para todas las acciones críticas.
+1.  **[COMPLETADO] Migración a Laravel 12 & Flux UI:** Core y Layout actualizados.
+2.  **[COMPLETADO] Módulo de Configuración (Volt):** Migrado a Volt/Flux.
+3.  **[COMPLETADO] Módulo de Roles (Volt):** Migrado a Volt/Flux con gestión unificada.
+4.  **[COMPLETADO] Módulo de Planteles (Volt):** Migrado a Volt/Flux.
+5.  **[COMPLETADO] Módulo de Usuarios e Importación (Volt):** Migrado a Volt/Flux.
+6.  **[COMPLETADO] Módulo de Expedientes (Volt):** Gestión de documentos y validaciones.
+7.  **[COMPLETADO] Módulo de Docentes (Volt):** Sincronización con API SAD.
+8.  **[COMPLETADO] Módulo de Cursos y Materias (Volt):** Catálogo académico completo.
+9.  **[COMPLETADO] Módulo de Grupos (Volt):** Gestión de inscripciones, docentes y expedientes de grupo.
+10. **Refactorización de Asistencias:** Migrar la lógica de carga y validación de listas de asistencia a componentes Volt para mayor interactividad.
 
 ---
-*Última actualización: 2026-03-12 13:50:00*
+*Última actualización: 2026-03-12 15:45:00*
+
+## ⏭️ Siguientes Pasos Priorizados
+1.  **Limpieza de Controladores:** Eliminar `GrupoController`, `MateriaController`, `CursoController` y `PanelMateriasController` tras verificar estabilidad de rutas Volt.
+2.  **Migración de Asistencias:** Crear componente Volt para la carga procesada de listas.
+3.  **Optimización de Búsqueda SAD:** Implementar caché para las respuestas de la API de docentes.

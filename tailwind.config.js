@@ -11,13 +11,15 @@ export default {
         './resources/views/**/*.blade.php',
         './app/Livewire/**/*Table.php',
         './vendor/power-components/livewire-powergrid/resources/views/**/*.php',
-        './vendor/power-components/livewire-powergrid/src/Themes/Tailwind.php'
+        './vendor/power-components/livewire-powergrid/src/Themes/Tailwind.php',
+        './vendor/livewire/flux-pro/stubs/**/*.blade.php',
+        './vendor/livewire/flux/stubs/**/*.blade.php',
     ],
 
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', ...defaultTheme.fontFamily.sans],
             },
         },
     },

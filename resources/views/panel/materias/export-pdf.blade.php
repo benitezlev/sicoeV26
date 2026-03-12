@@ -5,82 +5,117 @@
     <title>Tira Académica - {{ $curso->nombre }}</title>
     <style>
         body {
-            font-family: DejaVu Sans, sans-serif;
-            font-size: 12px;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 11px;
             color: #333;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
         }
-        h2 {
+        .header {
             text-align: center;
-            font-size: 18px;
-            margin-bottom: 10px;
-            color: #222;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 10px;
         }
-        p {
-            margin: 5px 0;
-            font-size: 13px;
+        .header h1 {
+            margin: 0;
+            color: #1e40af;
+            font-size: 20px;
+        }
+        .header p {
+            margin: 3px 0 0;
+            color: #666;
+            font-size: 10px;
+            font-style: italic;
+        }
+        .course-info {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+        }
+        .course-info p {
+            margin: 2px 0;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 12px;
-        }
-        th, td {
-            border: 1px solid #444;
-            padding: 6px 8px;
-            text-align: center;
+            margin-bottom: 20px;
         }
         th {
-            background-color: #f2f2f2;
+            background-color: #f1f5f9;
+            color: #1e293b;
             font-weight: bold;
-            color: #222;
+            text-align: center;
+            padding: 10px 5px;
+            border: 1px solid #cbd5e1;
+            text-transform: uppercase;
+            font-size: 9px;
         }
-        tr:nth-child(even) {
-            background-color: #fafafa;
+        td {
+            padding: 8px 5px;
+            border: 1px solid #e2e8f0;
+            vertical-align: middle;
+            text-align: center;
         }
-        tr:hover {
-            background-color: #e6f7ff;
-        }
+        .text-left { text-align: left; }
+        .font-bold { font-weight: bold; }
         .footer {
-            margin-top: 20px;
-            text-align: right;
-            font-size: 11px;
-            color: #666;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 9px;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 5px;
         }
+        .page-number:after { content: counter(page); }
     </style>
 </head>
 <body>
-    <h2>Tira Académica</h2>
-    <p><strong>Curso:</strong> {{ $curso->nombre }}</p>
+    <div class="header">
+        <h1>SICOE - Sistema de Control Escolar</h1>
+        <p>Documento Oficial de Tira Académica por Curso</p>
+    </div>
+
+    <div class="course-info">
+        <p><strong>Curso:</strong> <span style="font-size: 14px; color: #1e40af;">{{ $curso->nombre }}</span></p>
+        <p><strong>Identificador:</strong> {{ $curso->identificador }}</p>
+        <p><strong>Tipo:</strong> {{ $curso->tipo }}</p>
+        <p><strong>Fecha de Emisión:</strong> {{ date('d/m/Y H:i') }}</p>
+    </div>
 
     <table>
         <thead>
             <tr>
-                <th>Orden</th>
-                <th>Materia</th>
-                <th>Horas</th>
-                <th>Semestre</th>
-                <th>Créditos</th>
-                <th>Obligatoria</th>
+                <th width="8%">Sem.</th>
+                <th width="8%">Orden</th>
+                <th width="12%">Clave</th>
+                <th width="40%">Asignatura / Materia</th>
+                <th width="10%">Horas</th>
+                <th width="10%">Créditos</th>
+                <th width="12%">Tipo</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($curso->materias as $materia)
+            @foreach($curso->materias->sortBy(['pivot_semestre', 'pivot_orden']) as $materia)
                 <tr>
-                    <td>{{ $materia->pivot->orden }}</td>
-                    <td style="text-align:left;">{{ $materia->nombre }}</td>
-                    <td>{{ $materia->num_horas }}</td>
-                    <td>{{ $materia->pivot->semestre }}</td>
-                    <td>{{ $materia->pivot->creditos }}</td>
-                    <td>{{ $materia->pivot->obligatoria ? 'Sí' : 'No' }}</td>
+                    <td class="font-bold">{{ $materia->pivot->semestre ?: '-' }}</td>
+                    <td>{{ $materia->pivot->orden ?: '-' }}</td>
+                    <td style="font-family: monospace;">{{ $materia->clave }}</td>
+                    <td class="text-left font-bold">{{ $materia->nombre }}</td>
+                    <td>{{ $materia->num_horas }} hrs</td>
+                    <td>{{ $materia->pivot->creditos ?: '0' }}</td>
+                    <td style="font-size: 8px; text-transform: uppercase;">{{ $materia->tipo }}</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
 
     <div class="footer">
-        Generado el {{ \Carbon\Carbon::now()->format('d/m/Y') }}
+        Este documento es un reporte informativo del sistema SICOE | Página <span class="page-number"></span>
     </div>
 </body>
 </html>

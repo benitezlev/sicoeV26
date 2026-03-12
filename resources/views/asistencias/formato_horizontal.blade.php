@@ -66,6 +66,32 @@
             text-align: right;
             color: #666;
         }
+        .signature-table {
+            width: 100%;
+            margin-top: 50px;
+            border: none !important;
+        }
+        .signature-table td {
+            border: none !important;
+            padding: 10px;
+            vertical-align: bottom;
+            text-align: center;
+        }
+        .signature-box {
+            border-top: 1px solid #000;
+            width: 80%;
+            margin: 0 auto;
+            padding-top: 5px;
+        }
+        .seal-box {
+            border: 1px solid #999;
+            width: 110px;
+            height: 110px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -110,6 +136,7 @@
                 <th>Nombre Completo</th>
                 <th>CURP</th>
                 <th>Adscripción</th>
+                <th width="150px">FIRMA DEL ALUMNO</th>
                 @foreach($diasDelMes as $dia)
                     <th>
                         {{ $dia['abreviado'] }} {{ $dia['fecha']->format('d') }}<br>
@@ -124,7 +151,8 @@
                     <td>{{ $index + 1 }}</td>
                     <td>{{ strtoupper($alumno->paterno) }} {{ strtoupper($alumno->materno) }} {{ strtoupper($alumno->nombre) }}</td>
                     <td>{{ $alumno->curp }}</td>
-                    <td>{{ $alumno->adscripcion }}</td>
+                    <td style="text-align:left; font-size:7px;">{{ $alumno->adscripcion }}</td>
+                    <td style="height: 35px;"></td>
                     @foreach($diasDelMes as $dia)
                         <td></td>
                     @endforeach
@@ -133,15 +161,27 @@
         </tbody>
     </table>
 
-    <div class="firma-docente">
-        <p>__________________________________________</p>
-        <p><strong>Nombre y Firma del Docente</strong></p>
-    </div>
-
-    <div class="sello">
-        <p>__________________________________________</p>
-        <p><strong>Sello Institucional</strong></p>
-    </div>
+    <table class="signature-table">
+        <tr>
+            <td>
+                <div class="signature-box">
+                    <p style="margin: 0; font-size: 8px;"><strong>NOMBRE Y FIRMA</strong></p>
+                    <p style="margin: 0; font-size: 8px;">DOCENTE INSTRUCTOR</p>
+                </div>
+            </td>
+            <td>
+                <div class="seal-box">
+                    <p style="margin: 0; color: #999; font-size: 7px; padding-top: 45px;">SELLO INSTITUCIONAL</p>
+                </div>
+            </td>
+            <td>
+                <div class="signature-box">
+                    <p style="margin: 0; font-size: 8px;"><strong>NOMBRE Y FIRMA</strong></p>
+                    <p style="margin: 0; font-size: 8px;">COORDINADOR DE PLANTEL</p>
+                </div>
+            </td>
+        </tr>
+    </table>
 
     <div class="footer">
         Generado el {{ \Carbon\Carbon::now()->format('d/m/Y') }}
