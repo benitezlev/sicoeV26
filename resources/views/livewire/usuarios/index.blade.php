@@ -3,6 +3,7 @@
 use function Livewire\Volt\{state, computed, layout, usesPagination, on};
 use App\Models\User;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
 use Flux\Flux;
 
 usesPagination();
@@ -11,6 +12,16 @@ layout('layouts.app');
 state([
     'search' => '',
     'roleFilter' => '',
+    'userId' => null,
+    'nombre' => '',
+    'paterno' => '',
+    'materno' => '',
+    'email' => '',
+    'curp' => '',
+    'password' => '',
+    'selectedRoles' => [],
+    'tipo' => 'alumno',
+    'showUserModal' => false,
 ]);
 
 $users = computed(function () {
@@ -34,7 +45,80 @@ $users = computed(function () {
 
 $roles = computed(fn() => Role::all());
 
-$delete = function (User $user) {
+$edit = function ($id) {
+    $user = User::with('roles')->findOrFail($id);
+    
+    $this->resetErrorBag();
+    
+    $this->userId = $user->id;
+    $this->nombre = $user->nombre;
+    $this->paterno = $user->paterno;
+    $this->materno = $user->materno;
+    $this->email = $user->email;
+    $this->curp = $user->curp;
+    $this->tipo = $user->tipo ?? 'alumno';
+    $this->selectedRoles = $user->roles->pluck('name')->toArray();
+    $this->password = '';
+
+    $this->dispatch('modal-show', name: 'user-modal');
+};
+
+$create = function () {
+    $this->userId = null;
+    $this->nombre = '';
+    $this->paterno = '';
+    $this->materno = '';
+    $this->email = '';
+    $this->curp = '';
+    $this->password = '';
+    $this->tipo = 'alumno';
+    $this->selectedRoles = [];
+
+    $this->dispatch('modal-show', name: 'user-modal');
+};
+
+$save = function () {
+    $rules = [
+        'nombre' => 'required|string|max:255',
+        'paterno' => 'required|string|max:255',
+        'materno' => 'nullable|string|max:255',
+        'email' => 'required|email|unique:users,email,' . $this->userId,
+        'curp' => 'nullable|string|size:18',
+        'tipo' => 'required|string',
+    ];
+
+    if (!$this->userId) {
+        $rules['password'] = 'required|min:8';
+    }
+
+    $data = $this->validate($rules);
+
+    if ($this->password) {
+        $data['password'] = Hash::make($this->password);
+    }
+
+    $data['name'] = trim($this->nombre . ' ' . $this->paterno . ' ' . ($this->materno ?? ''));
+    $data['username'] = $this->email;
+
+    if ($this->userId) {
+        $user = User::findOrFail($this->userId);
+        $user->update($data);
+    } else {
+        $user = User::create($data);
+    }
+
+    $user->syncRoles($this->selectedRoles);
+
+    $this->dispatch('modal-hide', name: 'user-modal');
+    
+    Flux::toast(
+        heading: $this->userId ? 'Usuario actualizado' : 'Usuario creado',
+        variant: 'success',
+    );
+};
+
+$delete = function ($id) {
+    $user = User::findOrFail($id);
     if ($user->id === auth()->id()) {
         Flux::toast(
             heading: 'Error',
@@ -65,7 +149,7 @@ $delete = function (User $user) {
             <div class="flex gap-2">
                 @can('gestionar alumnos')
                 <flux:button href="{{ route('alumnos.importar') }}" icon="arrow-up-tray" variant="outline">Importar Alumnos</flux:button>
-                <flux:button variant="primary" icon="plus">Nuevo Usuario</flux:button>
+                <flux:button variant="primary" icon="plus" wire:click="create" wire:loading.attr="disabled">Nuevo Usuario</flux:button>
                 @endcan
             </div>
         </div>
@@ -134,7 +218,7 @@ $delete = function (User $user) {
 
                             <flux:table.cell align="center">
                                 <div class="flex gap-2 justify-center">
-                                    <flux:button variant="ghost" size="sm" icon="pencil-square" />
+                                    <flux:button variant="ghost" size="sm" icon="pencil-square" wire:click="edit({{ $user->id }})" wire:loading.attr="disabled" />
                                     
                                     @if($user->id !== auth()->id())
                                         <flux:modal.trigger name="confirm-delete-{{ $user->id }}">
@@ -179,4 +263,43 @@ $delete = function (User $user) {
             @endif
         </div>
     </div>
+
+    <!-- Modal Usuario (Crear/Editar) -->
+    <flux:modal name="user-modal" class="max-w-xl">
+        <form wire:submit="save" class="space-y-6">
+            <div wire:key="user-form-header-{{ $userId }}">
+                <flux:heading size="lg">{{ $userId ? 'Editar Usuario: '.$nombre : 'Nuevo Usuario' }}</flux:heading>
+                <flux:subheading>Completa la información del usuario en el sistema.</flux:subheading>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" wire:key="user-form-fields-{{ $userId }}">
+                <flux:input wire:model="nombre" label="Nombre(s)" placeholder="Ej. Juan" />
+                <flux:input wire:model="paterno" label="Apellido Paterno" placeholder="Ej. Pérez" />
+                <flux:input wire:model="materno" label="Apellido Materno" placeholder="Ej. López" />
+                <flux:input wire:model="curp" label="CURP" placeholder="Ej. ABCD123456..." maxlength="18" />
+                
+                <flux:input wire:model="email" label="Correo Electrónico" placeholder="gmail@ejemplo.com" />
+                <flux:input wire:model="password" type="password" label="Contraseña" :placeholder="$userId ? 'Dejar en blanco para no cambiar' : 'Mínimo 8 caracteres'" />
+                
+                <flux:select wire:model="tipo" label="Tipo de Usuario">
+                    <flux:select.option value="alumno">Alumno</flux:select.option>
+                    <flux:select.option value="docente">Docente</flux:select.option>
+                    <flux:select.option value="staff">Staff/Administrativo</flux:select.option>
+                </flux:select>
+
+                <flux:fieldset label="Asignar Roles">
+                    <div class="flex flex-wrap gap-4 mt-2">
+                        @foreach($this->roles as $role)
+                            <flux:checkbox wire:model="selectedRoles" :value="$role->name" :label="$role->name" />
+                        @endforeach
+                    </div>
+                </flux:fieldset>
+            </div>
+
+            <div class="flex gap-2 justify-end">
+                <flux:modal.close><flux:button variant="ghost">Cancelar</flux:button></flux:modal.close>
+                <flux:button type="submit" variant="primary">Guardar Usuario</flux:button>
+            </div>
+        </form>
+    </flux:modal>
 </div>
