@@ -21,6 +21,7 @@ state([
     'archivo' => null,
     'docentesAPI' => [],
     'searchDocente' => '',
+    'escaneoAsistencia' => null,
 ]);
 
 mount(function ($grupo) {
@@ -125,6 +126,27 @@ $subirDocumento = function () {
     Flux::toast(heading: 'Documento cargado al expediente', variant: 'success');
 };
 
+$subirAsistencia = function () {
+    $this->validate([
+        'escaneoAsistencia' => 'required|file|mimes:pdf,jpg,png,jpeg|max:10240',
+    ]);
+
+    $path = $this->escaneoAsistencia->store('asistencias', 'public');
+
+    App\Models\Asistencia::create([
+        'grupo_id' => $this->grupoId,
+        'plantel_id' => $this->grupo->plantel_id,
+        'archivo' => $path,
+        'estado' => 'pendiente',
+        'subido_at' => now(),
+        'fecha_inicio_real' => now(),
+    ]);
+
+    $this->reset('escaneoAsistencia');
+    $this->dispatch('modal-hide', name: 'modal-subir-asistencia');
+    Flux::toast(heading: 'Lista enviada', text: 'Tienes 3 horas para que un coordinador la valide.', variant: 'success');
+};
+
 ?>
 
 <div class="space-y-6">
@@ -142,6 +164,7 @@ $subirDocumento = function () {
         <div class="flex gap-2">
             <flux:button variant="ghost" icon="chart-bar" href="{{ route('grupos.metricas', $this->grupo->id) }}">Métricas</flux:button>
             <flux:button variant="ghost" icon="document-text" href="{{ route('asistencias.generar', $this->grupo->id) }}">Lista Asistencia</flux:button>
+            <flux:button variant="ghost" icon="arrow-up-tray" wire:click="$dispatch('modal-show', { name: 'modal-subir-asistencia' })">Subir Lista</flux:button>
             <flux:badge :color="match($this->grupo->state) { 'activo' => 'green', 'concluido' => 'blue', default => 'zinc' }">
                 {{ ucfirst($this->grupo->estado) }}
             </flux:badge>
@@ -368,6 +391,24 @@ $subirDocumento = function () {
             <div class="flex gap-2 justify-end">
                 <flux:modal.close><flux:button variant="ghost">Cancelar</flux:button></flux:modal.close>
                 <flux:button type="submit" variant="primary">Subir Archivo</flux:button>
+            </div>
+        </form>
+    </flux:modal>
+
+    <!-- Modal Subir Asistencia Escaneada -->
+    <flux:modal name="modal-subir-asistencia" class="max-w-md">
+        <form wire:submit="subirAsistencia" class="space-y-6">
+            <div>
+                <flux:heading size="lg">Subir Lista Escaneada</flux:heading>
+                <flux:subheading>Carga la lista de asistencia firmada para validación (Límite 3h).</flux:subheading>
+            </div>
+
+            <flux:input type="file" wire:model="escaneoAsistencia" />
+            <flux:error name="escaneoAsistencia" />
+
+            <div class="flex gap-2 justify-end">
+                <flux:modal.close><flux:button variant="ghost">Cancelar</flux:button></flux:modal.close>
+                <flux:button type="submit" variant="primary">Enviar a Validación</flux:button>
             </div>
         </form>
     </flux:modal>

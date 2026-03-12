@@ -13,6 +13,12 @@ class Asistencia extends Model
         'subido_at','validado_at','validado_por'
     ];
 
+    protected $casts = [
+        'subido_at' => 'datetime',
+        'validado_at' => 'datetime',
+        'fecha_inicio_real' => 'datetime',
+    ];
+
     // Relación con grupo
     public function grupo() {
         return $this->belongsTo(Grupo::class);

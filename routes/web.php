@@ -1,20 +1,10 @@
 <?php
 
-use App\Http\Controllers\AlumnoController;
-use App\Http\Controllers\RolController;
 use App\Http\Controllers\ImportacionController;
-use App\Http\Controllers\ConfiguracionInstitucionalController;
-use App\Http\Controllers\PlantelController;
-use App\Livewire\AlumnoImport;
 use Illuminate\Support\Facades\Route;
-use App\Livewire\ConfiguracionInstitucionalForm;
-use Spatie\Permission\Exceptions\Role as role;
 use App\Http\Controllers\ExportacionesController;
 use App\Http\Controllers\CursoController;
-use App\Http\Controllers\ExpedienteController;
-use App\Http\Controllers\DocumentoExpedienteController;
 use App\Http\Controllers\PanelMateriasController;
-use App\Http\Controllers\MateriaController;
 use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\AsistenciaController;
 use Livewire\Volt\Volt;
@@ -43,13 +33,6 @@ Route::middleware(['auth', 'role:admin_ti'])->prefix('admin')->group(function ()
     // Rutas Docentes
     Volt::route('/docente', 'docentes.index')->name('profesores');
 
-
-    //exportar errores duplicados en alumnos
-    Route::post('/alumnos/duplicados/exportar', [AlumnoController::class, 'exportarDuplicados'])
-    ->name('alumnos.exportar.duplicados');
-    // Exportar errores
-    Route::post('/alumnos/errores/exportar', [AlumnoController::class, 'exportarErrores'])
-    ->name('alumnos.exportar.errores');
 
     //importaciones
 
@@ -99,17 +82,20 @@ Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {
 
 
 // Grupo de rutas para asistencias
-Route::prefix('asistencias')->group(function () {
+Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {
+    Volt::route('/asistencias/dashboard', 'asistencias.index')->name('asistencias.index');
 
-    // Generar lista en PDF (para impresión)
-    Route::get('/generar/{grupo}', [AsistenciaController::class, 'generarLista'])
-        ->name('asistencias.generar');
+    Route::prefix('asistencias')->group(function () {
+        // Generar lista en PDF (para impresión)
+        Route::get('/generar/{grupo}', [AsistenciaController::class, 'generarLista'])
+            ->name('asistencias.generar');
 
-    // Subir lista escaneada
-    Route::post('/subir/{grupo}', [AsistenciaController::class, 'subirLista'])
-        ->name('asistencias.subir');
+        // Subir lista escaneada
+        Route::post('/subir/{grupo}', [AsistenciaController::class, 'subirLista'])
+            ->name('asistencias.subir');
 
-    // Validar lista subida
-    Route::post('/validar/{id}', [AsistenciaController::class, 'validarLista'])
-        ->name('asistencias.validar');
+        // Validar lista subida
+        Route::post('/validar/{id}', [AsistenciaController::class, 'validarLista'])
+            ->name('asistencias.validar');
+    });
 });

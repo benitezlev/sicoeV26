@@ -3,9 +3,9 @@
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
 ## 🕒 Últimos 3 Cambios Importantes
-1.  **Migración de Módulo de Grupos (Volt):** Se rediseñó completamente la gestión de grupos. Ahora incluye inscripción dinámica de alumnos, asignación de docentes desde API externa (SAD) y gestión de expedientes digitales, todo bajo la arquitectura Volt y Flux UI.
-2.  **Consolidación de Catálogo Académico:** Los módulos de Cursos y Materias fueron migrados a Volt, permitiendo la edición inline de tiras académicas y la generación profesional de reportes PDF institucionalizados.
-3.  **Refinamiento de Control de Acceso (RBAC):** Se implementó la restricción basada en el permiso `manage-personal`. Ahora, funciones críticas como la creación de nuevos elementos/usuarios están limitadas a Super Admins y Administradores de Entidad autorizados.
+1.  **Módulo de Asistencias (Volt):** Se implementó un dashboard centralizado para la gestión de listas de asistencia escaneadas. Incluye validación con límite de 3 horas, filtrado por plantel/estado y carga directa desde el detalle del grupo.
+2.  **Limpieza y Consolidación de Código:** Se eliminó el código heredado (controladores y vistas obsoletas) de los módulos de Grupos, Materias, Cursos y Alumnos. La lógica ahora reside al 100% en componentes Volt/Flux.
+3.  **PDF de Asistencia Profesional:** Se rediseñó el formato horizontal de la lista de asistencia añadiendo columna de firmas para alumnos, espacios para sellos institucionales y ajuste dinámico de calendarios.
 
 ## 🛠️ Contexto de Ejecución: Dependencias Críticas
 El proyecto está construido sobre el ecosistema modern de Laravel y requiere los siguientes componentes clave:
@@ -24,12 +24,13 @@ El proyecto está construido sobre el ecosistema modern de Laravel y requiere lo
 7.  **[COMPLETADO] Módulo de Docentes (Volt):** Sincronización con API SAD.
 8.  **[COMPLETADO] Módulo de Cursos y Materias (Volt):** Catálogo académico completo.
 9.  **[COMPLETADO] Módulo de Grupos (Volt):** Gestión de inscripciones, docentes y expedientes de grupo.
-10. **Refactorización de Asistencias:** Migrar la lógica de carga y validación de listas de asistencia a componentes Volt para mayor interactividad.
+10. **[COMPLETADO] Módulo de Asistencias (Volt):** Dashboard de validación y carga interactiva.
+11. **[COMPLETADO] Limpieza de Código Heredado:** Eliminación de controladores y vistas redundantes.
 
 ---
-*Última actualización: 2026-03-12 15:45:00*
+*Última actualización: 2026-03-12 16:45:00*
 
 ## ⏭️ Siguientes Pasos Priorizados
-1.  **Limpieza de Controladores:** Eliminar `GrupoController`, `MateriaController`, `CursoController` y `PanelMateriasController` tras verificar estabilidad de rutas Volt.
-2.  **Migración de Asistencias:** Crear componente Volt para la carga procesada de listas.
-3.  **Optimización de Búsqueda SAD:** Implementar caché para las respuestas de la API de docentes.
+1.  **Optimización de Búsqueda SAD:** Implementar caché para las respuestas de la API de docentes para mejorar latencia.
+2.  **Módulo de Calificaciones:** Iniciar el diseño del componente Volt para la captura de calificaciones por materia/grupo.
+3.  **Refinamiento de UI:** Revisar el modo oscuro en todos los nuevos componentes para asegurar contraste óptimo.
