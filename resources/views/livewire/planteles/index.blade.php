@@ -13,6 +13,7 @@ state([
     'tel' => '',
     'titular' => '',
     'editingPlantelId' => null,
+    'showPlantelModal' => false,
 ]);
 
 $planteles = computed(function () {
@@ -56,7 +57,7 @@ $save = function () {
     }
 
     $this->reset(['name', 'direccion', 'tel', 'titular', 'editingPlantelId']);
-    $this->dispatch('modal-close', name: 'plantel-modal');
+    $this->dispatch('modal-hide', name: 'plantel-modal');
 
     flux()->toast(
         heading: 'Correcto',
@@ -65,7 +66,10 @@ $save = function () {
     );
 };
 
-$edit = function (Plantel $plantel) {
+$edit = function ($id) {
+    $plantel = Plantel::findOrFail($id);
+    $this->resetErrorBag();
+    
     $this->editingPlantelId = $plantel->id;
     $this->name = $plantel->name;
     $this->direccion = $plantel->direccion;
@@ -85,7 +89,9 @@ $delete = function (Plantel $plantel) {
 };
 
 $resetForm = function () {
+    $this->resetErrorBag();
     $this->reset(['name', 'direccion', 'tel', 'titular', 'editingPlantelId']);
+    $this->dispatch('modal-show', name: 'plantel-modal');
 };
 
 ?>
@@ -97,9 +103,7 @@ $resetForm = function () {
         <div class="flex justify-between items-center">
             <flux:heading size="xl">Planteles Registrados</flux:heading>
             
-            <flux:modal.trigger name="plantel-modal">
-                <flux:button variant="primary" icon="plus" wire:click="resetForm">Nuevo Plantel</flux:button>
-            </flux:modal.trigger>
+            <flux:button variant="primary" icon="plus" wire:click="resetForm">Nuevo Plantel</flux:button>
         </div>
 
         <!-- Filtros y Búsqueda -->
@@ -137,7 +141,7 @@ $resetForm = function () {
                             </flux:table.cell>
                             <flux:table.cell align="center">
                                 <div class="flex gap-2 justify-center">
-                                    <flux:button variant="ghost" size="sm" icon="pencil-square" wire:click="edit({{ $plantel->id }})" />
+                                    <flux:button variant="ghost" size="sm" icon="pencil-square" wire:click="edit({{ $plantel->id }})" wire:loading.attr="disabled" />
                                     
                                     <flux:modal.trigger name="confirm-delete-{{ $plantel->id }}">
                                         <flux:button variant="ghost" size="sm" color="red" icon="trash" />
@@ -183,7 +187,7 @@ $resetForm = function () {
 
     <!-- Modal Formulario -->
     <flux:modal name="plantel-modal" class="max-w-lg">
-        <form wire:submit="save" class="space-y-6">
+        <form wire:submit="save" class="space-y-6" wire:key="plantel-form-{{ $editingPlantelId ?? 'new' }}">
             <div>
                 <flux:heading size="lg">{{ $editingPlantelId ? 'Editar Plantel' : 'Nuevo Plantel' }}</flux:heading>
                 <flux:subheading>Completa la información oficial del plantel educativo.</flux:subheading>

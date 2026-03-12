@@ -3,9 +3,9 @@
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
 ## 🕒 Últimos 3 Cambios Importantes
-1.  **CRUD Usuarios (Volt):** Se completó la funcionalidad de creación y edición mediante un modal unificado con sincronización de roles, validación de campos y manejo de contraseñas.
-2.  **Módulo de Asistencias (Volt):** Se implementó un dashboard centralizado para la gestión de listas de asistencia escaneadas con validación de 3 horas y filtrado dinámico.
-3.  **Limpieza y Consolidación de Código:** Se eliminó el código heredado de los módulos core, migrando la lógica al 100% a componentes Volt/Flux.
+1.  **Refinamiento de Modals (Usuarios y Planteles):** Se corrigió la reactividad y sincronización de datos en los componentes Volt de Usuarios y Planteles, asegurando la carga correcta de información mediante el uso de señales de despacho y claves de formulario dinámicas.
+2.  **CRUD Usuarios (Volt):** Se completó la funcionalidad de creación y edición mediante un modal unificado con sincronización de roles y validación.
+3.  **Módulo de Asistencias (Volt):** Se implementó un dashboard centralizado para la gestión de listas de asistencia escaneadas.
 
 ## 🛠️ Contexto de Ejecución: Dependencias Críticas
 El proyecto está construido sobre el ecosistema modern de Laravel y requiere los siguientes componentes clave:
@@ -18,7 +18,7 @@ El proyecto está construido sobre el ecosistema modern de Laravel y requiere lo
 1.  **[COMPLETADO] Migración a Laravel 12 & Flux UI:** Core y Layout actualizados.
 2.  **[COMPLETADO] Módulo de Configuración (Volt):** Migrado a Volt/Flux.
 3.  **[COMPLETADO] Módulo de Roles (Volt):** Migrado a Volt/Flux con gestión unificada.
-4.  **[COMPLETADO] Módulo de Planteles (Volt):** Migrado a Volt/Flux.
+4.  **[COMPLETADO] Módulo de Planteles (CRUD Funcional):** Corrección de reactividad y carga de datos.
 5.  **[COMPLETADO] Módulo de Usuarios (CRUD Funcional):** Corrección de modals y lógica de guardado/edición.
 6.  **[COMPLETADO] Módulo de Expedientes (Volt):** Gestión de documentos y validaciones.
 7.  **[COMPLETADO] Módulo de Docentes (Volt):** Sincronización con API SAD.
@@ -28,7 +28,7 @@ El proyecto está construido sobre el ecosistema modern de Laravel y requiere lo
 11. **[COMPLETADO] Limpieza de Código Heredado:** Eliminación de controladores y vistas redundantes.
 
 ---
-*Última actualización: 2026-03-12 17:10:00*
+*Última actualización: 2026-03-12 17:15:00*
 
 ## ⏭️ Siguientes Pasos Priorizados
 1.  **Módulo de Calificaciones:** Iniciar el diseño del componente Volt para la captura de calificaciones por materia/grupo.
