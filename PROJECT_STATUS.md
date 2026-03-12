@@ -28,9 +28,13 @@ El proyecto está construido sobre el ecosistema modern de Laravel y requiere lo
 11. **[COMPLETADO] Limpieza de Código Heredado:** Eliminación de controladores y vistas redundantes.
 
 ---
-*Última actualización: 2026-03-12 17:15:00*
+*Última actualización: 2026-03-12 17:30:00*
+
+## 🎯 Nueva Visión: Expansión Multi-Nivel (Seguridad Estatal, Municipal y CONOCER)
+Se ha definido un plan estratégico para escalar el sistema a estos tres niveles sin comprometer el rendimiento ni duplicar estructuras. Ver detalle en: [STRATEGIC_PLAN_MULTILEVEL.md](file:///var/www/sicoe/STRATEGIC_PLAN_MULTILEVEL.md)
 
 ## ⏭️ Siguientes Pasos Priorizados
-1.  **Módulo de Calificaciones:** Iniciar el diseño del componente Volt para la captura de calificaciones por materia/grupo.
-2.  **Optimización de Búsqueda SAD:** Implementar caché para las respuestas de la API de docentes para mejorar latencia.
-3.  **Refinamiento de UI:** Revisar el modo oscuro en todos los nuevos componentes para asegurar contraste óptimo.
+1.  **Migración a PostgreSQL:** Cambio de motor de base de datos para aprovechar el manejo de datos JSONB para campos dinámicos (Municipios/CONOCER).
+2.  **Rediseño del Modelo de Identidad:** Implementar el esquema de "Identidad Universal" en el modelo `User` para manejar perfiles flexibles.
+3.  **Módulo de Calificaciones:** Iniciar el diseño del componente Volt para la captura de calificaciones por materia/grupo.
+4.  **Refinamiento de UI:** Revisar el modo oscuro en todos los nuevos componentes para asegurar contraste óptimo.
