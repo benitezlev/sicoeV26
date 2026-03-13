@@ -125,7 +125,7 @@
             <strong>Hora de Inicio:</strong> {{ $grupo->hora_inicio ?? '09:00' }} |
             <strong>Hora de Término:</strong> {{ $grupo->hora_fin ?? '18:00' }} |
             <strong>Total de Horas:</strong> {{ $grupo->total_horas ?? '---' }} |
-            <strong>Grupo:</strong> {{ $grupo->numero ?? '---' }}
+            <strong>Grupo:</strong> {{ $grupo->nombre ?? '---' }}
         </p>
     </div>
 
