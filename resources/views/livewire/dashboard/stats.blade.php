@@ -47,6 +47,24 @@ $distribution = computed(function() {
         });
 });
 
+$groupStats = computed(function() {
+    return Grupo::where('estado', 'activo')
+        ->withCount(['alumnos' => function($q) {
+            $q->role('alumno');
+        }])
+        ->get()
+        ->map(function($grupo) {
+            $presentes = \App\Models\AsistenciaIndividual::where('grupo_id', $grupo->id)
+                ->whereDate('fecha', now())
+                ->where('estatus', 'presente')
+                ->count();
+            
+            $grupo->presentes = $presentes;
+            $grupo->porcentaje = $grupo->alumnos_count > 0 ? round(($presentes / $grupo->alumnos_count) * 100) : 0;
+            return $grupo;
+        });
+});
+
 ?>
 
 <div class="space-y-8">
@@ -127,24 +145,58 @@ $distribution = computed(function() {
     </div>
 
     @if($this->distribution)
-    <div class="bg-white dark:bg-zinc-800 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
-        <flux:heading size="lg" class="mb-6">Distribución por Nivel de Seguridad</flux:heading>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            @foreach($this->distribution as $dist)
-                <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 relative overflow-hidden">
-                    <div class="relative z-10">
-                        <span class="text-[10px] text-zinc-400 uppercase font-bold tracking-widest">{{ $dist->nivel ?? 'S/N' }}</span>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Distribución por Nivel -->
+        <div class="lg:col-span-1 bg-white dark:bg-zinc-800 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+            <flux:heading size="lg" class="mb-6">Estado de Fuerza por Nivel</flux:heading>
+            <div class="space-y-4">
+                @foreach($this->distribution as $dist)
+                    <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] text-zinc-400 uppercase font-bold tracking-widest">{{ $dist->nivel ?? 'S/N' }}</span>
+                            <span class="text-[10px] text-emerald-500 font-bold">{{ $dist->porcentaje }}% REAL</span>
+                        </div>
                         <div class="flex items-baseline gap-2">
-                            <div class="text-3xl font-black mt-1">{{ $dist->total }}</div>
-                            <div class="text-[10px] text-emerald-500 font-bold"> {{ $dist->presentes }} PRESENTE</div>
+                            <div class="text-2xl font-black">{{ $dist->presentes }}</div>
+                            <div class="text-xs text-zinc-400">/ {{ $dist->total }} elementos</div>
                         </div>
                         <div class="mt-2 w-full bg-zinc-200 dark:bg-zinc-700 h-1.5 rounded-full overflow-hidden">
                             <div class="bg-emerald-500 h-full transition-all duration-500" style="width: {{ $dist->porcentaje }}%"></div>
                         </div>
-                        <div class="mt-1 text-[9px] text-zinc-400 text-right font-bold">{{ $dist->porcentaje }}% FUERZA REAL</div>
                     </div>
-                </div>
-            @endforeach
+                @endforeach
+            </div>
+        </div>
+
+        <!-- Estado de Fuerza por Grupo -->
+        <div class="lg:col-span-2 bg-white dark:bg-zinc-800 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+            <flux:heading size="lg" class="mb-6">Operatividad por Grupo Académico</flux:heading>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @foreach($this->groupStats as $grupo)
+                    <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 group hover:border-blue-500 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-sm font-bold text-zinc-900 dark:text-white leading-tight">{{ $grupo->nombre }}</div>
+                                <div class="text-[9px] text-zinc-500 uppercase">{{ $grupo->periodo }} | {{ $grupo->curso?->nombre }}</div>
+                            </div>
+                            <flux:badge size="sm" :color="$grupo->porcentaje > 80 ? 'green' : 'amber'" variant="pill">
+                                {{ $grupo->porcentaje }}%
+                            </flux:badge>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1">
+                                <div class="flex justify-between text-[10px] mb-1">
+                                    <span class="text-zinc-500">Presentes: <b>{{ $grupo->presentes }}</b></span>
+                                    <span class="text-zinc-500">Total: <b>{{ $grupo->alumnos_count }}</b></span>
+                                </div>
+                                <div class="w-full bg-zinc-200 dark:bg-zinc-700 h-1 rounded-full overflow-hidden">
+                                    <div class="bg-blue-500 h-full transition-all duration-500" style="width: {{ $grupo->porcentaje }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
         </div>
     </div>
     @endif
