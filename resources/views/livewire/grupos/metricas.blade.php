@@ -17,6 +17,7 @@ class Metricas extends Component
 
     public function with(): array
     {
+        $grupo = $this->grupo;
         $totalAlumnos = $this->grupo->alumnos->count();
         $alumnosAlta = $this->grupo->alumnos()->wherePivot('estado', 'activo')->count();
         $alumnosBaja = $this->grupo->alumnos()->wherePivot('estado', 'baja')->count();
@@ -28,6 +29,7 @@ class Metricas extends Component
         $evaluacionesEmitidas = \App\Models\Calificacion::where('grupo_id', $this->grupo->id)->count();
 
         return compact(
+            'grupo',
             'totalAlumnos',
             'alumnosAlta',
             'alumnosBaja',
