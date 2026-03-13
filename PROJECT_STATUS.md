@@ -2,10 +2,10 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos 3 Cambios Importantes (2026-03-13 11:00)
-1.  **Estabilización de Jurisdicción (Bug Fix):** Se resolvió un error de recursión infinita en el trait `HasJurisdiction` y se implementó seguridad "null-safe" en el dashboard, permitiendo un funcionamiento fluido para administradores con cualquier tipo de adscripción.
-2.  **Dashboard de Estadísticas Jurisdiccionales:** Panel de control operativo con indicadores clave (Total usuarios, estatus de expedientes, promedios) que respeta estrictamente la jurisdicción del usuario.
-3.  **Kit de Presentación Ejecutiva:** Se consolidó el resumen del sistema (`RESUMEN_PRESENTACION_SICOE.md`) con diagramas de arquitectura y modelado de datos para soporte institucional.
+## 🕒 Últimos Cambios Importantes (2026-03-13 11:30)
+1.  **Aislamiento y Scopes Municipales:** Se implementaron scopes locales (`scopeDelMunicipio`, `scopeDelNivel`) y se formalizó la relación `users()` en el modelo `Municipio`, permitiendo consultas optimizadas para la administración descentralizada.
+2.  **Estabilización de Jurisdicción:** Resolución de bucles de recursión en el motor de filtrado global (HasJurisdiction) y blindaje del Dashboard ante valores nulos.
+3.  **Módulo Académico y Kit de Presentación:** Finalización de Actas PDF, Kárdex y resumen ejecutivo para la presentación institucional.
 
 ## 🛠️ Contexto de Ejecución: Dependencias Críticas
 - **Estándar:** `Laravel 12` + `Livewire 3 (Volt)` + `Flux UI`.

@@ -156,6 +156,20 @@ class User extends Authenticatable
         $query->whereHas('roles', fn($q) => $q->where('name', 'alumno'));
     }
 
+    public function scopeDelMunicipio($query, $municipioId)
+    {
+        if ($municipioId) {
+            return $query->where('municipio_id', $municipioId);
+        }
+    }
+
+    public function scopeDelNivel($query, $nivel)
+    {
+        if ($nivel) {
+            return $query->where('nivel', $nivel);
+        }
+    }
+
 
 
 
