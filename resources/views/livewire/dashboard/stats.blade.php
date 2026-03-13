@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Models\Expediente;
 use App\Models\Grupo;
 use App\Models\Calificacion;
+use Illuminate\Support\Facades\DB;
 
 $stats = computed(function() {
     return [
@@ -23,7 +24,7 @@ $stats = computed(function() {
 });
 
 $distribution = computed(function() {
-    if (!auth()->user()->hasRole('admin_ti')) return null;
+    if (!auth()->check() || !auth()->user()->hasRole('admin_ti')) return null;
 
     return User::withoutGlobalScopes()->select('nivel', DB::raw('count(*) as total'))
         ->groupBy('nivel')
@@ -98,11 +99,11 @@ $distribution = computed(function() {
             <div class="relative z-10">
                 <flux:heading size="sm" class="text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-bold">Jurisdicción</flux:heading>
                 <div class="mt-2 text-xl font-black truncate">
-                    {{ auth()->user()->hasRole('admin_ti') ? 'Acceso Total' : (auth()->user()->plantel->name ?? ucfirst(auth()->user()->nivel) ?? 'Personalizado') }}
+                    {{ auth()->user()?->hasRole('admin_ti') ? 'Acceso Total' : (auth()->user()?->plantel?->name ?? ucfirst(auth()->user()?->nivel) ?? 'Personalizado') }}
                 </div>
                 <div class="mt-4 text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
                     AUTENTICADO COMO: <br>
-                    <span class="text-white dark:text-zinc-900">{{ auth()->user()->roles->first()->name ?? 'Sin rol' }}</span>
+                    <span class="text-white dark:text-zinc-900">{{ auth()->user()?->roles?->first()?->name ?? 'Sin rol' }}</span>
                 </div>
             </div>
             <flux:icon name="shield-check" class="absolute -right-4 -bottom-4 w-24 h-24 text-zinc-800 dark:text-zinc-100 group-hover:scale-110 transition-transform opacity-50" />

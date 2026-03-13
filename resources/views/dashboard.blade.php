@@ -10,5 +10,7 @@
             <flux:heading size="lg" class="mb-4">Historial Reciente</flux:heading>
             <x-welcome />
         </div>
+
+        <livewire:project-status-card />
     </div>
 </x-app-layout>

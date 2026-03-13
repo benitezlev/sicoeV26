@@ -2,10 +2,10 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos 3 Cambios Importantes (2026-03-13 10:45)
-1.  **Aislamiento de Datos Maestro (Multi-tenancy):** Se implementó el trait `HasJurisdiction` que restringe automáticamente la visualización y creación de datos según el nivel, plantel o municipio del administrador. Se promovió `municipio_id` a columna estructural en `users` para optimizar este filtrado.
-2.  **Dashboard de Estadísticas Jurisdiccionales:** Nuevo panel de control con indicadores clave (Total usuarios, estatus de expedientes, promedios) que se adapta dinámicamente a la zona de competencia del usuario conectado.
-3.  **Gestión Académica y Documental:** Operatividad total del módulo de Calificaciones con actas PDF generables, Kárdex integrado en expedientes y herramienta de carga masiva de documentos por CURP.
+## 🕒 Últimos 3 Cambios Importantes (2026-03-13 11:00)
+1.  **Estabilización de Jurisdicción (Bug Fix):** Se resolvió un error de recursión infinita en el trait `HasJurisdiction` y se implementó seguridad "null-safe" en el dashboard, permitiendo un funcionamiento fluido para administradores con cualquier tipo de adscripción.
+2.  **Dashboard de Estadísticas Jurisdiccionales:** Panel de control operativo con indicadores clave (Total usuarios, estatus de expedientes, promedios) que respeta estrictamente la jurisdicción del usuario.
+3.  **Kit de Presentación Ejecutiva:** Se consolidó el resumen del sistema (`RESUMEN_PRESENTACION_SICOE.md`) con diagramas de arquitectura y modelado de datos para soporte institucional.
 
 ## 🛠️ Contexto de Ejecución: Dependencias Críticas
 - **Estándar:** `Laravel 12` + `Livewire 3 (Volt)` + `Flux UI`.
@@ -24,4 +24,4 @@ Este documento resume el estado actual del proyecto, los cambios recientes y las
 4.  **Optimización JSONB:** Crear índices específicos para las búsquedas dentro del perfil dinámico.
 
 ---
-*Última actualización: 2026-03-13 10:45:00*
+*Última actualización: 2026-03-13 11:00:00*

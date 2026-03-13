@@ -17,13 +17,17 @@ trait HasJurisdiction
         }
 
         static::addGlobalScope('jurisdiction', function (Builder $builder) {
-            $user = Auth::user();
-
-            if (!$user || $user->hasRole('admin_ti')) {
+            if (!Auth::hasUser()) {
                 return;
             }
 
-            $model = new static;
+            $user = Auth::user();
+
+            if ($user->hasRole('admin_ti')) {
+                return;
+            }
+
+            $model = $builder->getModel();
             $table = $model->getTable();
 
             // Lógica para filtrar Usuarios
