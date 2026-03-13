@@ -1,7 +1,6 @@
 <?php
 
-use function Livewire\Volt\{state, layout, rules, uses};
-use Livewire\WithFileUploads;
+use function Livewire\Volt\{state, layout, rules, usesFileUploads};
 use App\Models\User;
 use App\Models\Expediente;
 use App\Models\Importacion;
@@ -11,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Flux\Flux;
 
-uses([WithFileUploads::class]);
+usesFileUploads();
 
 layout('layouts.app');
 
@@ -24,11 +23,15 @@ state([
 ]);
 
 $importar = function () {
+    if (!$this->archivo) {
+        $this->addError('archivo', 'El archivo no se ha cargado correctamente o es demasiado pesado.');
+        return;
+    }
+
     $this->validate([
-        'archivo' => 'required|file|mimes:csv,xlsx,txt|max:2048', // Reducido a 2MB dinámicamente por límite de server
+        'archivo' => 'file|max:2048', 
     ], [
-        'archivo.max' => 'El archivo supera el límite de 2MB configurado en el servidor PHP.',
-        'archivo.mimes' => 'Solo se permiten archivos CSV o Excel (.xlsx).',
+        'archivo.max' => 'El archivo supera el límite de 2MB del servidor.',
     ]);
 
     $nombreOriginal = $this->archivo->getClientOriginalName();
