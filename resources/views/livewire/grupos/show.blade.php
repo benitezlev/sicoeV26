@@ -234,9 +234,15 @@ $subirAsistencia = function () {
                 <flux:icon name="chart-bar" class="size-4" /> Métricas (Próximamente)
             </a>
             <!-- Botón generar lista -->
-            <a href="#" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-zinc-900 border border-white hover:bg-zinc-100 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-not-allowed opacity-75">
-                <flux:icon name="document-text" class="size-4" /> Generar Lista (PDF)
-            </a>
+            @if($this->grupo->alumnos->count() > 0)
+                <a href="{{ route('asistencias.generar', $this->grupo->id) }}" target="_blank" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md">
+                    <flux:icon name="printer" class="size-4" /> Reporte Mensual de Fuerza (PDF)
+                </a>
+            @else
+                <button disabled title="Inscribe alumnos primero para imprimir el reporte" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-zinc-400 border border-white hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all cursor-not-allowed opacity-75">
+                    <flux:icon name="printer" class="size-4" /> Reporte Mensual de Fuerza (PDF)
+                </button>
+            @endif
             <!-- Botón subir lista (Modal) -->
             <button x-data x-on:click="$dispatch('modal-show', { name: 'modal-subir-asistencia' })" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 border border-blue-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-blue-500/20">
                 <flux:icon name="arrow-up-tray" class="size-4" /> Entregar Asistencia
