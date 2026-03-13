@@ -57,13 +57,15 @@ $alumnosDisponibles = computed(function () {
     $inscritosIds = $this->grupo->alumnos->pluck('id')->toArray();
     return User::where('tipo', 'alumno')
         ->whereNotIn('id', $inscritosIds)
+        ->with(['grupos' => fn($q) => $q->wherePivot('estado', 'activo')])
         ->when($this->searchAlumnos, function ($query) {
             $query->where(function ($q) {
-                $q->where('name', 'like', '%' . $this->searchAlumnos . '%')
+                $q->where('nombre', 'like', '%' . $this->searchAlumnos . '%')
+                  ->orWhere('paterno', 'like', '%' . $this->searchAlumnos . '%')
                   ->orWhere('curp', 'like', '%' . $this->searchAlumnos . '%');
             });
         })
-        ->limit(10)
+        ->limit(15)
         ->get();
 });
 
@@ -74,15 +76,38 @@ $asignarAlumnos = function () {
     }
 
     $grupo = Grupo::find($this->grupoId);
+    $procesados = 0;
+
     foreach ($this->selectedAlumnos as $alumnoId) {
+        $alumno = User::find($alumnoId);
+        
+        // Validar si el alumno ya está en un grupo activo
+        $inscripcionActiva = $alumno->grupos()->wherePivot('estado', 'activo')->first();
+        
+        if ($inscripcionActiva) {
+            Flux::toast(
+                heading: 'Conflicto detectado', 
+                text: "{$alumno->nombre} ya está activo en el grupo: {$inscripcionActiva->nombre}. Debe ser dado de baja antes de cambiar de grupo.", 
+                variant: 'danger'
+            );
+            continue;
+        }
+
+        // Vincular al grupo
         $grupo->alumnos()->syncWithoutDetaching([
             $alumnoId => ['fecha_asignacion' => now(), 'estado' => 'activo']
         ]);
+
+        // Sincronización dinámica de Plantel: El alumno hereda el plantel del grupo actual
+        $alumno->update(['plantel_id' => $grupo->plantel_id]);
+        $procesados++;
     }
 
-    $this->reset(['selectedAlumnos', 'searchAlumnos']);
-    $this->dispatch('modal-hide', name: 'modal-asignar-alumnos');
-    Flux::toast(heading: 'Inscripción Exitosa', text: 'Los alumnos fueron matriculados en el grupo.', variant: 'success');
+    if ($procesados > 0) {
+        $this->reset(['selectedAlumnos', 'searchAlumnos']);
+        $this->dispatch('modal-hide', name: 'modal-asignar-alumnos');
+        Flux::toast(heading: 'Inscripción Exitosa', text: "Se matricularon {$procesados} alumnos y se actualizó su adscripción al plantel del grupo.", variant: 'success');
+    }
 };
 
 $desvincularAlumno = function ($alumnoId) {
@@ -489,8 +514,13 @@ $subirAsistencia = function () {
                                         <input type="checkbox" wire:model="selectedAlumnos" value="{{ $a->id }}" class="size-4 rounded border-zinc-300 text-blue-600 shadow-sm focus:ring-blue-500" />
                                     </div>
                                     <div class="flex flex-col flex-1">
-                                        <span class="text-sm font-bold text-zinc-900 dark:text-white leading-tight uppercase">{{ $a->name }}</span>
-                                        <span class="text-[10px] text-zinc-500 font-mono mt-0.5">CURP: {{ $a->curp }}</span>
+                                        <span class="text-sm font-bold text-zinc-900 dark:text-white leading-tight uppercase">{{ $a->nombre_completo }}</span>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            <span class="text-[10px] text-zinc-500 font-mono">CURP: {{ $a->curp }}</span>
+                                            @if($a->grupos->count() > 0)
+                                                <span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[9px] font-black uppercase rounded leading-none border border-amber-200 dark:border-amber-800">Grupo Activo: {{ $a->grupos->first()->nombre }}</span>
+                                            @endif
+                                        </div>
                                     </div>
                                     <div class="text-[10px] text-zinc-400 invisible group-hover:visible font-bold">Seleccionar</div>
                                 </label>

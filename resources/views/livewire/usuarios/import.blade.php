@@ -107,7 +107,7 @@ $importar = function () {
                 'sexo' => $sexo,
                 'tipo' => $datos['tipo'] ?? 'alumno',
                 'nivel' => $nivel,
-                'plantel_id' => $datos['plantel_id'] ?? null,
+                'plantel_id' => null, // Asignación dinámica posterior
                 'perfil_data' => [
                     'municipio_id' => $datos['municipio_id'] ?? null,
                     'dependencia' => $datos['dependencia'] ?? null,
@@ -183,8 +183,8 @@ $exportarErrores = function () {
 };
 
 $descargarPlantilla = function () {
-    $columnas = ['curp', 'nombre', 'paterno', 'materno', 'sexo', 'email', 'password', 'cuip', 'cup', 'nivel', 'dependencia', 'adscripcion', 'plantel_id'];
-    $ejemplo = ['CURP123456HDFXYZ01', 'Juan', 'Perez', 'Garcia', 'Hombre', 'juan@ejemplo.com', 'PROVISIONAL123', 'CUIP999000', 'CUP001', 'estatal', 'POLICIA ESTATAL', 'SEGURIDAD PUBLICA', '1'];
+    $columnas = ['curp', 'nombre', 'paterno', 'materno', 'sexo', 'email', 'password', 'cuip', 'cup', 'nivel', 'dependencia', 'adscripcion'];
+    $ejemplo = ['CURP123456HDFXYZ01', 'Juan', 'Perez', 'Garcia', 'Hombre', 'juan@ejemplo.com', 'PROVISIONAL123', 'CUIP999000', 'CUP001', 'estatal', 'POLICIA ESTATAL', 'SEGURIDAD PUBLICA'];
     
     $contenido = implode(',', $columnas) . "\n" . implode(',', $ejemplo);
     
