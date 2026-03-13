@@ -103,19 +103,40 @@ $buscarDocentesAPI = function () {
         if ($response->successful()) {
             $this->docentesAPI = $response->json()['data'] ?? [];
         } else {
-             $this->docentesAPI = [
-                 ['id' => 1, 'name' => 'Juan Pérez (Mock)', 'cargo' => 'Titular A', 'email' => 'juan@sad.com'],
-                 ['id' => 2, 'name' => 'Ana Gómez (Mock)', 'cargo' => 'Asignatura', 'email' => 'ana@sad.com'],
+             $mockData = [
+                 ['id' => 1, 'name' => 'Juan Pérez', 'cargo' => 'Titular A', 'email' => 'juan@sad.com'],
+                 ['id' => 2, 'name' => 'Ana Gómez', 'cargo' => 'Asignatura', 'email' => 'ana@gomez.com'],
+                 ['id' => 3, 'name' => 'Carlos Barrera', 'cargo' => 'Titular B', 'email' => 'barrera@sad.com'],
+                 ['id' => 4, 'name' => 'Eduardo Medina', 'cargo' => 'Sustituto', 'email' => 'emedina@sad.com'],
              ];
-             Flux::toast(heading: 'Aviso', text: 'Mostrando datos de prueba, no se pudo conectar al SAD.', variant: 'warning');
+
+             if (!empty($this->searchDocente)) {
+                 $this->docentesAPI = array_values(array_filter($mockData, function($d) {
+                     return stripos($d['name'], $this->searchDocente) !== false || stripos($d['cargo'], $this->searchDocente) !== false;
+                 }));
+             } else {
+                 $this->docentesAPI = $mockData;
+             }
+
+             Flux::toast(heading: 'Aviso', text: 'Mostrando datos locales de prueba debido a un error de conexión con SAD.', variant: 'warning');
         }
     } catch (\Exception $e) {
-        // Mock data fallback for dev
-         $this->docentesAPI = [
-             ['id' => 1, 'name' => 'Juan Pérez (Mock)', 'cargo' => 'Titular A', 'email' => 'juan@sad.com'],
-             ['id' => 2, 'name' => 'Ana Gómez (Mock)', 'cargo' => 'Asignatura', 'email' => 'ana@sad.com'],
-         ];
-         Flux::toast(heading: 'Modo Local', text: 'Conexión SAD fallida. Simulando directorio local.', variant: 'warning');
+        $mockData = [
+            ['id' => 1, 'name' => 'Juan Pérez', 'cargo' => 'Titular A', 'email' => 'juan@sad.com'],
+            ['id' => 2, 'name' => 'Ana Gómez', 'cargo' => 'Asignatura', 'email' => 'ana@gomez.com'],
+            ['id' => 3, 'name' => 'Carlos Barrera', 'cargo' => 'Titular B', 'email' => 'barrera@sad.com'],
+            ['id' => 4, 'name' => 'Eduardo Medina', 'cargo' => 'Sustituto', 'email' => 'emedina@sad.com'],
+        ];
+
+        if (!empty($this->searchDocente)) {
+            $this->docentesAPI = array_values(array_filter($mockData, function($d) {
+                return stripos($d['name'], $this->searchDocente) !== false || stripos($d['cargo'], $this->searchDocente) !== false;
+            }));
+        } else {
+            $this->docentesAPI = $mockData;
+        }
+
+        Flux::toast(heading: 'Modo Local', text: 'Conexión SAD fallida. Simulando directorio local.', variant: 'warning');
     }
 };
 
@@ -516,7 +537,7 @@ $subirAsistencia = function () {
 
             <div class="flex gap-2 shrink-0">
                 <div class="relative w-full">
-                    <input type="text" wire:model.defer="searchDocente" wire:keydown.enter="buscarDocentesAPI" placeholder="Nombre del docente..." class="w-full pl-10 pr-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm">
+                    <input type="text" wire:model.live.debounce.300ms="searchDocente" wire:keydown.enter="buscarDocentesAPI" placeholder="Nombre del docente..." class="w-full pl-10 pr-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm">
                     <flux:icon name="magnifying-glass" class="absolute left-3 top-2.5 size-5 text-zinc-400" />
                 </div>
                 <flux:button variant="primary" wire:click="buscarDocentesAPI">Buscar</flux:button>
