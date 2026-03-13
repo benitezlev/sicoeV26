@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('planteles', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('direccion');
-            $table->string('tel');
-            $table->string('titular');
+            $table->string('name')->nullable();
+            $table->string('direccion')->nullable();
+            $table->string('tel')->nullable();
+            $table->string('titular')->nullable();
 
             $table->timestamps();
         });
