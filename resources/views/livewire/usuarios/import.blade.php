@@ -25,7 +25,10 @@ state([
 
 $importar = function () {
     $this->validate([
-        'archivo' => 'required|file|mimes:csv,xlsx|max:10240',
+        'archivo' => 'required|file|mimes:csv,xlsx,txt|max:2048', // Reducido a 2MB dinámicamente por límite de server
+    ], [
+        'archivo.max' => 'El archivo supera el límite de 2MB configurado en el servidor PHP.',
+        'archivo.mimes' => 'Solo se permiten archivos CSV o Excel (.xlsx).',
     ]);
 
     $nombreOriginal = $this->archivo->getClientOriginalName();
@@ -241,12 +244,21 @@ $resetear = function () {
                     </flux:field>
 
                     <div class="flex justify-end gap-2">
-                        <flux:button type="submit" variant="primary" icon="arrow-up-tray" wire:loading.attr="disabled">
-                            <span wire:loading.remove>Comenzar Importación</span>
-                            <span wire:loading>Procesando...</span>
+                        <flux:button type="submit" variant="primary" icon="arrow-up-tray" wire:loading.attr="disabled" wire:target="archivo, importar">
+                            <span wire:loading.remove wire:target="importar">Comenzar Importación</span>
+                            <span wire:loading wire:target="importar font-bold">Procesando registros...</span>
+                            <span wire:loading wire:target="archivo" class="text-[10px] animate-pulse">Subiendo archivo al servidor...</span>
                         </flux:button>
                     </div>
                 </form>
+            </div>
+            
+            <div class="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-2xl flex gap-4 items-center">
+                <flux:icon name="exclamation-triangle" class="text-amber-500 shrink-0" />
+                <div class="text-[11px] text-amber-800 dark:text-amber-400 leading-tight">
+                    <p class="font-bold uppercase tracking-wider mb-1">Nota de Capacidad de Servidor</p>
+                    Tu servidor PHP actual tiene un límite de <b>2.0 MB</b> por archivo. Si tu lista de alumnos es muy extensa, te recomendamos subirla en bloques pequeños o contactar a soporte para incrementar el <code>upload_max_filesize</code>.
+                </div>
             </div>
         @else
             <!-- Resultados de la Importación -->
