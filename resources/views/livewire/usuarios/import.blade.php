@@ -182,6 +182,18 @@ $exportarErrores = function () {
     }, 'errores_importacion_' . now()->format('YmdHis') . '.csv');
 };
 
+$descargarPlantilla = function () {
+    $columnas = ['curp', 'nombre', 'paterno', 'materno', 'sexo', 'email', 'password', 'cuip', 'cup', 'nivel', 'dependencia', 'adscripcion', 'plantel_id'];
+    $ejemplo = ['CURP123456HDFXYZ01', 'Juan', 'Perez', 'Garcia', 'Hombre', 'juan@ejemplo.com', 'PROVISIONAL123', 'CUIP999000', 'CUP001', 'estatal', 'POLICIA ESTATAL', 'SEGURIDAD PUBLICA', '1'];
+    
+    $contenido = implode(',', $columnas) . "\n" . implode(',', $ejemplo);
+    
+    return response()->streamDownload(function () use ($contenido) {
+        echo "\xEF\xBB\xBF"; // UTF-8 BOM
+        echo $contenido;
+    }, 'plantilla_importacion_alumnos.csv');
+};
+
 $resetear = function () {
     $this->reset(['archivo', 'duplicados', 'errores', 'insertados', 'importacionFinalizada']);
 };
@@ -192,9 +204,15 @@ $resetear = function () {
     <x-slot name="header">Importación de Alumnos</x-slot>
 
     <div class="space-y-6">
-        <div class="flex items-center gap-4">
-            <flux:button href="{{ route('alumnos.index') }}" variant="ghost" icon="arrow-left" size="sm" />
-            <flux:heading size="xl">Importar Alumnos Masivamente</flux:heading>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <flux:button href="{{ route('alumnos.index') }}" variant="ghost" icon="arrow-left" size="sm" />
+                <flux:heading size="xl">Importar Alumnos Masivamente</flux:heading>
+            </div>
+            
+            <flux:button wire:click="descargarPlantilla" variant="ghost" icon="document-arrow-down" size="sm" class="font-bold border-dashed border-zinc-200 dark:border-zinc-700">
+                Descargar Plantilla CSV
+            </flux:button>
         </div>
 
         @if (!$importacionFinalizada)
