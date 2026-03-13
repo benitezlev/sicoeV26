@@ -27,6 +27,7 @@ graph TD
     C1[Captura de Calificaciones]
     C2[Generación de Actas PDF]
     C3[Kárdex del Alumno]
+    C4[Asistencia y Estado de Fuerza]
     end
 
     subgraph "Expediente"
@@ -39,7 +40,7 @@ graph TD
 ### Detalle de Módulos Clave:
 *   **Identidad Universal:** Permite el registro flexible de perfiles mediante campos dinámicos (JSONB), soportando datos específicos para cada tipo de corporación sin redundancia en la base de datos.
 *   **Jurisdicción (Jurisdiction):** Motor de seguridad que filtra automáticamente la información. Un administrador municipal solo ve a sus elementos; un administrador estatal ve los suyos. El Super Admin tiene visión global.
-*   **Control Académico:** Gestión de grupos, materias y unidades evaluativas con capacidad de firma digital y actas institucionales.
+*   **Control Académico y Operativo:** Gestión de grupos, materias y unidades evaluativas. Incluye el nuevo módulo de **Estado de Fuerza** para monitoreo de asistencias en tiempo real y **Calendario Flexible** (Sábados/Domingos).
 
 ---
 
@@ -96,8 +97,10 @@ erDiagram
 ## 4. Diferenciadores Tecnológicos
 1.  **Tecnología de Vanguardia:** Construido con Laravel 12, Livewire 3 (Volt) y Alpine.js para una experiencia de usuario fluida sin recargas de página (SPA feeling).
 2.  **Seguridad por Diseño:** Implementación de Trait `HasJurisdiction` que inyecta automáticamente filtros en todas las consultas de la aplicación.
-3.  **Eficiencia Operativa:** Herramientas de carga masiva de archivos que reducen el tiempo de integración de expedientes en un 90% mediante reconocimiento de patrones en nombres de archivos.
-4.  **Reporting Profesional:** Motor de generación de PDF integrado para documentos oficiales con estándares gubernamentales.
+3.  **Eficiencia Operativa:** Herramientas de carga masiva de archivos que reducen el tiempo de integración de expedientes en un 90%.
+4.  **Estado de Fuerza en Tiempo Real:** Dashboard ejecutivo que permite visualizar la operatividad por Nivel, Plantel y Grupo mediante pases de lista sincronizados.
+5.  **Calendario Flexible:** Soportado para regímenes de formación intensivos que incluyen sábados y domingos de forma nativa.
+6.  **Reporting Profesional:** Motor de generación de PDF integrado para documentos oficiales y gestión de asistencias.
 
 ---
 

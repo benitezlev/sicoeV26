@@ -2,6 +2,7 @@
 
 use function Livewire\Volt\{state, computed, layout};
 use Spatie\Permission\Models\Role;
+use Flux\Flux;
 
 layout('layouts.app');
 
@@ -17,10 +18,11 @@ $save = function () {
     Role::create(['name' => $this->name]);
 
     $this->reset('name');
-    $this->dispatch('modal-close', name: 'create-role');
+    unset($this->roles);
+    $this->dispatch('modal-hide', name: 'create-role');
     $this->dispatch('role-created');
 
-    flux()->toast(
+    Flux::toast(
         heading: 'Rol creado',
         text: "El rol {$this->name} ha sido creado exitosamente.",
         variant: 'success',
@@ -29,7 +31,7 @@ $save = function () {
 
 $delete = function (Role $role) {
     if ($role->name === 'admin_ti') {
-        flux()->toast(
+        Flux::toast(
             heading: 'Error',
             text: 'No se puede eliminar el rol de Super Administrador.',
             variant: 'danger',
@@ -40,7 +42,7 @@ $delete = function (Role $role) {
     $role->delete();
     $this->dispatch('role-deleted');
 
-    flux()->toast(
+    Flux::toast(
         heading: 'Rol eliminado',
         text: 'El rol ha sido eliminado correctamente.',
     );

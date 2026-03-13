@@ -2,6 +2,7 @@
 
 use function Livewire\Volt\{state, computed, layout, usesPagination};
 use App\Models\Plantel;
+use Flux\Flux;
 
 usesPagination();
 layout('layouts.app');
@@ -14,6 +15,10 @@ state([
     'titular' => '',
     'editingPlantelId' => null,
     'showPlantelModal' => false,
+    
+    // Migración de datos
+    'plantelToDelete' => null,
+    'targetPlantelId' => '',
 ]);
 
 $planteles = computed(function () {
@@ -57,9 +62,10 @@ $save = function () {
     }
 
     $this->reset(['name', 'direccion', 'tel', 'titular', 'editingPlantelId']);
+    unset($this->planteles);
     $this->dispatch('modal-hide', name: 'plantel-modal');
 
-    flux()->toast(
+    Flux::toast(
         heading: 'Correcto',
         text: $message,
         variant: 'success',
@@ -80,12 +86,57 @@ $edit = function ($id) {
 };
 
 $delete = function (Plantel $plantel) {
-    $plantel->delete();
-    
-    flux()->toast(
-        heading: 'Plantel eliminado',
-        text: 'El plantel ha sido borrado del sistema.',
-    );
+    // Verificar dependencias
+    $usersCount = $plantel->users()->count();
+    $gruposCount = \App\Models\Grupo::where('plantel_id', $plantel->id)->count();
+
+    if ($usersCount > 0 || $gruposCount > 0) {
+        $this->plantelToDelete = $plantel;
+        $this->targetPlantelId = '';
+        $this->dispatch('modal-show', name: 'migration-modal');
+        return;
+    }
+
+    try {
+        $plantel->delete();
+        unset($this->planteles);
+        Flux::toast(heading: 'Plantel eliminado', text: 'El plantel ha sido borrado del sistema.');
+    } catch (\Exception $e) {
+        Flux::toast(heading: 'Error', text: 'No se pudo eliminar el plantel.', variant: 'danger');
+    }
+};
+
+$migrateAndDelete = function () {
+    $this->validate([
+        'targetPlantelId' => 'required|exists:planteles,id|different:plantelToDelete.id',
+    ]);
+
+    $oldId = $this->plantelToDelete->id;
+    $newId = $this->targetPlantelId;
+
+    try {
+        \Illuminate\Support\Facades\DB::transaction(function() use ($oldId, $newId) {
+            // Migrar Usuarios
+            \App\Models\User::where('plantel_id', $oldId)->update(['plantel_id' => $newId]);
+            
+            // Migrar Grupos
+            \App\Models\Grupo::where('plantel_id', $oldId)->update(['plantel_id' => $newId]);
+
+            // Eliminar Plantel
+            Plantel::find($oldId)->delete();
+        });
+
+        $this->dispatch('modal-hide', name: 'migration-modal');
+        unset($this->planteles);
+        
+        Flux::toast(
+            heading: 'Migración exitosa',
+            text: "Se trasladaron los elementos al nuevo plantel y se eliminó el anterior.",
+            variant: 'success'
+        );
+    } catch (\Exception $e) {
+        Flux::toast(heading: 'Error técnico', text: 'Ocurrió un error durante la migración.', variant: 'danger');
+    }
 };
 
 $resetForm = function () {
@@ -226,6 +277,35 @@ $resetForm = function () {
                     <flux:button variant="ghost">Cancelar</flux:button>
                 </flux:modal.close>
                 <flux:button type="submit" variant="primary">{{ $editingPlantelId ? 'Guardar Cambios' : 'Crear Plantel' }}</flux:button>
+            </div>
+        </form>
+    </flux:modal>
+    <!-- Modal de Migración -->
+    <flux:modal name="migration-modal" class="max-w-md">
+        <form wire:submit="migrateAndDelete" class="space-y-6 text-start">
+            <div>
+                <flux:heading size="lg">Migración de Datos Necesaria</flux:heading>
+                <flux:subheading>
+                    El plantel <b>{{ $plantelToDelete?->name }}</b> tiene usuarios o grupos activos. 
+                    Selecciona a dónde deseas migrarlos para poder proceder con la eliminación.
+                </flux:subheading>
+            </div>
+
+            <flux:field>
+                <flux:label>Plantel de Destino</flux:label>
+                <flux:select wire:model="targetPlantelId" placeholder="Selecciona el nuevo plantel...">
+                    @foreach(\App\Models\Plantel::where('id', '!=', $plantelToDelete?->id)->get() as $p)
+                        <flux:select.option value="{{ $p->id }}">{{ $p->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+                <flux:error name="targetPlantelId" />
+            </flux:field>
+
+            <div class="flex gap-2 justify-end">
+                <flux:modal.close>
+                    <flux:button variant="ghost">Cancelar</flux:button>
+                </flux:modal.close>
+                <flux:button type="submit" variant="primary">Migrar y Eliminar</flux:button>
             </div>
         </form>
     </flux:modal>

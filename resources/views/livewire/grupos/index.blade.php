@@ -117,6 +117,7 @@ $guardar = function () {
         Flux::toast(heading: 'Grupo creado correctamente', variant: 'success');
     }
 
+    unset($this->grupos);
     $this->dispatch('modal-hide', name: 'modal-grupo');
 };
 
