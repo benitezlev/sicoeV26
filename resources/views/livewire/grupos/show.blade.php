@@ -229,9 +229,9 @@ $subirAsistencia = function () {
             </div>
         </div>
         <div class="flex flex-wrap gap-3 xl:gap-2 relative z-10 w-full xl:w-auto justify-start xl:justify-end">
-            <!-- Simulación de botón Métricas (link normal ya que no hay vista) -->
-            <a href="#" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-not-allowed opacity-50">
-                <flux:icon name="chart-bar" class="size-4" /> Métricas (Próximamente)
+            <!-- Botón Métricas -->
+            <a href="{{ route('grupos.metricas', $this->grupo->id) }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all backdrop-blur-sm shadow-md">
+                <flux:icon name="chart-bar" class="size-4" /> Ver Analítica del Grupo
             </a>
             <!-- Botón generar lista -->
             @if($this->grupo->alumnos->count() > 0)

@@ -82,8 +82,8 @@ Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {
     Volt::route('/grupos', 'grupos.index')->name('grupos.index');
     Volt::route('/grupos/{grupo}', 'grupos.show')->name('grupos.show');
     
-    // Métricas del grupo (Mantener controller si tiene lógica compleja de vista, o migrar luego)
-    Route::get('/grupos/{grupo}/metricas', [GrupoController::class, 'metricas'])->name('grupos.metricas');
+    // Métricas del grupo en Volt
+    Volt::route('/grupos/{grupo}/metricas', 'grupos.metricas')->name('grupos.metricas');
 });
 
 
