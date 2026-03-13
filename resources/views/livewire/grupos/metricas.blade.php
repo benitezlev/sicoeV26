@@ -12,12 +12,11 @@ class Metricas extends Component
 
     public function mount(Grupo $grupo)
     {
-        $this->grupo = $grupo->load(['curso', 'alumnos', 'expediente', 'plantel']);
+        $this->grupo = $this->grupo->load(['curso', 'alumnos', 'expediente', 'plantel']);
     }
 
     public function with(): array
     {
-        $grupo = $this->grupo;
         $totalAlumnos = $this->grupo->alumnos->count();
         $alumnosAlta = $this->grupo->alumnos()->wherePivot('estado', 'activo')->count();
         $alumnosBaja = $this->grupo->alumnos()->wherePivot('estado', 'baja')->count();
@@ -29,7 +28,6 @@ class Metricas extends Component
         $evaluacionesEmitidas = \App\Models\Calificacion::where('grupo_id', $this->grupo->id)->count();
 
         return compact(
-            'grupo',
             'totalAlumnos',
             'alumnosAlta',
             'alumnosBaja',
@@ -51,11 +49,11 @@ class Metricas extends Component
                 </div>
                 <div class="text-xs text-zinc-500 font-medium flex gap-2 items-center">
                     <flux:icon name="chart-pie" variant="mini" class="text-blue-500" />
-                    Analítica procesada para el grupo de <strong class="uppercase text-blue-600 dark:text-blue-400">{{ $grupo->nombre }}</strong>
+                    Analítica procesada para el grupo de <strong class="uppercase text-blue-600 dark:text-blue-400">{{ $this->grupo->nombre }}</strong>
                 </div>
             </div>
             
-            <flux:button href="{{ route('grupos.show', $grupo->id) }}" variant="ghost" icon="arrow-left" class="text-[10px] uppercase font-black tracking-widest">
+            <flux:button href="{{ route('grupos.show', $this->grupo->id) }}" variant="ghost" icon="arrow-left" class="text-[10px] uppercase font-black tracking-widest">
                 Retornar al Expediente
             </flux:button>
         </div>
@@ -75,15 +73,15 @@ class Metricas extends Component
                     <div class="space-y-4 relative z-10">
                         <div>
                             <span class="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Programa Educativo</span>
-                            <span class="block text-sm font-black text-zinc-800 dark:text-zinc-200 leading-tight mt-0.5">{{ $grupo->curso->nombre }}</span>
+                            <span class="block text-sm font-black text-zinc-800 dark:text-zinc-200 leading-tight mt-0.5">{{ $this->grupo->curso->nombre }}</span>
                         </div>
                         <div>
                             <span class="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Sede Asignada</span>
-                            <span class="block text-xs font-bold text-zinc-700 dark:text-zinc-300">{{ $grupo->plantel->name ?? $grupo->plantel->nombre }}</span>
+                            <span class="block text-xs font-bold text-zinc-700 dark:text-zinc-300">{{ $this->grupo->plantel->name ?? $this->grupo->plantel->nombre }}</span>
                         </div>
                         <div>
                             <span class="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Periodo Académico</span>
-                            <span class="block text-xs font-mono font-bold text-zinc-600 dark:text-zinc-400">{{ $grupo->periodo }}</span>
+                            <span class="block text-xs font-mono font-bold text-zinc-600 dark:text-zinc-400">{{ $this->grupo->periodo }}</span>
                         </div>
                     </div>
                 </div>
@@ -197,7 +195,7 @@ class Metricas extends Component
                                     <span class="text-[10px] text-zinc-500">Avance procedimental SICOE</span>
                                 </div>
                             </div>
-                            <span class="text-[10px] px-3 py-1 font-black bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg uppercase tracking-widest">{{ $grupo->estado }}</span>
+                            <span class="text-[10px] px-3 py-1 font-black bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg uppercase tracking-widest">{{ $this->grupo->estado }}</span>
                         </div>
                     </div>
                     
