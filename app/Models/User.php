@@ -187,4 +187,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Asistencia::class);
     }
+
+    public function grupos()
+    {
+        return $this->belongsToMany(Grupo::class, 'grupo_user')->withPivot('estado', 'fecha_asignacion');
+    }
 }

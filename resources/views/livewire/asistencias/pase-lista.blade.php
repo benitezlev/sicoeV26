@@ -1,6 +1,7 @@
 <?php
 
-use function Livewire\Volt\{state, computed, updated};
+use function Livewire\Volt\{state, computed, updated, layout};
+layout('layouts.app');
 use App\Models\Grupo;
 use App\Models\User;
 use App\Models\AsistenciaIndividual;
@@ -8,28 +9,28 @@ use App\Models\Asistencia;
 use Carbon\Carbon;
 
 state([
-    'grupoId' => null,
+    'grupoId' => '',
     'fecha' => date('Y-m-d'),
-    'asistencias' => [], // [user_id => estatus]
+    'asistencias' => [],
     'observaciones' => [],
 ]);
 
-$grupos = computed(fn() => Grupo::all());
+$grupos = computed(fn() => \App\Models\Grupo::all());
 
 $cargaAsistencias = function () {
     if (!$this->grupoId) return;
 
-    $alumnos = User::whereHas('roles', fn($q) => $q->where('name', 'alumno'))
-        ->whereHas('grupos', fn($q) => $q->where('grupo_id', $this->grupoId))
+    $this->asistencias = [];
+    $this->observaciones = [];
+
+    $alumnos = User::role('alumno')
+        ->whereHas('grupos', fn($q) => $q->where('grupos.id', $this->grupoId))
         ->get();
 
     $registrosExistentes = AsistenciaIndividual::where('grupo_id', $this->grupoId)
         ->whereDate('fecha', $this->fecha)
         ->get()
         ->keyBy('user_id');
-
-    $this->asistencias = [];
-    $this->observaciones = [];
 
     foreach ($alumnos as $alumno) {
         $this->asistencias[$alumno->id] = $registrosExistentes->has($alumno->id) 
@@ -42,6 +43,8 @@ $cargaAsistencias = function () {
 };
 
 $save = function () {
+    if (!$this->grupoId) return;
+    
     foreach ($this->asistencias as $userId => $estatus) {
         AsistenciaIndividual::updateOrCreate(
             ['user_id' => $userId, 'grupo_id' => $this->grupoId, 'fecha' => $this->fecha],
@@ -49,22 +52,18 @@ $save = function () {
         );
     }
 
-    Flux::toast(
-        heading: 'Pase de lista guardado',
-        text: 'El Estado de Fuerza ha sido actualizado.',
-        variant: 'success',
-    );
+    $this->dispatch('toast', heading: 'Estado de Fuerza actualizado', variant: 'success');
 };
 
 $listadoAlumnos = computed(function() {
     if (!$this->grupoId) return collect();
 
-    // Obtener alumnos con el estado en que están en el grupo (pivot)
-    return User::whereHas('grupos', fn($q) => $q->where('grupo_id', $this->grupoId))
-        ->with(['grupos' => fn($q) => $q->where('grupo_id', $this->grupoId)])
+    return User::role('alumno')
+        ->whereHas('grupos', fn($q) => $q->where('grupos.id', $this->grupoId))
+        ->with(['grupos' => fn($q) => $q->where('grupos.id', $this->grupoId)])
         ->get()
         ->map(function($user) {
-            $user->estado_en_grupo = $user->grupos->first()->pivot->estado;
+            $user->estado_en_grupo = $user->grupos->first()->pivot->estado ?? 'activo';
             return $user;
         });
 });
@@ -76,7 +75,7 @@ $listadoAlumnos = computed(function() {
         <div class="flex flex-col md:flex-row gap-4 items-end">
             <flux:select wire:model.live="grupoId" label="Seleccionar Grupo" placeholder="Escoge un grupo..." class="flex-1">
                 @foreach($this->grupos as $grupo)
-                    <flux:select.option value="{{ $grupo->id }}">{{ $grupo->nombre }} ({{ $grupo->periodo }})</flux:select.option>
+                    <flux:select.option value="{{ (string)$grupo->id }}">{{ $grupo->nombre }} ({{ $grupo->periodo }})</flux:select.option>
                 @endforeach
             </flux:select>
 
@@ -84,9 +83,13 @@ $listadoAlumnos = computed(function() {
 
             <flux:button variant="primary" wire:click="cargaAsistencias" icon="magnifying-glass">Cargar Lista</flux:button>
         </div>
+        
+        @if(config('app.debug'))
+            <div class="mt-2 text-[10px] text-zinc-400">DEBUG: Grupo ID seleccionado = "{{ $grupoId }}"</div>
+        @endif
     </flux:card>
 
-    @if($grupoId)
+    @if($grupoId && count($this->listadoAlumnos) > 0)
         <div class="bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden">
             <div class="p-6 border-b border-zinc-200 dark:border-zinc-700 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900/50">
                 <div>
@@ -160,5 +163,15 @@ $listadoAlumnos = computed(function() {
                 <flux:button variant="primary" icon="check" wire:click="save">Guardar Estado de Fuerza</flux:button>
             </div>
         </div>
+    @elseif($grupoId)
+        <flux:card class="p-12 text-center">
+            <flux:icon name="user-group" class="mx-auto w-12 h-12 text-zinc-300 mb-4" />
+            <flux:heading>No se encontraron alumnos</flux:heading>
+            <flux:subheading>Verifica que el grupo tenga alumnos inscritos y que tu cuenta tenga permisos para verlos.</flux:subheading>
+            
+            <div class="mt-4 text-[10px] text-zinc-400 font-mono">
+                GRUPO_ID: {{ $grupoId }} | ROL: {{ auth()->user()->roles?->first()?->name }}
+            </div>
+        </flux:card>
     @endif
 </div>

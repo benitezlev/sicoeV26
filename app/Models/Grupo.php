@@ -13,12 +13,14 @@ class Grupo extends Model
     use HasJurisdiction;
      protected $fillable = [
         'nombre','plantel_id','curso_id','periodo','estado',
-        'fecha_inicio','fecha_fin','hora_inicio','hora_fin','total_horas'
+        'fecha_inicio','fecha_fin','hora_inicio','hora_fin','total_horas',
+        'dias_clase'
     ];
 
     protected $casts = [
         'fecha_inicio' => 'date',
         'fecha_fin' => 'date',
+        'dias_clase' => 'array',
     ];
 
 
@@ -68,11 +70,13 @@ class Grupo extends Model
 
         if ($inicio->gt($fin)) return [];
 
-        $map = [1=>'LU', 2=>'MA', 3=>'MI', 4=>'JU', 5=>'VI'];
+        $map = [1=>'LU', 2=>'MA', 3=>'MI', 4=>'JU', 5=>'VI', 6=>'SA', 7=>'DO'];
+        $diasConfigurados = $this->dias_clase ?? [1, 2, 3, 4, 5];
         $dias = [];
 
         for ($f = $inicio->copy(); $f->lte($fin); $f->addDay()) {
-            if ($f->isWeekend()) continue;
+            if (!in_array($f->dayOfWeekIso, $diasConfigurados)) continue;
+            
             $dias[] = [
                 'fecha'       => $f->copy(),
                 'abreviado'   => $map[$f->dayOfWeekIso],

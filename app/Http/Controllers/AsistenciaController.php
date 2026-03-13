@@ -20,10 +20,10 @@ class AsistenciaController extends Controller
             'plantel',
             'curso',
             'alumnos' => function ($q) {
-                // MySQL 8+: utf8mb4_0900_ai_ci (accent-insensitive, case-insensitive)
-                $q->orderByRaw("paterno COLLATE utf8mb4_0900_ai_ci ASC");
-                // Si usas MariaDB/MySQL <8, cambia a utf8mb4_unicode_ci o el collation de tu conexión:
-                // $q->orderByRaw("paterno COLLATE utf8mb4_unicode_ci ASC");
+                // Compatible con PostgreSQL: Orden estándar por apellidos y nombre
+                $q->orderBy('paterno', 'ASC')
+                  ->orderBy('materno', 'ASC')
+                  ->orderBy('nombre', 'ASC');
             },
         ])->findOrFail($grupoId);
 

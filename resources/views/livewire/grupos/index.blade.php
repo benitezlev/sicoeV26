@@ -27,6 +27,7 @@ state([
     'hora_inicio' => '09:00',
     'hora_fin' => '14:00',
     'total_horas' => 0,
+    'dias_clase' => [1, 2, 3, 4, 5],
 ]);
 
 $grupos = computed(function () {
@@ -46,7 +47,8 @@ $planteles = computed(fn() => Plantel::all());
 $cursos = computed(fn() => Curso::all());
 
 $abrirModalCrear = function () {
-    $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas']);
+    $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas', 'dias_clase']);
+    $this->dias_clase = [1, 2, 3, 4, 5];
     $this->dispatch('modal-show', name: 'modal-grupo');
 };
 
@@ -63,6 +65,7 @@ $editar = function (Grupo $grupo) {
         'hora_inicio' => $grupo->hora_inicio,
         'hora_fin' => $grupo->hora_fin,
         'total_horas' => $grupo->total_horas,
+        'dias_clase' => $grupo->dias_clase ?? [1, 2, 3, 4, 5],
     ]);
     
     $this->dispatch('modal-show', name: 'modal-grupo');
@@ -94,6 +97,7 @@ $guardar = function () {
         'hora_inicio' => $this->hora_inicio,
         'hora_fin' => $this->hora_fin,
         'total_horas' => $this->total_horas,
+        'dias_clase' => $this->dias_clase,
     ];
 
     if ($this->grupoId) {
@@ -304,6 +308,19 @@ $eliminar = function (Grupo $grupo) {
                         <flux:input type="number" wire:model="total_horas" min="1" />
                         <flux:error name="total_horas" />
                     </flux:field>
+                </div>
+
+                <div class="md:col-span-2">
+                    <flux:label class="mb-2">Días de Clase</flux:label>
+                    <div class="flex flex-wrap gap-4 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                        @foreach([1=>'Lunes', 2=>'Martes', 3=>'Miércoles', 4=>'Jueves', 5=>'Viernes', 6=>'Sábado', 7=>'Domingo'] as $val => $label)
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" wire:model="dias_clase" value="{{ $val }}" class="rounded border-zinc-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">{{ $label }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <flux:error name="dias_clase" />
                 </div>
             </div>
 
