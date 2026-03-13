@@ -23,30 +23,54 @@ state([
 ]);
 
 $importar = function () {
+    Log::info('Iniciando proceso de importación');
+    Log::info('Estado del archivo:', ['archivo' => $this->archivo]);
+
     if (!$this->archivo) {
-        $this->addError('archivo', 'El archivo no se ha cargado correctamente o es demasiado pesado.');
+        $this->addError('archivo', 'El servidor no recibió el archivo. Verifica que no exceda los 2MB.');
         return;
     }
 
-    $this->validate([
-        'archivo' => 'file|max:2048', 
-    ], [
-        'archivo.max' => 'El archivo supera el límite de 2MB del servidor.',
-    ]);
+    try {
+        $this->validate([
+            'archivo' => 'file|max:2048', 
+        ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error('Falla de validación:', $e->errors());
+        throw $e;
+    }
 
     $nombreOriginal = $this->archivo->getClientOriginalName();
     $path = $this->archivo->getRealPath();
 
     $csv = fopen($path, 'r');
-    stream_filter_append($csv, 'convert.iconv.ISO-8859-1/UTF-8');
+    
+    // Auto-detección de delimitador (Coma vs Punto y Coma)
+    $primeraLinea = fgets($csv);
+    rewind($csv);
+    $separador = (strpos($primeraLinea, ';') !== false && strpos($primeraLinea, ',') === false) ? ';' : ',';
+    
+    // Intentar detectar encoding
+    $enc = mb_detect_encoding($primeraLinea, "UTF-8, ISO-8859-1, Windows-1252", true);
+    if ($enc && $enc !== 'UTF-8') {
+        stream_filter_append($csv, "convert.iconv.$enc/UTF-8");
+    }
 
-    $encabezados = fgetcsv($csv);
+    $encabezados = fgetcsv($csv, 0, $separador);
+    Log::info('Encabezados detectados:', ['encabezados' => $encabezados, 'separador' => $separador, 'encoding' => $enc]);
+    
     $requeridos = ['curp', 'nombre', 'sexo'];
+    
+    // Limpiar BOM y espacios de encabezados
+    if ($encabezados) {
+        $encabezados = array_map(fn($h) => strtolower(trim(preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $h))), $encabezados);
+    }
 
     foreach ($requeridos as $campo) {
-        if (!in_array($campo, $encabezados)) {
+        if (!$encabezados || !in_array($campo, $encabezados)) {
+            Log::error("Falta encabezado obligatorio: $campo . Disponibles: " . implode(',', $encabezados ?? []));
             fclose($csv);
-            $this->addError('archivo', "El archivo no contiene el campo obligatorio: $campo");
+            $this->addError('archivo', "El archivo no contiene el campo obligatorio: $campo. Verifica que los encabezados estén en minúsculas o el delimitador sea correcto.");
             return;
         }
     }
@@ -54,10 +78,22 @@ $importar = function () {
     $this->duplicados = [];
     $this->errores = [];
     $this->insertados = 0;
+    $filaNum = 1;
 
-    while (($fila = fgetcsv($csv)) !== false) {
+    while (($fila = fgetcsv($csv, 0, $separador)) !== false) {
+        $filaNum++;
+        
+        // Sanitizar cada celda para asegurar que sea UTF-8 válido y evitar errores de JSON
+        $fila = array_map(function($valor) {
+            $valor = (string)$valor;
+            $currentEnc = mb_detect_encoding($valor, "UTF-8, ISO-8859-1, Windows-1252", true) ?: 'UTF-8';
+            return iconv($currentEnc, "UTF-8//IGNORE", $valor);
+        }, $fila);
+
         if (count($encabezados) !== count($fila)) {
-            $this->errores[] = "Fila con columnas incompletas.";
+            $msg = "Fila $filaNum con columnas incompletas. Esperadas: " . count($encabezados) . " - Recibidas: " . count($fila);
+            Log::warning($msg);
+            $this->errores[] = $msg;
             continue;
         }
 
@@ -66,7 +102,9 @@ $importar = function () {
         $nombre = trim($datos['nombre'] ?? '');
 
         if (!$curp) {
-            $this->errores[] = "El alumno '{$nombre}' no tiene CURP definido.";
+            $msg = "Fila $filaNum: El alumno '{$nombre}' no tiene CURP definido.";
+            Log::warning($msg);
+            $this->errores[] = $msg;
             continue;
         }
 
@@ -88,7 +126,9 @@ $importar = function () {
         };
 
         if (!$sexo) {
-            $this->errores[] = "CURP $curp ({$nombre}) tiene sexo inválido o ausente: '$sexoRaw'";
+            $msg = "Fila $filaNum: CURP $curp ({$nombre}) tiene sexo inválido o ausente: '$sexoRaw'";
+            Log::warning($msg);
+            $this->errores[] = $msg;
             continue;
         }
 
@@ -144,7 +184,9 @@ $importar = function () {
 
             $this->insertados++;
         } catch (\Exception $e) {
-            $this->errores[] = "Error crítico procesando '{$nombre}' ({$curp}): " . $e->getMessage();
+            $msg = "Error crítico procesando '{$nombre}' ({$curp}): " . $e->getMessage();
+            Log::error($msg);
+            $this->errores[] = $msg;
         }
     }
 
