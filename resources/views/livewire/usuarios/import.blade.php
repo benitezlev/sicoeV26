@@ -1,6 +1,6 @@
 <?php
 
-use function Livewire\Volt\{state, layout, rules};
+use function Livewire\Volt\{state, layout, rules, uses};
 use Livewire\WithFileUploads;
 use App\Models\User;
 use App\Models\Expediente;
@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Flux\Flux;
+
+uses([WithFileUploads::class]);
 
 layout('layouts.app');
 
@@ -156,6 +158,7 @@ $importar = function () {
         ->toMediaCollection('archivo_importacion');
 
     $this->importacionFinalizada = true;
+    $this->archivo = null; // Limpiar después de procesar
     
     Flux::toast(
         heading: 'Importación Completada',
