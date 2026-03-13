@@ -26,7 +26,7 @@ state([
     'fecha_fin' => '',
     'hora_inicio' => '09:00',
     'hora_fin' => '14:00',
-    'total_horas' => 0,
+    'total_horas' => '',
     'dias_clase' => [1, 2, 3, 4, 5],
 ]);
 
@@ -40,19 +40,21 @@ $grupos = computed(function () {
         ->when($this->filtroPlantel, fn($query) => $query->where('plantel_id', $this->filtroPlantel))
         ->when($this->filtroEstado, fn($query) => $query->where('estado', $this->filtroEstado))
         ->orderBy('created_at', 'desc')
-        ->paginate(10);
+        ->paginate(15);
 });
 
-$planteles = computed(fn() => Plantel::all());
-$cursos = computed(fn() => Curso::all());
+$planteles = computed(fn() => Plantel::orderBy('name')->get());
+$cursos = computed(fn() => Curso::orderBy('nombre')->get());
 
 $abrirModalCrear = function () {
-    $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas', 'dias_clase']);
+    $this->resetErrorBag();
+    $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas']);
     $this->dias_clase = [1, 2, 3, 4, 5];
     $this->dispatch('modal-show', name: 'modal-grupo');
 };
 
 $editar = function (Grupo $grupo) {
+    $this->resetErrorBag();
     $this->fill([
         'grupoId' => $grupo->id,
         'nombre' => $grupo->nombre,
@@ -65,7 +67,7 @@ $editar = function (Grupo $grupo) {
         'hora_inicio' => $grupo->hora_inicio,
         'hora_fin' => $grupo->hora_fin,
         'total_horas' => $grupo->total_horas,
-        'dias_clase' => $grupo->dias_clase ?? [1, 2, 3, 4, 5],
+        'dias_clase' => is_array($grupo->dias_clase) ? $grupo->dias_clase : json_decode($grupo->dias_clase, true) ?? [1, 2, 3, 4, 5],
     ]);
     
     $this->dispatch('modal-show', name: 'modal-grupo');
@@ -82,6 +84,7 @@ $guardar = function () {
         'hora_inicio' => 'required',
         'hora_fin' => 'required',
         'total_horas' => 'required|integer|min:1',
+        'dias_clase' => 'required|array|min:1',
     ];
 
     $this->validate($rules);
@@ -97,12 +100,12 @@ $guardar = function () {
         'hora_inicio' => $this->hora_inicio,
         'hora_fin' => $this->hora_fin,
         'total_horas' => $this->total_horas,
-        'dias_clase' => $this->dias_clase,
+        'dias_clase' => json_encode($this->dias_clase), // Guardar como JSON o el tipo que requiera la DB
     ];
 
     if ($this->grupoId) {
         Grupo::find($this->grupoId)->update($datos);
-        Flux::toast(heading: 'Grupo actualizado', variant: 'success');
+        Flux::toast(heading: 'Grupo actualizado', text: 'Los datos del ciclo académico han sido actualizados.', variant: 'success');
     } else {
         $nuevoGrupo = Grupo::create($datos);
         
@@ -114,221 +117,277 @@ $guardar = function () {
             'usuario_id' => auth()->id(),
         ]);
 
-        Flux::toast(heading: 'Grupo creado correctamente', variant: 'success');
+        Flux::toast(heading: 'Apertura Exitosa', text: 'El grupo fue aperturado y registrado en el directorio.', variant: 'success');
     }
 
     unset($this->grupos);
     $this->dispatch('modal-hide', name: 'modal-grupo');
 };
 
-$eliminar = function (Grupo $grupo) {
+$eliminar = function ($id) {
+    $grupo = Grupo::findOrFail($id);
     if ($grupo->alumnos()->exists()) {
-        Flux::toast(heading: 'Error', text: 'No se puede eliminar un grupo con alumnos inscritos.', variant: 'danger');
+        Flux::toast(heading: 'Acción Denegada', text: 'No se puede eliminar un grupo que contiene matrículas activas.', variant: 'danger');
         return;
     }
     $grupo->delete();
-    Flux::toast(heading: 'Grupo eliminado', variant: 'success');
+    Flux::toast(heading: 'Grupo Eliminado', text: 'El registro del grupo fue borrado del sistema.', variant: 'success');
 };
 
 ?>
 
-<div class="space-y-6">
-    <x-slot name="header">Gestión de Grupos</x-slot>
+<div class="p-6">
+    <x-slot name="header">Gestión de Grupos y Generaciones</x-slot>
 
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-            <flux:heading size="xl">Directorio de Grupos</flux:heading>
-            <flux:subheading>Administra la apertura y estatus de los grupos académicos.</flux:subheading>
+    <div class="space-y-6">
+        <div class="flex justify-between items-center">
+            <div class="space-y-1">
+                <h1 class="text-2xl font-black text-zinc-900 dark:text-white tracking-tight uppercase">Directorio de Grupos</h1>
+                <p class="text-xs text-zinc-500 font-medium italic">Administra la apertura, estatus y control de generaciones académicas.</p>
+            </div>
+            
+            <flux:button variant="primary" icon="plus" wire:click="abrirModalCrear" size="sm">Aperturar Grupo</flux:button>
         </div>
-        <flux:button variant="primary" icon="plus" wire:click="abrirModalCrear">Nuevo Grupo</flux:button>
-    </div>
 
-    <!-- Filtros -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-zinc-800 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
-        <div class="md:col-span-2">
-            <flux:input wire:model.live.debounce.500ms="search" placeholder="Buscar por nombre de grupo o curso..." icon="magnifying-glass" />
+        <!-- Filtros Dinámicos -->
+        <div class="bg-white dark:bg-zinc-800 p-5 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm flex flex-col md:flex-row gap-4 items-end">
+            <div class="flex-1 w-full">
+                <flux:input wire:model.live.debounce.500ms="search" placeholder="Buscar por clave, nombre o generación..." icon="magnifying-glass" />
+            </div>
+            <div class="w-full md:w-64">
+                <flux:select wire:model.live="filtroPlantel" placeholder="Filtrar por Sedes">
+                    <flux:select.option value="">Todas las Sedes / Planteles</flux:select.option>
+                    @foreach($this->planteles as $p)
+                        <flux:select.option value="{{ $p->id }}">{{ $p->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+            </div>
+            <div class="w-full md:w-48">
+                <flux:select wire:model.live="filtroEstado" placeholder="Estatus Académico">
+                    <flux:select.option value="">Cualquier Estatus</flux:select.option>
+                    <flux:select.option value="activo">Activos / En Curso</flux:select.option>
+                    <flux:select.option value="concluido">Generaciones Concluidas</flux:select.option>
+                    <flux:select.option value="cancelado">Bajas / Cancelados</flux:select.option>
+                </flux:select>
+            </div>
         </div>
-        <flux:select wire:model.live="filtroPlantel" placeholder="Todos los planteles">
-            <flux:select.option value="">Todos los planteles</flux:select.option>
-            @foreach($this->planteles as $p)
-                <flux:select.option value="{{ $p->id }}">{{ $p->name }}</flux:select.option>
-            @endforeach
-        </flux:select>
-        <flux:select wire:model.live="filtroEstado" placeholder="Cualquier estado">
-            <flux:select.option value="">Cualquier estado</flux:select.option>
-            <flux:select.option value="activo">Activos</flux:select.option>
-            <flux:select.option value="concluido">Concluidos</flux:select.option>
-            <flux:select.option value="cancelado">Cancelados</flux:select.option>
-        </flux:select>
-    </div>
 
-    <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm overflow-hidden">
-        <flux:table>
-            <flux:table.columns>
-                <flux:table.column>Grupo / Curso</flux:table.column>
-                <flux:table.column>Plantel</flux:table.column>
-                <flux:table.column align="center">Periodo</flux:table.column>
-                <flux:table.column align="center">Vigencia</flux:table.column>
-                <flux:table.column align="center">Estado</flux:table.column>
-                <flux:table.column align="right">Acciones</flux:table.column>
-            </flux:table.columns>
-
-            <flux:table.rows>
-                @forelse ($this->grupos as $grupo)
-                    <flux:table.row :key="$grupo->id">
-                        <flux:table.cell>
-                            <div class="flex flex-col min-w-48 text-wrap">
-                                <span class="font-bold text-zinc-900 dark:text-white">{{ $grupo->nombre }}</span>
-                                <span class="text-xs text-zinc-500">{{ $grupo->curso->nombre }}</span>
-                            </div>
-                        </flux:table.cell>
-                        <flux:table.cell>
-                            <span class="text-sm">{{ $grupo->plantel->name }}</span>
-                        </flux:table.cell>
-                        <flux:table.cell align="center">
-                            <span class="text-xs font-mono bg-zinc-100 dark:bg-zinc-700 px-2 py-0.5 rounded">{{ $grupo->periodo }}</span>
-                        </flux:table.cell>
-                        <flux:table.cell align="center">
-                            <div class="text-[10px] text-zinc-500 leading-tight">
-                                {{ $grupo->fecha_inicio?->format('d/m/Y') }}<br>
-                                {{ $grupo->fecha_fin?->format('d/m/Y') }}
-                            </div>
-                        </flux:table.cell>
-                        <flux:table.cell align="center">
-                            <flux:badge size="sm" :color="match($grupo->estado) {
-                                'activo' => 'green',
-                                'concluido' => 'blue',
-                                'cancelado' => 'red',
-                                default => 'zinc'
-                            }" variant="pill">
-                                {{ ucfirst($grupo->estado) }}
-                            </flux:badge>
-                        </flux:table.cell>
-                        <flux:table.cell align="right">
-                            <div class="flex justify-end gap-1">
-                                <flux:button variant="ghost" size="sm" icon="eye" href="{{ route('grupos.show', $grupo->id) }}" />
-                                <flux:button variant="ghost" size="sm" icon="pencil-square" wire:click="editar({{ $grupo->id }})" />
-                                <flux:button variant="ghost" size="sm" icon="trash" color="red" wire:confirm="¿Estás seguro de eliminar este grupo?" wire:click="eliminar({{ $grupo->id }})" />
-                            </div>
-                        </flux:table.cell>
-                    </flux:table.row>
-                @empty
-                    <flux:table.row>
-                        <flux:table.cell colspan="6" align="center" class="py-12 text-zinc-400">
-                            No se encontraron grupos con los criterios seleccionados.
-                        </flux:table.cell>
-                    </flux:table.row>
-                @endforelse
-            </flux:table.rows>
-        </flux:table>
+        <!-- Tabla Estándar Receptiva CSS -->
+        <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-3xl shadow-sm overflow-hidden overflow-x-auto">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+                <thead>
+                    <tr class="border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50">
+                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500">Grupo / Programa Curricular</th>
+                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500">Sede / Ubicación</th>
+                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Periodo</th>
+                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Vigencia y Horario</th>
+                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Estatus Operativo</th>
+                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-right">Manejo</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                    @forelse ($this->grupos as $grupo)
+                        <tr wire:key="grupo-{{ $grupo->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col min-w-48 text-wrap leading-tight">
+                                    <span class="font-black text-zinc-800 dark:text-white uppercase tracking-tight text-sm">{{ $grupo->nombre }}</span>
+                                    <span class="text-[10px] text-zinc-500 italic mt-0.5 max-w-[250px] truncate">{{ optional($grupo->curso)->nombre ?? 'Sin programa asignado' }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="text-xs font-bold text-zinc-700 dark:text-zinc-300">{{ optional($grupo->plantel)->name ?? 'N/A' }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-[10px] font-mono font-bold border border-zinc-200 dark:border-zinc-700">
+                                    {{ $grupo->periodo }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <div class="text-[10px] text-zinc-500 flex flex-col items-center leading-tight">
+                                    <span class="font-bold text-zinc-700 dark:text-zinc-300">{{ $grupo->fecha_inicio?->format('d/m/Y') }} <span class="opacity-50 font-normal mx-1">al</span> {{ $grupo->fecha_fin?->format('d/m/Y') }}</span>
+                                    <span class="mt-1 opacity-70">{{ \Carbon\Carbon::parse($grupo->hora_inicio)->format('H:i') }} - {{ \Carbon\Carbon::parse($grupo->hora_fin)->format('H:i') }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                @php
+                                    $estatusColor = match($grupo->estado) {
+                                        'activo' => 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30',
+                                        'concluido' => 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/30',
+                                        'cancelado' => 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30',
+                                        default => 'bg-zinc-50 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400',
+                                    };
+                                @endphp
+                                <span class="px-2 py-1 rounded-full text-[9px] font-black uppercase border {{ $estatusColor }}">
+                                    {{ $grupo->estado }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex justify-end gap-1">
+                                    <flux:button variant="ghost" size="sm" icon="eye" href="{{ route('grupos.show', $grupo->id) }}" />
+                                    <flux:button variant="ghost" size="sm" icon="pencil-square" wire:click="editar({{ $grupo->id }})" wire:loading.attr="disabled" />
+                                    <div x-data="{ openConfirm: false }" class="inline-block relative">
+                                        <flux:button variant="ghost" size="sm" color="red" icon="trash" x-on:click="openConfirm = true" />
+                                        
+                                        <!-- Mini Delete Modal/Popover -->
+                                        <div x-show="openConfirm" x-cloak class="absolute right-0 bottom-full mb-2 z-10 w-64 p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl flex flex-col gap-3 items-end">
+                                            <p class="text-[11px] text-left font-bold text-zinc-800 dark:text-white leading-tight">¿Eliminar permanentemente el grupo {{ $grupo->nombre }}?</p>
+                                            <div class="flex gap-2 w-full justify-between mt-1">
+                                                <flux:button variant="ghost" size="sm" x-on:click="openConfirm = false" class="text-[10px]">Cancelar</flux:button>
+                                                <flux:button variant="danger" size="sm" wire:click="eliminar({{ $grupo->id }})" x-on:click="openConfirm = false" class="text-[10px]">Confirmar</flux:button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="py-24 text-center text-zinc-400">
+                                <div class="flex flex-col items-center gap-3">
+                                    <div class="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full">
+                                        <flux:icon name="academic-cap" class="w-8 h-8 opacity-40" />
+                                    </div>
+                                    <span class="italic text-sm text-zinc-400 font-medium">No se encontraron grupos académicos operando.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
         @if ($this->grupos->hasPages())
-            <div class="p-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50/50">
+            <div class="px-2">
                 {{ $this->grupos->links() }}
             </div>
         @endif
     </div>
 
-    <!-- Modal Formulario Grupo -->
-    <flux:modal name="modal-grupo" class="max-w-2xl">
-        <form wire:submit="guardar" wire:key="form-grupo-{{ $grupoId ?? 'new' }}" class="space-y-6">
-            <div>
-                <flux:heading size="lg">{{ $grupoId ? 'Editar Grupo' : 'Apertura de Nuevo Grupo' }}</flux:heading>
-                <flux:subheading>Define los parámetros generales y vigencia del grupo.</flux:subheading>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <flux:field class="md:col-span-2">
-                    <flux:label>Nombre del Grupo / Identificador</flux:label>
-                    <flux:input wire:model="nombre" placeholder="Ej: Grupo A 2024" />
-                    <flux:error name="nombre" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label>Plantel</flux:label>
-                    <flux:select wire:model="plantel_id" placeholder="Selecciona plantel...">
-                        @foreach($this->planteles as $p)
-                            <flux:select.option value="{{ $p->id }}">{{ $p->name }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
-                    <flux:error name="plantel_id" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label>Curso / Programa</flux:label>
-                    <flux:select wire:model="curso_id" placeholder="Selecciona curso...">
-                        @foreach($this->cursos as $c)
-                            <flux:select.option value="{{ $c->id }}">{{ $c->nombre }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
-                    <flux:error name="curso_id" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label>Periodo Escolar</flux:label>
-                    <flux:input wire:model="periodo" placeholder="Ej: 2024-1" />
-                    <flux:error name="periodo" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label>Estado</flux:label>
-                    <flux:select wire:model="estado">
-                        <flux:select.option value="activo">Activo</flux:select.option>
-                        <flux:select.option value="concluido">Concluido</flux:select.option>
-                        <flux:select.option value="cancelado">Cancelado</flux:select.option>
-                    </flux:select>
-                    <flux:error name="estado" />
-                </flux:field>
-
-                <div class="md:col-span-2 grid grid-cols-2 gap-4">
-                    <flux:field>
-                        <flux:label>Fecha Inicio</flux:label>
-                        <flux:input type="date" wire:model="fecha_inicio" />
-                        <flux:error name="fecha_inicio" />
-                    </flux:field>
-                    <flux:field>
-                        <flux:label>Fecha Fin</flux:label>
-                        <flux:input type="date" wire:model="fecha_fin" />
-                        <flux:error name="fecha_fin" />
-                    </flux:field>
+    <!-- Modal Formulario -->
+    <div x-data="{ open: false }" 
+         x-on:modal-show.window="if ($event.detail.name === 'modal-grupo') open = true" 
+         x-on:modal-hide.window="if ($event.detail.name === 'modal-grupo') open = false" 
+         x-show="open" x-cloak 
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4 lg:p-10 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-white dark:bg-zinc-800 w-full max-w-4xl rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-700 p-8 space-y-8 my-auto outline-none" x-on:click.away="open = false">
+            <form wire:submit="guardar" wire:key="form-grupo-{{ $grupoId ?? 'new' }}" class="space-y-8">
+                <div class="space-y-2 border-b border-zinc-100 dark:border-zinc-700 pb-4">
+                    <h2 class="text-2xl font-black text-zinc-900 dark:text-white tracking-tight uppercase">{{ $grupoId ? 'Modificar Parámetros de Grupo' : 'Apertura de Nuevo Grupo' }}</h2>
+                    <p class="text-[11px] text-zinc-500 font-bold uppercase tracking-tighter italic">Define identificadores, sedes, programas curriulares y vigencia académica general.</p>
                 </div>
 
-                <div class="md:col-span-2 grid grid-cols-3 gap-4">
-                    <flux:field>
-                        <flux:label>Hora Inicio</flux:label>
-                        <flux:input type="time" wire:model="hora_inicio" />
-                        <flux:error name="hora_inicio" />
-                    </flux:field>
-                    <flux:field>
-                        <flux:label>Hora Fin</flux:label>
-                        <flux:input type="time" wire:model="hora_fin" />
-                        <flux:error name="hora_fin" />
-                    </flux:field>
-                    <flux:field>
-                        <flux:label>Total Horas</flux:label>
-                        <flux:input type="number" wire:model="total_horas" min="1" />
-                        <flux:error name="total_horas" />
-                    </flux:field>
-                </div>
+                <!-- Pestañas simuladas / Secciones -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    <!-- Sección Izquierda: Identidad -->
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-2 text-zinc-400 uppercase font-black text-[10px] tracking-widest mb-2 border-b border-dashed pb-2">
+                            <flux:icon name="finger-print" variant="mini"/> Identidad y Ubicación
+                        </div>
+                        
+                        <flux:field>
+                            <flux:label>Nombre del Grupo / Generación</flux:label>
+                            <flux:input wire:model="nombre" placeholder="Ej: Generación 2024-B Alpha" class="font-bold uppercase" wire:key="g-nom-{{ $grupoId ?? 'new' }}" />
+                            <flux:error name="nombre" />
+                        </flux:field>
 
-                <div class="md:col-span-2">
-                    <flux:label class="mb-2">Días de Clase</flux:label>
-                    <div class="flex flex-wrap gap-4 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                        @foreach([1=>'Lunes', 2=>'Martes', 3=>'Miércoles', 4=>'Jueves', 5=>'Viernes', 6=>'Sábado', 7=>'Domingo'] as $val => $label)
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" wire:model="dias_clase" value="{{ $val }}" class="rounded border-zinc-300 text-blue-600 shadow-sm focus:ring-blue-500">
-                                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">{{ $label }}</span>
-                            </label>
-                        @endforeach
+                        <flux:field>
+                            <flux:label>Programa Curricular / Curso</flux:label>
+                            <flux:select wire:model="curso_id" placeholder="Seleccionar programa base..." searchable wire:key="g-cur-{{ $grupoId ?? 'new' }}">
+                                @foreach($this->cursos as $c)
+                                    <flux:select.option value="{{ $c->id }}">{{ $c->nombre }}</flux:select.option>
+                                @endforeach
+                            </flux:select>
+                            <flux:error name="curso_id" />
+                        </flux:field>
+
+                        <flux:field>
+                            <flux:label>Sede Operativa (Plantel)</flux:label>
+                            <flux:select wire:model="plantel_id" placeholder="Seleccionar instalaciones..." searchable wire:key="g-pla-{{ $grupoId ?? 'new' }}">
+                                @foreach($this->planteles as $p)
+                                    <flux:select.option value="{{ $p->id }}">{{ $p->name }}</flux:select.option>
+                                @endforeach
+                            </flux:select>
+                            <flux:error name="plantel_id" />
+                        </flux:field>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <flux:field>
+                                <flux:label>Ciclo / Periodo</flux:label>
+                                <flux:input wire:model="periodo" placeholder="Ej: 2024-2" wire:key="g-per-{{ $grupoId ?? 'new' }}" />
+                                <flux:error name="periodo" />
+                            </flux:field>
+                            
+                            <flux:field>
+                                <flux:label>Estatus</flux:label>
+                                <flux:select wire:model="estado" wire:key="g-est-{{ $grupoId ?? 'new' }}">
+                                    <flux:select.option value="activo">Aperturado / Activo</flux:select.option>
+                                    <flux:select.option value="concluido">Generación Graduada</flux:select.option>
+                                    <flux:select.option value="cancelado">Suspendido / Cancelado</flux:select.option>
+                                </flux:select>
+                                <flux:error name="estado" />
+                            </flux:field>
+                        </div>
                     </div>
-                    <flux:error name="dias_clase" />
-                </div>
-            </div>
 
-            <div class="flex gap-2 justify-end">
-                <flux:modal.close><flux:button variant="ghost">Cancelar</flux:button></flux:modal.close>
-                <flux:button type="submit" variant="primary">Guardar Grupo</flux:button>
-            </div>
-        </form>
-    </flux:modal>
+                    <!-- Sección Derecha: Vigencia y Horarios -->
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-2 text-zinc-400 uppercase font-black text-[10px] tracking-widest mb-2 border-b border-dashed pb-2">
+                            <flux:icon name="calendar-days" variant="mini"/> Cronograma y Carga
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <flux:field>
+                                <flux:label>Fec. Inicio</flux:label>
+                                <flux:input type="date" wire:model="fecha_inicio" wire:key="g-fini-{{ $grupoId ?? 'new' }}" />
+                                <flux:error name="fecha_inicio" />
+                            </flux:field>
+                            <flux:field>
+                                <flux:label>Fec. Término</flux:label>
+                                <flux:input type="date" wire:model="fecha_fin" wire:key="g-ffin-{{ $grupoId ?? 'new' }}" />
+                                <flux:error name="fecha_fin" />
+                            </flux:field>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-4">
+                            <flux:field>
+                                <flux:label>Hora Entrada</flux:label>
+                                <flux:input type="time" wire:model="hora_inicio" wire:key="g-hin-{{ $grupoId ?? 'new' }}" />
+                                <flux:error name="hora_inicio" />
+                            </flux:field>
+                            <flux:field>
+                                <flux:label>Hora Salida</flux:label>
+                                <flux:input type="time" wire:model="hora_fin" wire:key="g-hfin-{{ $grupoId ?? 'new' }}" />
+                                <flux:error name="hora_fin" />
+                            </flux:field>
+                            <flux:field>
+                                <flux:label>Total</flux:label>
+                                <flux:input type="number" wire:model="total_horas" min="1" icon="clock" placeholder="Hrs" wire:key="g-thor-{{ $grupoId ?? 'new' }}" />
+                                <flux:error name="total_horas" />
+                            </flux:field>
+                        </div>
+
+                        <div class="pt-2">
+                            <flux:label class="mb-3 font-bold">Días Hábiles de Cátedra</flux:label>
+                            <div class="grid grid-cols-4 gap-3 p-4 bg-zinc-50 dark:bg-zinc-900/40 rounded-2xl border border-zinc-200 dark:border-zinc-800" wire:key="g-dias-container-{{ $grupoId ?? 'new' }}">
+                                @foreach([1=>'Lun', 2=>'Mar', 3=>'Mié', 4=>'Jue', 5=>'Vie', 6=>'Sáb', 7=>'Dom'] as $val => $label)
+                                    <label class="flex items-center justify-center p-2 rounded-xl cursor-pointer transition-all border {{ in_array($val, is_array($dias_clase) ? $dias_clase : []) ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700' }}">
+                                        <input type="checkbox" wire:model="dias_clase" value="{{ $val }}" class="hidden">
+                                        <span class="text-[10px] font-black uppercase {{ in_array($val, is_array($dias_clase) ? $dias_clase : []) ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-500' }}">{{ $label }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            <flux:error name="dias_clase" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 justify-end pt-6 border-t border-zinc-100 dark:border-zinc-700">
+                    <flux:button variant="ghost" x-on:click="open = false">Suspender Acción</flux:button>
+                    <flux:button type="submit" variant="primary" class="px-8 font-black uppercase tracking-widest text-[10px]">
+                        {{ $grupoId ? 'Actualizar Ficha de Grupo' : 'Registrar y Aperturar' }}
+                    </flux:button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
