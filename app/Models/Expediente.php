@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 use App\Traits\HasJurisdiction;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Expediente extends Model
+class Expediente extends Model implements HasMedia
 {
-    use HasJurisdiction;
+    use HasJurisdiction, InteractsWithMedia;
 
    protected $fillable = [
         'user_id', 'folio', 'estatus', 'fecha_apertura', 'observaciones'

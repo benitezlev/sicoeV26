@@ -19,14 +19,14 @@ $stats = computed(function() {
             'observados' => Expediente::where('estatus', 'observado')->count(),
         ],
         'grupos_activos' => Grupo::where('estado', 'activo')->count(),
-        'promedio_general' => Calificacion::avg('calificacion') ?? 0,
+        'promedio_general' => round(Calificacion::whereHas('user')->avg('calificacion') ?? 0, 1),
     ];
 });
 
 $distribution = computed(function() {
     if (!auth()->check()) return null;
 
-    $query = User::query();
+    $query = User::role('alumno');
     
     // Si no es admin_ti, el Global Scope de HasJurisdiction ya filtra
     // pero para la distribución por nivel queremos ver el desglose
@@ -35,7 +35,8 @@ $distribution = computed(function() {
         ->get()
         ->map(function($item) {
             $presentes = \App\Models\AsistenciaIndividual::whereHas('user', function($q) use ($item) {
-                    $q->where('nivel', $item->nivel);
+                    $q->where('nivel', $item->nivel)
+                      ->role('alumno'); // Solo alumnos en estado de fuerza
                 })
                 ->whereDate('fecha', now())
                 ->where('estatus', 'presente')
@@ -149,19 +150,19 @@ $nestedStats = computed(function() {
             <flux:icon name="academic-cap" class="absolute -right-4 -bottom-4 w-24 h-24 text-zinc-50 dark:text-zinc-700/50 group-hover:scale-110 transition-transform" />
         </div>
 
-        <!-- Contexto Jurisdicción -->
-        <div class="bg-zinc-900 dark:bg-white p-6 rounded-3xl border border-zinc-800 dark:border-zinc-200 shadow-sm relative overflow-hidden group text-white dark:text-zinc-800">
+        <!-- Resumen Diario (Reemplaza a Jurisdicción) -->
+        <div class="bg-zinc-900 dark:bg-zinc-100 p-6 rounded-3xl border border-zinc-800 dark:border-zinc-200 shadow-sm relative overflow-hidden group text-white dark:text-zinc-800">
             <div class="relative z-10">
-                <flux:heading size="sm" class="text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-bold">Jurisdicción</flux:heading>
-                <div class="mt-2 text-xl font-black truncate">
-                    {{ auth()->user()?->hasRole('admin_ti') ? 'Acceso Total' : (auth()->user()?->plantel?->name ?? ucfirst(auth()->user()?->nivel) ?? 'Personalizado') }}
+                <flux:heading size="sm" class="text-zinc-400 dark:text-zinc-500 uppercase tracking-widest font-bold">Resumen Diario</flux:heading>
+                <div class="mt-2 text-xs leading-relaxed opacity-90">
+                    Datos actualizados al pases de lista realizado por Control Escolar al corte de las 
+                    <span class="font-bold text-blue-400 dark:text-blue-600">{{ now()->format('H:i') }} hrs</span> de hoy.
                 </div>
-                <div class="mt-4 text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
-                    AUTENTICADO COMO: <br>
-                    <span class="text-white dark:text-zinc-900">{{ auth()->user()?->roles?->first()?->name ?? 'Sin rol' }}</span>
+                <div class="mt-4 flex gap-2">
+                    <flux:badge size="sm" color="blue" variant="solid">{{ date('d/M/Y') }}</flux:badge>
                 </div>
             </div>
-            <flux:icon name="shield-check" class="absolute -right-4 -bottom-4 w-24 h-24 text-zinc-800 dark:text-zinc-100 group-hover:scale-110 transition-transform opacity-50" />
+            <flux:icon name="clock" class="absolute -right-4 -bottom-4 w-24 h-24 text-zinc-800 dark:text-zinc-200 opacity-50 group-hover:scale-110 transition-transform" />
         </div>
     </div>
 
@@ -190,15 +191,6 @@ $nestedStats = computed(function() {
                 </div>
             </div>
             
-            <div class="bg-zinc-900 rounded-3xl p-6 text-white overflow-hidden relative">
-                <div class="relative z-10">
-                    <flux:heading size="sm" class="text-zinc-400 uppercase font-bold">Resumen Diario</flux:heading>
-                    <div class="mt-4 text-xs text-zinc-500 leading-relaxed">
-                        Los datos presentados corresponden al pase de lista individual realizado por Control Escolar hasta las {{ now()->format('H:i') }} hrs.
-                    </div>
-                </div>
-                <flux:icon name="clock" class="absolute -right-4 -bottom-4 w-24 h-24 text-zinc-800 opacity-50" />
-            </div>
         </div>
 
         <!-- Columna Derecha: Planteles con sus Grupos (Englobado) -->
@@ -227,38 +219,42 @@ $nestedStats = computed(function() {
                             </div>
 
                             <!-- Tabla de Grupos del Plantel -->
-                            <div class="bg-white dark:bg-zinc-800">
-                                @if(count($plantel->gruposS_stats) > 0)
-                                    <flux:table>
-                                        <flux:table.columns>
-                                            <flux:table.column>Grupo / Curso</flux:table.column>
-                                            <flux:table.column align="center">Presentes</flux:table.column>
-                                            <flux:table.column align="center">Faltantes</flux:table.column>
-                                            <flux:table.column align="right">% Real</flux:table.column>
-                                        </flux:table.columns>
+                                    <div class="bg-white dark:bg-zinc-800">
+                                        @if(count($plantel->gruposS_stats) > 0)
+                                            <div class="overflow-x-auto">
+                                                <table class="w-full text-left border-collapse">
+                                                    <thead>
+                                                        <tr class="border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50/30 dark:bg-zinc-900/30">
+                                                            <th class="px-4 py-2 text-[10px] font-bold uppercase text-zinc-500">Grupo / Curso</th>
+                                                            <th class="px-4 py-2 text-[10px] font-bold uppercase text-zinc-500 text-center">Presentes</th>
+                                                            <th class="px-4 py-2 text-[10px] font-bold uppercase text-zinc-500 text-center">Faltantes</th>
+                                                            <th class="px-4 py-2 text-[10px] font-bold uppercase text-zinc-500 text-right">% Real</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
 
-                                        <flux:table.rows>
                                             @foreach($plantel->gruposS_stats as $grupo)
-                                                <flux:table.row>
-                                                    <flux:table.cell>
+                                                <tr class="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/30 transition-colors">
+                                                    <td class="px-4 py-2">
                                                         <div class="text-[11px] font-bold text-zinc-800 dark:text-zinc-200">{{ $grupo->nombre }}</div>
                                                         <div class="text-[9px] text-zinc-500 uppercase">{{ $grupo->curso?->nombre }}</div>
-                                                    </flux:table.cell>
-                                                    <flux:table.cell align="center">
+                                                    </td>
+                                                    <td class="px-4 py-2 text-center">
                                                         <flux:badge size="sm" color="green" inset="top bottom">{{ $grupo->presentes }}</flux:badge>
-                                                    </flux:table.cell>
-                                                    <flux:table.cell align="center">
+                                                    </td>
+                                                    <td class="px-4 py-2 text-center">
                                                         <flux:badge size="sm" :color="$grupo->faltantes > 0 ? 'red' : 'zinc'" inset="top bottom">{{ $grupo->faltantes }}</flux:badge>
-                                                    </flux:table.cell>
-                                                    <flux:table.cell align="right">
+                                                    </td>
+                                                    <td class="px-4 py-2 text-right">
                                                         <div class="text-[10px] font-black {{ $grupo->porcentaje > 80 ? 'text-emerald-500' : 'text-amber-500' }}">
                                                             {{ $grupo->porcentaje }}%
                                                         </div>
-                                                    </flux:cell>
-                                                </flux:table.row>
+                                                    </td>
+                                                </tr>
                                             @endforeach
-                                        </flux:table.rows>
-                                    </flux:table>
+                                        </tbody>
+                                    </table>
+                                </div>
                                 @else
                                     <div class="py-8 text-center text-xs text-zinc-400 italic">
                                         No hay grupos activos registrados en este plantel.

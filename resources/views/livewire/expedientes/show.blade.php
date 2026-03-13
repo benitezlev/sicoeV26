@@ -79,17 +79,20 @@ $cargarDocumento = function () {
 
     $curp = $this->expediente->user->curp;
     $nombre = "{$curp}_{$this->tipo_documento}." . $this->archivo->getClientOriginalExtension();
-    $ruta = $this->archivo->storeAs("expedientes/{$curp}", $nombre, 'public');
 
-    DocumentosExpediente::create([
+    $doc = DocumentosExpediente::create([
         'user_id' => $this->expediente->user_id,
         'expediente_id' => $this->expediente->id,
         'tipo' => $this->tipo_documento,
-        'archivo' => $ruta,
+        'archivo' => 'usando_media_library',
         'fecha_carga' => now(),
         'cargado_por' => auth()->id(),
         'estatus' => 'pendiente',
     ]);
+
+    $doc->addMedia($this->archivo->getRealPath())
+        ->usingFileName($nombre)
+        ->toMediaCollection('archivo');
 
     $this->archivo = null;
     $this->expediente->refresh();
@@ -106,7 +109,13 @@ $cargarDocumento = function () {
     <div class="bg-white dark:bg-zinc-800 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div class="flex items-center gap-4">
-                <flux:avatar src="{{ $expediente->user->profile_photo_url }}" :name="$expediente->user->nombre" size="xl" />
+                <div class="w-16 h-16 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center overflow-hidden border-2 border-zinc-100 dark:border-zinc-600 shadow-sm">
+                    @if($expediente->user->profile_photo_url)
+                        <img src="{{ $expediente->user->profile_photo_url }}" alt="{{ $expediente->user->nombre }}" class="w-full h-full object-cover">
+                    @else
+                        <span class="text-xl font-bold text-zinc-500">{{ substr($expediente->user->nombre, 0, 1) }}</span>
+                    @endif
+                </div>
                 <div class="space-y-1">
                     <flux:heading size="xl">{{ $expediente->user->nombre }} {{ $expediente->user->paterno }} {{ $expediente->user->materno }}</flux:heading>
                     <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500">
@@ -131,9 +140,7 @@ $cargarDocumento = function () {
                 </flux:badge>
                 <div class="flex gap-2">
                     <flux:button icon="arrow-path" size="sm" wire:click="revalidar">Revalidar Estatus</flux:button>
-                    <flux:modal.trigger name="modal-cargar">
-                        <flux:button variant="primary" icon="document-plus" size="sm">Cargar Documento</flux:button>
-                    </flux:modal.trigger>
+                    <flux:button variant="primary" icon="document-plus" size="sm" x-on:click="$dispatch('modal-show', { name: 'modal-cargar' })">Cargar Documento</flux:button>
                 </div>
             </div>
         </div>
@@ -171,20 +178,21 @@ $cargarDocumento = function () {
             <div class="space-y-4">
                 <flux:heading size="lg" class="px-2 text-zinc-600">Documentación Cargada</flux:heading>
                 
-                <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
-                    <flux:table>
-                        <flux:table.columns>
-                            <flux:table.column>Tipo de Documento</flux:table.column>
-                            <flux:table.column>Archivo / Fecha</flux:table.column>
-                            <flux:table.column>Cargado Por</flux:table.column>
-                            <flux:table.column align="center">Estatus</flux:table.column>
-                            <flux:table.column align="center">Acciones</flux:table.column>
-                        </flux:table.columns>
-
-                        <flux:table.rows>
+                <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50">
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Tipo de Documento</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Archivo / Fecha</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Cargado Por</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500 text-center">Estatus</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @forelse ($expediente->documentos as $doc)
-                                <flux:table.row :key="$doc->id">
-                                    <flux:table.cell>
+                                <tr wire:key="{{ $doc->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                                    <td class="px-4 py-3">
                                         <span class="font-bold text-zinc-700 dark:text-zinc-200">{{ $doc->tipo }}</span>
                                         @if($doc->observaciones)
                                             <div class="mt-1 text-xs text-red-500 italic flex items-center gap-1">
@@ -192,22 +200,22 @@ $cargarDocumento = function () {
                                                 {{ $doc->observaciones }}
                                             </div>
                                         @endif
-                                    </flux:table.cell>
+                                    </td>
 
-                                    <flux:table.cell>
+                                    <td class="px-4 py-3">
                                         <div class="flex flex-col">
-                                            <a href="{{ asset('storage/' . $doc->archivo) }}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                                                <flux:icon name="document-text" variant="mini" /> ver_archivo.pdf
+                                            <a href="{{ $doc->hasMedia('archivo') ? $doc->getFirstMediaUrl('archivo') : asset('storage/' . $doc->archivo) }}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                                                <flux:icon name="document-text" variant="mini" /> ver_archivo
                                             </a>
                                             <span class="text-[10px] text-zinc-400 font-mono">{{ \Carbon\Carbon::parse($doc->fecha_carga)->format('d/m/Y H:i') }}</span>
                                         </div>
-                                    </flux:table.cell>
+                                    </td>
 
-                                    <flux:table.cell>
+                                    <td class="px-4 py-3">
                                         <span class="text-xs text-zinc-600">{{ $doc->cargador?->nombre ?? 'Sistema' }}</span>
-                                    </flux:table.cell>
+                                    </td>
 
-                                    <flux:table.cell align="center">
+                                    <td class="px-4 py-3 text-center">
                                         <flux:badge size="sm" :color="match($doc->estatus) {
                                             'validado' => 'green',
                                             'observado' => 'red',
@@ -215,9 +223,9 @@ $cargarDocumento = function () {
                                         }" variant="inset">
                                             {{ ucfirst($doc->estatus) }}
                                         </flux:badge>
-                                    </flux:table.cell>
+                                    </td>
 
-                                    <flux:table.cell align="center">
+                                    <td class="px-4 py-3 text-center">
                                         <div class="flex gap-2 justify-center">
                                             @if($doc->estatus !== 'validado')
                                                 <flux:button variant="ghost" size="sm" icon="check-circle" color="green" wire:click="validarDocumento({{ $doc->id }})" />
@@ -225,17 +233,17 @@ $cargarDocumento = function () {
                                             
                                             <flux:button variant="ghost" size="sm" icon="chat-bubble-bottom-center-text" color="amber" wire:click="abrirModalObservacion({{ $doc->id }})" />
                                         </div>
-                                    </flux:table.cell>
-                                </flux:table.row>
+                                    </td>
+                                </tr>
                             @empty
-                                <flux:table.row>
-                                    <flux:table.cell colspan="5" align="center" class="py-12 text-zinc-400">
+                                <tr>
+                                    <td colspan="5" class="py-12 text-center text-zinc-400">
                                         No hay documentos registrados en este expediente.
-                                    </flux:table.cell>
-                                </flux:table.row>
+                                    </td>
+                                </tr>
                             @endforelse
-                        </flux:table.rows>
-                    </flux:table>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -304,100 +312,105 @@ $cargarDocumento = function () {
             <div class="space-y-6 py-4">
                 <flux:heading size="lg" class="px-2 text-zinc-600">Historial Académico del Elemento</flux:heading>
                 
-                <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
-                    <flux:table>
-                        <flux:table.columns>
-                            <flux:table.column>Materia</flux:table.column>
-                            <flux:table.column>Grupo</flux:table.column>
-                            <flux:table.column align="center" class="w-24">Unidad</flux:table.column>
-                            <flux:table.column align="center" class="w-28">Calificación</flux:table.column>
-                            <flux:table.column>Fecha Registro</flux:table.column>
-                        </flux:table.columns>
-
-                        <flux:table.rows>
+                <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50">
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Materia</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Grupo</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500 text-center">Unidad</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500 text-center">Calificación</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Fecha Registro</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @forelse ($expediente->user->calificaciones->sortByDesc('created_at') as $cal)
-                                <flux:table.row :key="$cal->id">
-                                    <flux:table.cell>
+                                <tr wire:key="cal-{{ $cal->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                                    <td class="px-4 py-3">
                                         <div class="flex flex-col">
                                             <span class="font-bold text-zinc-700 dark:text-zinc-200 leading-tight">{{ $cal->materia->nombre }}</span>
                                             <span class="text-[9px] text-zinc-400 uppercase tracking-widest font-mono">ID: {{ $cal->materia->identificador ?? 'N/A' }}</span>
                                         </div>
-                                    </flux:table.cell>
-                                    <flux:table.cell>
+                                    </td>
+                                    <td class="px-4 py-3">
                                         <span class="text-xs text-zinc-600">{{ $cal->grupo->nombre }}</span>
-                                    </flux:table.cell>
-                                    <flux:table.cell align="center">
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
                                         <flux:badge size="xs" color="zinc" variant="outline" class="font-mono px-2">{{ $cal->unidad }}</flux:badge>
-                                    </flux:table.cell>
-                                    <flux:table.cell align="center">
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
                                         <span class="text-base font-black {{ $cal->calificacion >= 6 ? 'text-emerald-600' : 'text-red-500' }}">
                                             {{ number_format($cal->calificacion, 1) }}
                                         </span>
-                                    </flux:table.cell>
-                                    <flux:table.cell>
+                                    </td>
+                                    <td class="px-4 py-3">
                                         <span class="text-[10px] text-zinc-400 font-mono italic">{{ $cal->created_at->format('d/m/Y') }}</span>
-                                    </flux:table.cell>
-                                </flux:table.row>
+                                    </td>
+                                </tr>
                             @empty
-                                <flux:table.row>
-                                    <flux:table.cell colspan="5" align="center" class="py-16 text-zinc-400 italic">
+                                <tr>
+                                    <td colspan="5" class="py-16 text-center text-zinc-400 italic">
                                         No se han capturado calificaciones para este expediente.
-                                    </flux:table.cell>
-                                </flux:table.row>
+                                    </td>
+                                </tr>
                             @endforelse
-                        </flux:table.rows>
-                    </flux:table>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Modal Observación -->
-    <flux:modal name="modal-observar" class="max-w-md">
-        <form wire:submit="guardarObservacion" class="space-y-6">
-            <div>
-                <flux:heading size="lg">Registrar Observación</flux:heading>
-                <flux:subheading>Indica el motivo por el cual el documento no es válido.</flux:subheading>
-            </div>
+    <div x-data="{ open: false }" x-on:modal-show.window="if ($event.detail.name === 'modal-observar') open = true" x-on:modal-hide.window="if ($event.detail.name === 'modal-observar') open = false" x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/50 backdrop-blur-sm">
+        <div class="bg-white dark:bg-zinc-800 w-full max-w-md rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-700 p-6 space-y-6">
+            <form wire:submit="guardarObservacion" class="space-y-6">
+                <div>
+                    <flux:heading size="lg">Registrar Observación</flux:heading>
+                    <flux:subheading>Indica el motivo por el cual el documento no es válido.</flux:subheading>
+                </div>
 
-            <flux:textarea wire:model="observacion_texto" placeholder="Ej: La imagen está borrosa o la CURP no coincide..." rows="4" />
-            <flux:error name="observacion_texto" />
+                <flux:textarea wire:model="observacion_texto" placeholder="Ej: La imagen está borrosa o la CURP no coincide..." rows="4" />
+                <flux:error name="observacion_texto" />
 
-            <div class="flex gap-2 justify-end">
-                <flux:modal.close><flux:button variant="ghost">Cancelar</flux:button></flux:modal.close>
-                <flux:button type="submit" variant="primary">Guardar Observación</flux:button>
-            </div>
-        </form>
-    </flux:modal>
+                <div class="flex gap-2 justify-end">
+                    <flux:button variant="ghost" x-on:click="open = false">Cancelar</flux:button>
+                    <flux:button type="submit" variant="primary">Guardar Observación</flux:button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Modal Carga -->
-    <flux:modal name="modal-cargar" class="max-w-md">
-        <form wire:submit="cargarDocumento" class="space-y-6">
-            <div>
-                <flux:heading size="lg">Cargar Nuevo Documento</flux:heading>
-                <flux:subheading>Sube un archivo para complementar el expediente institucional.</flux:subheading>
-            </div>
+    <div x-data="{ open: false }" x-on:modal-show.window="if ($event.detail.name === 'modal-cargar') open = true" x-on:modal-hide.window="if ($event.detail.name === 'modal-cargar') open = false" x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/50 backdrop-blur-sm">
+        <div class="bg-white dark:bg-zinc-800 w-full max-w-md rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-700 p-6 space-y-6">
+            <form wire:submit="cargarDocumento" class="space-y-6">
+                <div>
+                    <flux:heading size="lg">Cargar Nuevo Documento</flux:heading>
+                    <flux:subheading>Sube un archivo para complementar el expediente institucional.</flux:subheading>
+                </div>
 
-            <flux:select wire:model="tipo_documento" label="Tipo de Documento">
-                <flux:select.option value="ACTA">Acta de Nacimiento</flux:select.option>
-                <flux:select.option value="CONSTANCIA">Constancia de Estudios</flux:select.option>
-                <flux:select.option value="OFICIO">Oficio de Comisión</flux:select.option>
-                <flux:select.option value="IDENTIFICACION">Identificación Oficial</flux:select.option>
-            </flux:select>
+                <flux:select wire:model="tipo_documento" label="Tipo de Documento">
+                    <flux:select.option value="ACTA">Acta de Nacimiento</flux:select.option>
+                    <flux:select.option value="CONSTANCIA">Constancia de Estudios</flux:select.option>
+                    <flux:select.option value="OFICIO">Oficio de Comisión</flux:select.option>
+                    <flux:select.option value="IDENTIFICACION">Identificación Oficial</flux:select.option>
+                </flux:select>
 
-            <flux:field>
-                <flux:label>Seleccionar Archivo (PDF/JPG)</flux:label>
-                <flux:input type="file" wire:model="archivo" />
-                <flux:error name="archivo" />
-            </flux:field>
+                <flux:field>
+                    <flux:label>Seleccionar Archivo (PDF/JPG)</flux:label>
+                    <flux:input type="file" wire:model="archivo" />
+                    <flux:error name="archivo" />
+                </flux:field>
 
-            <div class="flex gap-2 justify-end">
-                <flux:modal.close><flux:button variant="ghost">Cancelar</flux:button></flux:modal.close>
-                <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
-                    <span wire:loading.remove>Subir Archivo</span>
-                    <span wire:loading>Subiendo...</span>
-                </flux:button>
-            </div>
-        </form>
-    </flux:modal>
+                <div class="flex gap-2 justify-end">
+                    <flux:button variant="ghost" x-on:click="open = false">Cancelar</flux:button>
+                    <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                        <span wire:loading.remove>Subir Archivo</span>
+                        <span wire:loading>Subiendo...</span>
+                    </flux:button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>

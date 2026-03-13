@@ -6,8 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 
-class DocumentosExpediente extends Model
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+
+class DocumentosExpediente extends Model implements HasMedia
 {
+    use InteractsWithMedia;
+
      protected $table = 'documentos_expediente';
 
     protected $fillable = [

@@ -141,7 +141,7 @@ $importar = function () {
 
     fclose($csv);
 
-    Importacion::create([
+    $import = Importacion::create([
         'modulo' => 'usuarios_alumnos_v2',
         'archivo' => $nombreOriginal,
         'user_id' => auth()->id(),
@@ -149,6 +149,10 @@ $importar = function () {
         'duplicados' => count($this->duplicados),
         'errores' => count($this->errores),
     ]);
+
+    $import->addMedia($path)
+        ->usingFileName($nombreOriginal)
+        ->toMediaCollection('archivo_importacion');
 
     $this->importacionFinalizada = true;
     

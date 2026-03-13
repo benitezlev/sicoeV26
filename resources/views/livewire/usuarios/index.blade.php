@@ -233,12 +233,15 @@ $delete = function ($id) {
 
 ?>
 
-<div>
+<div class="p-6">
     <x-slot name="header">Gestión de Usuarios</x-slot>
 
     <div class="space-y-6">
         <div class="flex justify-between items-center">
-            <flux:heading size="xl">Directorio de Usuarios</flux:heading>
+            <div class="space-y-1">
+                <h1 class="text-2xl font-black text-zinc-900 dark:text-white tracking-tight uppercase">Directorio de Usuarios</h1>
+                <p class="text-xs text-zinc-500 font-medium">Administra el personal, sus roles y accesos al sistema.</p>
+            </div>
             
             <div class="flex gap-2">
                 @can('gestionar alumnos')
@@ -250,51 +253,62 @@ $delete = function ($id) {
         </div>
 
         <!-- Filtros -->
-        <div class="flex flex-wrap gap-4 items-end">
-            <flux:input wire:model.live.debounce.300ms="search" placeholder="Buscar por nombre, CURP o correo..." icon="magnifying-glass" class="max-w-md w-full" />
+        <div class="flex flex-wrap gap-4 items-end bg-white dark:bg-zinc-800 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+            <div class="flex-1 min-w-[300px]">
+                <flux:input wire:model.live.debounce.300ms="search" placeholder="Buscar por nombre, CURP o correo..." icon="magnifying-glass" />
+            </div>
             
-            <flux:select wire:model.live="roleFilter" placeholder="Filtrar por rol" class="max-w-xs">
-                <flux:select.option value="">Todos los roles</flux:select.option>
-                @foreach ($this->roles as $role)
-                    <flux:select.option value="{{ $role->name }}">{{ $role->name }}</flux:select.option>
-                @endforeach
-            </flux:select>
+            <div class="w-full md:w-64">
+                <flux:select wire:model.live="roleFilter" placeholder="Filtrar por rol">
+                    <flux:select.option value="">Todos los roles</flux:select.option>
+                    @foreach ($this->roles as $role)
+                        <flux:select.option value="{{ $role->name }}">{{ $role->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+            </div>
         </div>
 
-        <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
-            <flux:table>
-                <flux:table.columns>
-                    <flux:table.column class="min-w-[300px]">Usuario</flux:table.column>
-                    <flux:table.column class="min-w-[200px]">Identificación</flux:table.column>
-                    <flux:table.column class="min-w-[150px]">Roles</flux:table.column>
-                    <flux:table.column align="center">Expediente</flux:table.column>
-                    <flux:table.column align="center">Acciones</flux:table.column>
-                </flux:table.columns>
-
-                <flux:table.rows>
+        <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50">
+                        <th class="px-4 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 min-w-[300px]">Usuario</th>
+                        <th class="px-4 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 min-w-[200px]">Identificación</th>
+                        <th class="px-4 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 min-w-[150px]">Roles</th>
+                        <th class="px-4 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 text-center">Expediente</th>
+                        <th class="px-4 py-4 text-xs font-bold uppercase tracking-wider text-zinc-500 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                     @forelse ($this->users as $user)
-                        <flux:table.row :key="$user->id">
-                            <flux:table.cell>
+                        <tr wire:key="user-{{ $user->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                            <td class="px-4 py-4">
                                 <div class="flex items-center gap-3 whitespace-normal">
-                                    <flux:avatar src="{{ $user->profile_photo_url }}" :name="$user->nombre" size="sm" class="flex-shrink-0" />
+                                    <div class="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                        @if($user->profile_photo_url)
+                                            <img src="{{ $user->profile_photo_url }}" alt="{{ $user->nombre }}" class="w-full h-full object-cover">
+                                        @else
+                                            <span class="text-sm font-black text-zinc-400 uppercase">{{ substr($user->nombre, 0, 1) }}{{ substr($user->paterno, 0, 1) }}</span>
+                                        @endif
+                                    </div>
                                     <div class="flex flex-col min-w-0">
-                                        <span class="font-medium text-zinc-800 dark:text-white leading-tight break-words">
+                                        <span class="font-bold text-zinc-800 dark:text-white leading-tight break-words">
                                             {{ $user->nombre }} {{ $user->paterno }} {{ $user->materno }}
                                         </span>
-                                        <span class="text-xs text-zinc-500 break-all">{{ $user->email }}</span>
+                                        <span class="text-[10px] text-zinc-400 font-mono tracking-tighter break-all">{{ $user->email }}</span>
                                     </div>
                                 </div>
-                            </flux:table.cell>
+                            </td>
 
-                            <flux:table.cell>
-                                <div class="flex flex-col text-xs whitespace-normal">
+                            <td class="px-4 py-4">
+                                <div class="flex flex-col text-xs gap-1 whitespace-normal">
                                     <div class="flex items-center gap-1">
-                                        <flux:badge size="xs" :color="$user->nivel === 'fiscalia' ? 'purple' : ($user->nivel === 'municipal' ? 'emerald' : 'blue')" variant="outline">
-                                            {{ ucfirst($user->nivel) }}
-                                        </flux:badge>
-                                        <span class="font-mono text-zinc-600 dark:text-zinc-300 break-all">{{ $user->curp ?? $user->username }}</span>
+                                        <span class="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 text-[9px] font-bold uppercase border border-zinc-200 dark:border-zinc-700">
+                                            {{ $user->nivel }}
+                                        </span>
+                                        <span class="font-mono text-zinc-500 dark:text-zinc-400 text-[10px] break-all">{{ $user->curp ?? $user->username }}</span>
                                     </div>
-                                    <span class="text-zinc-500 italic truncate max-w-[180px]">
+                                    <span class="text-[10px] text-zinc-400 italic leading-tight">
                                         @if($user->nivel === 'municipal' && isset($user->perfil_data['municipio_id']))
                                             {{ \App\Models\Municipio::find($user->perfil_data['municipio_id'])->nombre ?? 'Mun. Desconocido' }}
                                         @elseif($user->nivel === 'fiscalia' && isset($user->perfil_data['area_especializada']))
@@ -304,153 +318,172 @@ $delete = function ($id) {
                                         @endif
                                     </span>
                                 </div>
-                            </flux:table.cell>
+                            </td>
 
-                            <flux:table.cell>
+                            <td class="px-4 py-4">
                                 <div class="flex flex-wrap gap-1">
                                     @foreach ($user->roles as $role)
-                                        <flux:badge size="sm" color="zinc" inset="top bottom">{{ $role->name }}</flux:badge>
+                                        <span class="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[9px] font-bold border border-blue-100 dark:border-blue-800/30">
+                                            {{ $role->name }}
+                                        </span>
                                     @endforeach
                                 </div>
-                            </flux:table.cell>
+                            </td>
 
-                            <flux:table.cell align="center">
+                            <td class="px-4 py-4 text-center">
                                 @if($user->expediente)
-                                    <flux:button variant="ghost" size="sm" :href="route('expedientes.show', $user->expediente)" class="p-0">
-                                        <flux:badge size="sm" :color="$user->expediente->estatus === 'completo' ? 'green' : ($user->expediente->estatus === 'observado' ? 'red' : 'amber')" variant="pill" class="cursor-pointer hover:opacity-80 transition-opacity">
-                                            {{ ucfirst($user->expediente->estatus) }}
-                                        </flux:badge>
-                                    </flux:button>
+                                    <a href="{{ route('expedientes.show', $user->expediente) }}" class="inline-block transition-transform hover:scale-105">
+                                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
+                                            {{ $user->expediente->estatus === 'completo' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 
+                                               ($user->expediente->estatus === 'observado' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-amber-100 text-amber-700 border border-amber-200') }}">
+                                            {{ $user->expediente->estatus }}
+                                        </span>
+                                    </a>
                                 @else
-                                    <span class="text-xs text-zinc-400 italic">No generado</span>
+                                    <span class="text-[10px] text-zinc-400 italic">No generado</span>
                                 @endif
-                            </flux:table.cell>
+                            </td>
 
-                            <flux:table.cell align="center">
-                                <div class="flex gap-2 justify-center">
+                            <td class="px-4 py-4 text-center">
+                                <div class="flex gap-1 justify-center">
                                     @if($user->expediente)
                                         <flux:button variant="ghost" size="sm" icon="folder-open" :href="route('expedientes.show', $user->expediente)" />
                                     @endif
                                     
-                                    <flux:button variant="ghost" size="sm" icon="pencil-square" wire:click="edit({{ $user->id }})" wire:loading.attr="disabled" />
+                                    <flux:button variant="ghost" size="sm" icon="pencil-square" wire:click="edit({{ $user->id }})" />
                                     
                                     @if($user->id !== auth()->id())
-                                        <flux:modal.trigger name="confirm-delete-{{ $user->id }}">
-                                            <flux:button variant="ghost" size="sm" color="red" icon="trash" />
-                                        </flux:modal.trigger>
+                                        <flux:button variant="ghost" size="sm" color="red" icon="trash" x-on:click="$dispatch('modal-show', { name: 'confirm-delete-{{ $user->id }}' })" />
                                     @endif
                                 </div>
 
-                                <flux:modal name="confirm-delete-{{ $user->id }}" class="max-w-md">
-                                    <form wire:submit="delete({{ $user->id }})" class="space-y-6 text-start">
-                                        <div>
-                                            <flux:heading size="lg">¿Eliminar Usuario?</flux:heading>
-                                            <flux:subheading>
-                                                Estás por eliminar a <b>{{ $user->nombre }}</b>. Esta acción borrará su acceso al sistema pero conservará sus registros históricos si existen dependencias.
-                                            </flux:subheading>
+                                <!-- Modal de eliminación -->
+                                <div x-data="{ open: false }" 
+                                     x-on:modal-show.window="if ($event.detail.name === 'confirm-delete-{{ $user->id }}') open = true" 
+                                     x-on:modal-hide.window="if ($event.detail.name === 'confirm-delete-{{ $user->id }}') open = false" 
+                                     x-show="open" x-cloak 
+                                     class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm">
+                                    <div class="bg-white dark:bg-zinc-800 w-full max-w-md rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-700 p-8 space-y-6 text-left" x-on:click.away="open = false">
+                                        <div class="space-y-2">
+                                            <h3 class="text-xl font-black text-zinc-900 dark:text-white uppercase tracking-tight">¿Eliminar Usuario?</h3>
+                                            <p class="text-sm text-zinc-500 leading-relaxed">
+                                                Estás por eliminar a <span class="font-bold text-zinc-900 dark:text-white">{{ $user->nombre }}</span>. 
+                                                Esta acción borrará el acceso pero conservará registros históricos.
+                                            </p>
                                         </div>
 
-                                        <div class="flex gap-2 justify-end">
-                                            <flux:modal.close>
-                                                <flux:button variant="ghost">Cancelar</flux:button>
-                                            </flux:modal.close>
-                                            <flux:button type="submit" variant="danger">Eliminar Usuario</flux:button>
+                                        <div class="flex gap-3 justify-end pt-2">
+                                            <flux:button variant="ghost" x-on:click="open = false">Cancelar</flux:button>
+                                            <flux:button type="submit" variant="danger" wire:click="delete({{ $user->id }})" x-on:click="open = false">Eliminar Usuario</flux:button>
                                         </div>
-                                    </form>
-                                </flux:modal>
-                            </flux:table.cell>
-                        </flux:table.row>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
                     @empty
-                        <flux:table.row>
-                            <flux:table.cell colspan="5" align="center" class="py-12 text-zinc-400">
-                                No se encontraron usuarios que coincidan con la búsqueda.
-                            </flux:table.cell>
-                        </flux:table.row>
+                        <tr>
+                            <td colspan="5" class="py-20 text-center text-zinc-400">
+                                <div class="flex flex-col items-center gap-2">
+                                    <flux:icon name="magnifying-glass" class="w-8 h-8 opacity-20" />
+                                    <span class="italic text-sm text-zinc-400">No se encontraron usuarios que coincidan con la búsqueda.</span>
+                                </div>
+                            </td>
+                        </tr>
                     @endforelse
-                </flux:table.rows>
-            </flux:table>
-
-            @if($this->users->hasPages())
-                <div class="p-4 border-t border-zinc-200 dark:border-zinc-700">
-                    {{ $this->users->links() }}
-                </div>
-            @endif
+                </tbody>
+            </table>
         </div>
+
+        @if($this->users->hasPages())
+            <div class="px-2">
+                {{ $this->users->links() }}
+            </div>
+        @endif
     </div>
 
     <!-- Modal Usuario (Crear/Editar) -->
-    <flux:modal name="user-modal" class="max-w-xl">
-        <form wire:submit="save" class="space-y-6">
-            <div wire:key="user-form-header-{{ $userId }}">
-                <flux:heading size="lg">{{ $userId ? 'Editar Usuario: '.$nombre : 'Nuevo Usuario' }}</flux:heading>
-                <flux:subheading>Completa la información del usuario en el sistema.</flux:subheading>
-            </div>
+    <div x-data="{ open: false }" 
+         x-on:modal-show.window="if ($event.detail.name === 'user-modal') open = true" 
+         x-on:modal-hide.window="if ($event.detail.name === 'user-modal') open = false" 
+         x-show="open" x-cloak 
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-zinc-800 w-full max-w-2xl rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-700 p-8 space-y-6 overflow-y-auto max-h-[90vh]" x-on:click.away="open = false">
+            <form wire:submit="save" class="space-y-8">
+                <div class="space-y-1">
+                    <h2 class="text-2xl font-black text-zinc-900 dark:text-white tracking-tight uppercase">{{ $userId ? 'Editar Usuario' : 'Nuevo Usuario' }}</h2>
+                    <p class="text-xs text-zinc-500 font-medium">Define los datos personales y de adscripción del elemento.</p>
+                </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" wire:key="user-form-fields-{{ $userId }}">
-                <flux:input wire:model="nombre" label="Nombre(s)" placeholder="Ej. Juan" />
-                <flux:input wire:model="paterno" label="Apellido Paterno" placeholder="Ej. Pérez" />
-                <flux:input wire:model="materno" label="Apellido Materno" placeholder="Ej. López" />
-                <flux:input wire:model="curp" label="CURP" placeholder="Ej. ABCD123456..." maxlength="18" />
-                
-                <flux:input wire:model="email" label="Correo Electrónico" placeholder="gmail@ejemplo.com" />
-                <flux:input wire:model="password" type="password" label="Contraseña" :placeholder="$userId ? 'Dejar en blanco para no cambiar' : 'Mínimo 8 caracteres'" />
-                
-                <flux:select wire:model="sexo" label="Sexo">
-                    <flux:select.option value="H">Hombre</flux:select.option>
-                    <flux:select.option value="M">Mujer</flux:select.option>
-                </flux:select>
-
-                <flux:select wire:model="tipo" label="Tipo de Usuario">
-                    <flux:select.option value="alumno">Alumno</flux:select.option>
-                    <flux:select.option value="docente">Docente</flux:select.option>
-                    <flux:select.option value="admin">Administrador</flux:select.option>
-                </flux:select>
-
-                @if(auth()->user()->hasRole('admin_ti'))
-                <flux:select wire:model.live="nivel" label="Nivel / Adscripción">
-                    <flux:select.option value="estatal">Seguridad Estatal</flux:select.option>
-                    <flux:select.option value="municipal">Seguridad Municipal</flux:select.option>
-                    <flux:select.option value="fiscalia">Fiscalía</flux:select.option>
-                    <flux:select.option value="administrativo">Administrativo / UMS</flux:select.option>
-                </flux:select>
-                
-                <flux:select wire:model="plantel_id" label="Plantel Asignado">
-                    <flux:select.option value="">Sin plantel específico</flux:select.option>
-                    @foreach($this->planteles as $plantel)
-                        <flux:select.option value="{{ $plantel->id }}">{{ $plantel->name }}</flux:select.option>
-                    @endforeach
-                </flux:select>
-                @endif
-
-                @if($nivel === 'municipal')
-                    <flux:select wire:model="municipio_id" label="Municipio">
-                        <flux:select.option value="">Selecciona municipio</flux:select.option>
-                        @foreach($this->municipios as $mun)
-                            <flux:select.option value="{{ $mun->id }}">{{ $mun->nombre }}</flux:select.option>
-                        @endforeach
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <flux:input wire:model="nombre" label="Nombre(s)" placeholder="Ej. Juan" />
+                    <flux:input wire:model="paterno" label="Apellido Paterno" placeholder="Ej. Pérez" />
+                    <flux:input wire:model="materno" label="Apellido Materno" placeholder="Ej. López" />
+                    <flux:input wire:model="curp" label="CURP" placeholder="ABCD123456..." maxlength="18" />
+                    
+                    <flux:input wire:model="email" label="Correo Electrónico" placeholder="element@sicoe.gob.mx" />
+                    <flux:input wire:model="password" type="password" label="Contraseña" :placeholder="$userId ? 'Dejar en blanco para no cambiar' : 'Mínimo 8 caracteres'" />
+                    
+                    <flux:select wire:model="sexo" label="Sexo">
+                        <flux:select.option value="H">Hombre</flux:select.option>
+                        <flux:select.option value="M">Mujer</flux:select.option>
                     </flux:select>
-                @endif
 
-                @if($nivel === 'fiscalia')
-                    <flux:input wire:model="area_especializada" label="Área Especializada" placeholder="Ej. Homicidios, Robo..." />
-                @endif
+                    <flux:select wire:model="tipo" label="Tipo de Usuario">
+                        <flux:select.option value="alumno">Alumno</flux:select.option>
+                        <flux:select.option value="docente">Docente</flux:select.option>
+                        <flux:select.option value="admin">Administrador</flux:select.option>
+                    </flux:select>
 
-                <flux:input wire:model="dependencia" label="Dependencia/Corporación" placeholder="Ej. Policía Estatal, DGSC..." />
-                <flux:input wire:model="adscripcion" label="Unidad de Adscripción" placeholder="Ej. Región I, Comandancia..." />
+                    @if(auth()->user()->hasRole('admin_ti'))
+                        <flux:select wire:model.live="nivel" label="Nivel / Adscripción">
+                            <flux:select.option value="estatal">Seguridad Estatal</flux:select.option>
+                            <flux:select.option value="municipal">Seguridad Municipal</flux:select.option>
+                            <flux:select.option value="fiscalia">Fiscalía</flux:select.option>
+                            <flux:select.option value="administrativo">Administrativo / UMS</flux:select.option>
+                        </flux:select>
+                        
+                        <flux:select wire:model="plantel_id" label="Plantel Asignado">
+                            <flux:select.option value="">Sin plantel específico</flux:select.option>
+                            @foreach($this->planteles as $plantel)
+                                <flux:select.option value="{{ $plantel->id }}">{{ $plantel->name }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                    @endif
 
-                <flux:fieldset label="Asignar Roles">
-                    <div class="flex flex-wrap gap-4 mt-2">
-                        @foreach($this->roles as $role)
-                            <flux:checkbox wire:model="selectedRoles" :value="$role->name" :label="$role->name" />
-                        @endforeach
+                    @if($nivel === 'municipal')
+                        <flux:select wire:model="municipio_id" label="Municipio">
+                            <flux:select.option value="">Selecciona municipio</flux:select.option>
+                            @foreach($this->municipios as $mun)
+                                <flux:select.option value="{{ $mun->id }}">{{ $mun->nombre }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                    @endif
+
+                    @if($nivel === 'fiscalia')
+                        <flux:input wire:model="area_especializada" label="Área Especializada" placeholder="Ej. Homicidios, Robo..." />
+                    @endif
+
+                    <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                        <flux:input wire:model="dependencia" label="Dependencia/Corporación" placeholder="Ej. Policía Estatal, DGSC..." />
+                        <flux:input wire:model="adscripcion" label="Unidad de Adscripción" placeholder="Ej. Región I, Comandancia..." />
                     </div>
-                </flux:fieldset>
-            </div>
 
-            <div class="flex gap-2 justify-end">
-                <flux:modal.close><flux:button variant="ghost">Cancelar</flux:button></flux:modal.close>
-                <flux:button type="submit" variant="primary">Guardar Usuario</flux:button>
-            </div>
-        </form>
-    </flux:modal>
+                    <div class="md:col-span-2">
+                        <flux:fieldset label="Asignar Roles">
+                            <div class="flex flex-wrap gap-4 mt-2">
+                                @foreach($this->roles as $role)
+                                    <flux:checkbox wire:model="selectedRoles" :value="$role->name" :label="$role->name" />
+                                @endforeach
+                            </div>
+                        </flux:fieldset>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 justify-end pt-4 border-t border-zinc-100 dark:border-zinc-700">
+                    <flux:button variant="ghost" x-on:click="open = false">Cancelar</flux:button>
+                    <flux:button type="submit" variant="primary" class="px-8">Guardar Usuario</flux:button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>

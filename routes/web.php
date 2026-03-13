@@ -29,6 +29,7 @@ Route::middleware(['auth', 'role:admin_ti'])->prefix('admin')->group(function ()
     Volt::route('plantel', 'planteles.index')->name('plantel.index');
     Volt::route('/usuarios', 'usuarios.index')->name('alumnos.index');
     Volt::route('/alumnos/importar', 'usuarios.import')->name('alumnos.importar');
+    Volt::route('/expedientes/importar-zip', 'expedientes.import-zip')->name('expedientes.import-zip');
     Volt::route('/usuarios/carga-masiva', 'usuarios.bulk-documents')->name('usuarios.carga-masiva');
 
     // Rutas Docentes
