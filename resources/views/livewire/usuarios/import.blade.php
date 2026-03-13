@@ -98,17 +98,18 @@ $importar = function () {
                 'nombre' => $nombre,
                 'paterno' => $datos['paterno'] ?? '',
                 'materno' => $datos['materno'] ?? '',
-                'username' => $curp,
+                'username' => $datos['username'] ?? $curp,
                 'email' => $email,
                 'password' => Hash::make($password),
                 'curp' => $curp,
                 'cuip' => $datos['cuip'] ?? null,
                 'cup' => $datos['cup'] ?? null,
                 'sexo' => $sexo,
-                'tipo' => $datos['tipo'] ?? 'alumno',
+                'tipo' => strtolower($datos['tipo'] ?? 'alumno') === 'alumno' ? 'alumno' : ($datos['tipo'] ?? 'alumno'),
                 'nivel' => $nivel,
                 'plantel_id' => null, // Asignación dinámica posterior
                 'perfil_data' => [
+                    'perfil' => $datos['perfil'] ?? null,
                     'municipio_id' => $datos['municipio_id'] ?? null,
                     'dependencia' => $datos['dependencia'] ?? null,
                     'adscripcion' => $datos['adscripcion'] ?? null,
@@ -183,8 +184,8 @@ $exportarErrores = function () {
 };
 
 $descargarPlantilla = function () {
-    $columnas = ['curp', 'nombre', 'paterno', 'materno', 'sexo', 'email', 'password', 'cuip', 'cup', 'nivel', 'dependencia', 'adscripcion'];
-    $ejemplo = ['CURP123456HDFXYZ01', 'Juan', 'Perez', 'Garcia', 'Hombre', 'juan@ejemplo.com', 'PROVISIONAL123', 'CUIP999000', 'CUP001', 'estatal', 'POLICIA ESTATAL', 'SEGURIDAD PUBLICA'];
+    $columnas = ['cuip', 'curp', 'cup', 'paterno', 'materno', 'nombre', 'dependencia', 'adscripcion', 'perfil', 'sexo', 'tipo', 'username', 'password'];
+    $ejemplo = ['CUIP999000', 'CURP123456HDFXYZ01', 'CUP001', 'ALVAREZ', 'DIAZ', 'IVÁN', 'SECRETARÍA DE SEGURIDAD', 'DIRECCIÓN GENERAL', 'POLICÍA PREVENTIVO ESTATAL', 'Hombre', 'ALUMNO', 'CURP123456HDFXYZ01', 'P@ssword'];
     
     $contenido = implode(',', $columnas) . "\n" . implode(',', $ejemplo);
     
