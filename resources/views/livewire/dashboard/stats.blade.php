@@ -24,11 +24,27 @@ $stats = computed(function() {
 });
 
 $distribution = computed(function() {
-    if (!auth()->check() || !auth()->user()->hasRole('admin_ti')) return null;
+    if (!auth()->check()) return null;
 
-    return User::withoutGlobalScopes()->select('nivel', DB::raw('count(*) as total'))
+    $query = User::query();
+    
+    // Si no es admin_ti, el Global Scope de HasJurisdiction ya filtra
+    // pero para la distribución por nivel queremos ver el desglose
+    return $query->select('nivel', DB::raw('count(*) as total'))
         ->groupBy('nivel')
-        ->get();
+        ->get()
+        ->map(function($item) {
+            $presentes = \App\Models\AsistenciaIndividual::whereHas('user', function($q) use ($item) {
+                    $q->where('nivel', $item->nivel);
+                })
+                ->whereDate('fecha', now())
+                ->where('estatus', 'presente')
+                ->count();
+            
+            $item->presentes = $presentes;
+            $item->porcentaje = $item->total > 0 ? round(($presentes / $item->total) * 100) : 0;
+            return $item;
+        });
 });
 
 ?>
@@ -115,10 +131,18 @@ $distribution = computed(function() {
         <flux:heading size="lg" class="mb-6">Distribución por Nivel de Seguridad</flux:heading>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             @foreach($this->distribution as $dist)
-                <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 text-center">
-                    <span class="text-[10px] text-zinc-400 uppercase font-bold tracking-widest">{{ $dist->nivel ?? 'ADMIN' }}</span>
-                    <div class="text-3xl font-black mt-1">{{ $dist->total }}</div>
-                    <div class="text-[10px] text-zinc-500">Elementos</div>
+                <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 relative overflow-hidden">
+                    <div class="relative z-10">
+                        <span class="text-[10px] text-zinc-400 uppercase font-bold tracking-widest">{{ $dist->nivel ?? 'S/N' }}</span>
+                        <div class="flex items-baseline gap-2">
+                            <div class="text-3xl font-black mt-1">{{ $dist->total }}</div>
+                            <div class="text-[10px] text-emerald-500 font-bold"> {{ $dist->presentes }} PRESENTE</div>
+                        </div>
+                        <div class="mt-2 w-full bg-zinc-200 dark:bg-zinc-700 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-emerald-500 h-full transition-all duration-500" style="width: {{ $dist->porcentaje }}%"></div>
+                        </div>
+                        <div class="mt-1 text-[9px] text-zinc-400 text-right font-bold">{{ $dist->porcentaje }}% FUERZA REAL</div>
+                    </div>
                 </div>
             @endforeach
         </div>

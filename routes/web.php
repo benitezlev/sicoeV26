@@ -89,6 +89,7 @@ Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {
 // Grupo de rutas para asistencias
 Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {
     Volt::route('/asistencias/dashboard', 'asistencias.index')->name('asistencias.index');
+    Volt::route('/asistencias/pase-lista', 'asistencias.pase-lista')->name('asistencias.pase-lista');
 
     Route::prefix('asistencias')->group(function () {
         // Generar lista en PDF (para impresión)

@@ -1,0 +1,29 @@
+
+   INFO  Seeding database.  
+
+
+   Illuminate\Database\UniqueConstraintViolationException 
+
+  SQLSTATE[23505]: Unique violation: 7 ERROR:  llave duplicada viola restricción de unicidad «users_username_unique»
+DETAIL:  Ya existe la llave (username)=(TEST00000000000001). (Connection: pgsql, Host: 127.0.0.1, Port: 5432, Database: sicoe_pg, SQL: insert into "users" ("nombre", "paterno", "materno", "email", "username", "password", "curp", "nivel", "sexo", "tipo", "plantel_id", "municipio_id", "perfil_data", "updated_at", "created_at") values (JUAN, PEREZ, GARCIA, juan0@example.com, TEST00000000000001, $2y$12$m.1ARGH8Vl74wlPgEQx1QOq7VFDdmeBvEKywivcKfwYSd08LmC99a, TEST00000000000001, estatal, H, alumno, 4, ?, {"dependencia":"Corporaci\u00f3n de Prueba","adscripcion":"Unidad Alfa"}, 2026-03-13 18:12:11, 2026-03-13 18:12:11) returning "id")
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:838
+    834▕             $exceptionType = $this->isUniqueConstraintError($e)
+    835▕                 ? UniqueConstraintViolationException::class
+    836▕                 : QueryException::class;
+    837▕ 
+  ➜ 838▕             throw new $exceptionType(
+    839▕                 $this->getNameWithReadWriteType(),
+    840▕                 $query,
+    841▕                 $this->prepareBindings($bindings),
+    842▕                 $e,
+
+      [2m+18 vendor frames [22m
+
+  19  database/seeders/AcademicDemoSeeder.php:36
+      Illuminate\Database\Eloquent\Model::__callStatic()
+      [2m+23 vendor frames [22m
+
+  43  artisan:16
+      Illuminate\Foundation\Application::handleCommand()
+
