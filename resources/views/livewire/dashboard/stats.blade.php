@@ -67,6 +67,7 @@ $nestedStats = computed(function() {
             // Stats de Grupos del Plantel
             $plantel->gruposS_stats = Grupo::where('plantel_id', $plantel->id)
                 ->where('estado', 'activo')
+                ->with('curso')
                 ->withCount(['alumnos' => function($q) {
                     $q->role('alumno');
                 }])
@@ -77,6 +78,7 @@ $nestedStats = computed(function() {
                         ->where('estatus', 'presente')
                         ->count();
                     $grupo->presentes = $presentesGrupo;
+                    $grupo->faltantes = max(0, $grupo->alumnos_count - $presentesGrupo);
                     $grupo->porcentaje = $grupo->alumnos_count > 0 ? round(($presentesGrupo / $grupo->alumnos_count) * 100) : 0;
                     return $grupo;
                 });
@@ -225,34 +227,44 @@ $nestedStats = computed(function() {
                                 </div>
                             </div>
 
-                            <!-- Listado de Grupos del Plantel -->
-                            <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-3 bg-white dark:bg-zinc-800">
-                                @forelse($plantel->gruposS_stats as $grupo)
-                                    <div class="p-3 bg-zinc-50 dark:bg-zinc-900/40 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col justify-between">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <div class="truncate">
-                                                <div class="text-[11px] font-bold text-zinc-800 dark:text-zinc-200 truncate">{{ $grupo->nombre }}</div>
-                                                <div class="text-[8px] text-zinc-500 uppercase">{{ $grupo->periodo }}</div>
-                                            </div>
-                                            <div class="text-[10px] font-black {{ $grupo->porcentaje > 80 ? 'text-emerald-500' : 'text-amber-500' }}">
-                                                {{ $grupo->porcentaje }}%
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="flex justify-between text-[8px] text-zinc-400 mb-1 font-bold">
-                                                <span>{{ $grupo->presentes }} / {{ $grupo->alumnos_count }} ELEM</span>
-                                                <span>{{ now()->format('d/m/y') }}</span>
-                                            </div>
-                                            <div class="w-full bg-zinc-200 dark:bg-zinc-700 h-1 rounded-full overflow-hidden">
-                                                <div class="bg-indigo-500 h-full transition-all duration-500" style="width: {{ $grupo->porcentaje }}%"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @empty
-                                    <div class="col-span-2 py-4 text-center text-xs text-zinc-400 italic">
+                            <!-- Tabla de Grupos del Plantel -->
+                            <div class="bg-white dark:bg-zinc-800">
+                                @if(count($plantel->gruposS_stats) > 0)
+                                    <flux:table>
+                                        <flux:table.columns>
+                                            <flux:table.column>Grupo / Curso</flux:table.column>
+                                            <flux:table.column align="center">Presentes</flux:table.column>
+                                            <flux:table.column align="center">Faltantes</flux:table.column>
+                                            <flux:table.column align="right">% Real</flux:table.column>
+                                        </flux:table.columns>
+
+                                        <flux:table.rows>
+                                            @foreach($plantel->gruposS_stats as $grupo)
+                                                <flux:table.row>
+                                                    <flux:table.cell>
+                                                        <div class="text-[11px] font-bold text-zinc-800 dark:text-zinc-200">{{ $grupo->nombre }}</div>
+                                                        <div class="text-[9px] text-zinc-500 uppercase">{{ $grupo->curso?->nombre }}</div>
+                                                    </flux:table.cell>
+                                                    <flux:table.cell align="center">
+                                                        <flux:badge size="sm" color="green" inset="top bottom">{{ $grupo->presentes }}</flux:badge>
+                                                    </flux:table.cell>
+                                                    <flux:table.cell align="center">
+                                                        <flux:badge size="sm" :color="$grupo->faltantes > 0 ? 'red' : 'zinc'" inset="top bottom">{{ $grupo->faltantes }}</flux:badge>
+                                                    </flux:table.cell>
+                                                    <flux:table.cell align="right">
+                                                        <div class="text-[10px] font-black {{ $grupo->porcentaje > 80 ? 'text-emerald-500' : 'text-amber-500' }}">
+                                                            {{ $grupo->porcentaje }}%
+                                                        </div>
+                                                    </flux:cell>
+                                                </flux:table.row>
+                                            @endforeach
+                                        </flux:table.rows>
+                                    </flux:table>
+                                @else
+                                    <div class="py-8 text-center text-xs text-zinc-400 italic">
                                         No hay grupos activos registrados en este plantel.
                                     </div>
-                                @endforelse
+                                @endif
                             </div>
                         </div>
                     @endif
