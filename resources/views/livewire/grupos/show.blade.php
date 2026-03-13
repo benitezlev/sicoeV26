@@ -236,11 +236,11 @@ $subirAsistencia = function () {
             <!-- Botón generar lista -->
             @if($this->grupo->alumnos->count() > 0)
                 <a href="{{ route('asistencias.generar', $this->grupo->id) }}" target="_blank" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md">
-                    <flux:icon name="printer" class="size-4" /> Reporte Mensual de Fuerza (PDF)
+                    <flux:icon name="printer" class="size-4" /> Lista de Asistencia (PDF)
                 </a>
             @else
                 <button disabled title="Inscribe alumnos primero para imprimir el reporte" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-zinc-400 border border-white hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all cursor-not-allowed opacity-75">
-                    <flux:icon name="printer" class="size-4" /> Reporte Mensual de Fuerza (PDF)
+                    <flux:icon name="printer" class="size-4" /> Lista de Asistencia (PDF)
                 </button>
             @endif
             <!-- Botón subir lista (Modal) -->
