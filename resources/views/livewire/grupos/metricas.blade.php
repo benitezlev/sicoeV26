@@ -15,7 +15,7 @@ class Metricas extends Component
         $this->grupo = $grupo->load(['curso', 'alumnos', 'expediente', 'plantel']);
     }
 
-    public function render()
+    public function with(): array
     {
         $totalAlumnos = $this->grupo->alumnos->count();
         $alumnosAlta = $this->grupo->alumnos()->wherePivot('estado', 'activo')->count();
@@ -27,13 +27,13 @@ class Metricas extends Component
         // Por ahora contaremos cuántas calificaciones existen
         $evaluacionesEmitidas = \App\Models\Calificacion::where('grupo_id', $this->grupo->id)->count();
 
-        return view('livewire.grupos.metricas', compact(
+        return compact(
             'totalAlumnos',
             'alumnosAlta',
             'alumnosBaja',
             'documentos',
             'evaluacionesEmitidas'
-        ));
+        );
     }
 } ?>
 
