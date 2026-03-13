@@ -2,11 +2,11 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-03-13 13:05)
-1.  **Dashboard Operativo Multi-Nivel:** Se rediseñó la sección de Estado de Fuerza para mostrar un comparativo real vs teórico en tres dimensiones: por **Nivel de Seguridad**, por **Plantel** y por **Grupo Académico**.
-2.  **Flexibilidad de Horarios:** Implementación de días de clase configurables por grupo (incluyendo sábados/domingos).
-3.  **Módulo de Estado de Fuerza Real:** Control de asistencia individual manual con gestión de historial y bajas.
-4.  **Estabilización de PDF (PostgreSQL):** Corrección de errores de ordenamiento al generar listas de asistencia.
+## 🕒 Últimos Cambios Importantes (2026-03-13 13:25)
+1.  **Dashboard Operativo Tabular:** Rediseño interior de planteles para mostrar grupos en formato de tabla compacta (Presentes vs Faltantes).
+2.  **Migración Inteligente de Datos:** Sistema asistido que permite trasladar usuarios y grupos a un nuevo plantel de forma segura antes de eliminar un plantel (PostgreSQL 17).
+3.  **Flexibilidad de Horarios:** Soporte nativo para regímenes intensivos (sábados y domingos).
+4.  **Estado de Fuerza Real:** Monitoreo de asistencias con comparativo real vs teórico en tres dimensiones.
 
 ## 🛠️ Contexto de Ejecución: Dependencias Críticas
 - **Estándar:** `Laravel 12` + `Livewire 3 (Volt)` + `Flux UI`.
@@ -22,4 +22,4 @@ Este documento resume el estado actual del proyecto, los cambios recientes y las
 3.  **Firma Electrónica Simple:** Estampado de firmas en actas.
 
 ---
-*Última actualización: 2026-03-13 13:05:00*
+*Última actualización: 2026-03-13 13:25:00*

@@ -48,24 +48,10 @@ $distribution = computed(function() {
 });
 
 $nestedStats = computed(function() {
-    return \App\Models\Plantel::withCount(['users' => function($q) {
-            $q->role('alumno');
-        }])
-        ->get()
+    return \App\Models\Plantel::all()
         ->map(function($plantel) {
-            // Stats del Plantel
-            $presentesPlantel = \App\Models\AsistenciaIndividual::whereHas('user', function($q) use ($plantel) {
-                    $q->where('plantel_id', $plantel->id);
-                })
-                ->whereDate('fecha', now())
-                ->where('estatus', 'presente')
-                ->count();
-            
-            $plantel->presentes = $presentesPlantel;
-            $plantel->porcentaje = $plantel->users_count > 0 ? round(($presentesPlantel / $plantel->users_count) * 100) : 0;
-            
             // Stats de Grupos del Plantel
-            $plantel->gruposS_stats = Grupo::where('plantel_id', $plantel->id)
+            $gruposStats = \App\Models\Grupo::where('plantel_id', $plantel->id)
                 ->where('estado', 'activo')
                 ->with('curso')
                 ->withCount(['alumnos' => function($q) {
@@ -83,7 +69,20 @@ $nestedStats = computed(function() {
                     return $grupo;
                 });
 
+            // Consolidar Totales del Plantel a partir de sus grupos
+            $totalAlumnos = $gruposStats->sum('alumnos_count');
+            $totalPresentes = $gruposStats->sum('presentes');
+            
+            $plantel->users_count = $totalAlumnos;
+            $plantel->presentes = $totalPresentes;
+            $plantel->porcentaje = $totalAlumnos > 0 ? round(($totalPresentes / $totalAlumnos) * 100) : 0;
+            $plantel->gruposS_stats = $gruposStats;
+
             return $plantel;
+        })
+        ->filter(function($plantel) {
+            // Ocultar planteles sin alumnos ni grupos activos
+            return $plantel->users_count > 0 || count($plantel->gruposS_stats) > 0;
         });
 });
 
