@@ -48,20 +48,26 @@ $importar = function () {
     $this->insertados = 0;
 
     while (($fila = fgetcsv($csv)) !== false) {
-        if (count($encabezados) !== count($fila)) continue;
-
-        $datos = array_combine($encabezados, $fila);
-        $curp = strtoupper(trim($datos['curp'] ?? ''));
-
-        if (!$curp) {
-            $this->errores[] = "Fila con nombre '" . ($datos['nombre'] ?? 'Desconocido') . "' no tiene CURP.";
+        if (count($encabezados) !== count($fila)) {
+            $this->errores[] = "Fila con columnas incompletas.";
             continue;
         }
 
+        $datos = array_combine($encabezados, $fila);
+        $curp = strtoupper(trim($datos['curp'] ?? ''));
+        $nombre = trim($datos['nombre'] ?? '');
+
+        if (!$curp) {
+            $this->errores[] = "El alumno '{$nombre}' no tiene CURP definido.";
+            continue;
+        }
+
+        // Validación de duplicados por CURP
         if (User::where('curp', $curp)->exists()) {
             $this->duplicados[] = [
-                'nombre' => ($datos['nombre'] ?? '') . ' ' . ($datos['paterno'] ?? ''),
-                'curp' => $curp
+                'nombre' => $nombre . ' ' . ($datos['paterno'] ?? ''),
+                'curp' => $curp,
+                'motivo' => 'CURP ya registrado en el sistema'
             ];
             continue;
         }
@@ -74,55 +80,69 @@ $importar = function () {
         };
 
         if (!$sexo) {
-            $this->errores[] = "CURP $curp tiene sexo inválido: '$sexoRaw'";
+            $this->errores[] = "CURP $curp ({$nombre}) tiene sexo inválido o ausente: '$sexoRaw'";
             continue;
+        }
+
+        // Configuración de Nivel y Datos Flexibles
+        $nivel = strtolower(trim($datos['nivel'] ?? 'estatal'));
+        if (!in_array($nivel, ['estatal', 'municipal', 'fiscalia', 'administrativo'])) {
+            $nivel = 'estatal';
         }
 
         $email = $datos['email'] ?? strtolower($curp) . '@sicoe.mx';
         $password = $datos['password'] ?? $curp;
-        $username = $datos['username'] ?? Str::slug($curp);
 
         try {
             $user = User::create([
-                'paterno' => $datos['paterno'] ?? null,
-                'materno' => $datos['materno'] ?? null,
-                'nombre' => $datos['nombre'] ?? null,
-                'username' => $username,
+                'nombre' => $nombre,
+                'paterno' => $datos['paterno'] ?? '',
+                'materno' => $datos['materno'] ?? '',
+                'username' => $curp,
                 'email' => $email,
                 'password' => Hash::make($password),
                 'curp' => $curp,
                 'cuip' => $datos['cuip'] ?? null,
                 'cup' => $datos['cup'] ?? null,
-                'dependencia' => $datos['dependencia'] ?? null,
-                'adscripcion' => $datos['adscripcion'] ?? null,
                 'sexo' => $sexo,
                 'tipo' => $datos['tipo'] ?? 'alumno',
-                'perfil' => $datos['perfil'] ?? null,
+                'nivel' => $nivel,
+                'plantel_id' => $datos['plantel_id'] ?? null,
+                'perfil_data' => [
+                    'municipio_id' => $datos['municipio_id'] ?? null,
+                    'dependencia' => $datos['dependencia'] ?? null,
+                    'adscripcion' => $datos['adscripcion'] ?? null,
+                    'area_especializada' => $datos['area_especializada'] ?? null,
+                    'importado_el' => now()->toDateTimeString(),
+                ],
             ]);
 
             $user->assignRole('alumno');
 
-            try {
-                Expediente::create([
-                    'user_id' => $user->id,
-                    'folio' => 'EXP-' . date('Y') . '-' . str_pad($user->id, 5, '0', STR_PAD_LEFT),
-                    'estatus' => 'incompleto',
-                    'fecha_apertura' => now(),
-                ]);
-            } catch (\Exception $e) {
-                Log::channel('expedientes')->error("Error al crear expediente para CURP {$curp}: " . $e->getMessage());
-            }
+            // Folio de expediente basado en nivel
+            $prefix = match($nivel) {
+                'municipal' => 'MUN',
+                'fiscalia' => 'FIS',
+                default => 'EST'
+            };
+
+            Expediente::create([
+                'user_id' => $user->id,
+                'folio' => "{$prefix}-" . date('Y') . "-" . str_pad($user->id, 5, '0', STR_PAD_LEFT),
+                'estatus' => 'incompleto',
+                'fecha_apertura' => now(),
+            ]);
 
             $this->insertados++;
         } catch (\Exception $e) {
-            $this->errores[] = "Error al procesar CURP $curp: " . $e->getMessage();
+            $this->errores[] = "Error crítico procesando '{$nombre}' ({$curp}): " . $e->getMessage();
         }
     }
 
     fclose($csv);
 
     Importacion::create([
-        'modulo' => 'usuarios_alumnos',
+        'modulo' => 'usuarios_alumnos_v2',
         'archivo' => $nombreOriginal,
         'user_id' => auth()->id(),
         'registros' => $this->insertados,
@@ -133,19 +153,20 @@ $importar = function () {
     $this->importacionFinalizada = true;
     
     Flux::toast(
-        heading: 'Importación finalizada',
-        text: "Se han registrado {$this->insertados} alumnos correctamente.",
+        heading: 'Importación Completada',
+        text: "Se procesaron {$this->insertados} registros nuevos.",
         variant: 'success'
     );
 };
 
 $exportarDuplicados = function () {
-    $contenido = "Nombre,CURP\n";
+    $contenido = "Nombre,CURP,Motivo\n";
     foreach ($this->duplicados as $d) {
-        $contenido .= "{$d['nombre']},{$d['curp']}\n";
+        $contenido .= "\"{$d['nombre']}\",\"{$d['curp']}\",\"{$d['motivo']}\"\n";
     }
     
     return response()->streamDownload(function () use ($contenido) {
+        echo "\xEF\xBB\xBF"; // UTF-8 BOM para Excel
         echo $contenido;
     }, 'duplicados_' . now()->format('YmdHis') . '.csv');
 };

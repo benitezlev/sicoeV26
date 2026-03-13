@@ -13,14 +13,22 @@ class MigrateDataToPostgres extends Command
 
     public function handle()
     {
+        try {
         $tables = [
+            'configuracion_institucional',
             'roles', 'permissions', 'model_has_roles', 'model_has_permissions', 'role_has_permissions',
-            'planteles', 'users', 'expedientes', 'materias', 'grupos', 'profesores',
-            'grupo_user', 'grupo_alumno', 'documentos', 'documentos_expediente'
+            'planteles', 'users', 'alumnos', 'docentes', 'certificaciones', 'capacitaciones',
+            'expedientes', 'materias', 'grupos', 'profesores', 'profesor_logs', 'materia_logs',
+            'curso_materia', 'cursos', 'grupo_user', 'grupo_alumno', 'grupo_expediente', 'grupo_logs',
+            'documentos', 'documentos_expediente', 'documentos_requeridos', 'asistencias', 'calificaciones',
+            'importaciones'
         ];
 
         $mysql = DB::connection('mysql');
         $pgsql = DB::connection('pgsql');
+        
+        // Desactivar restricciones temporalmente
+        $pgsql->statement("SET session_replication_role = 'replica'");
 
         foreach ($tables as $table) {
             $this->info("Migrando tabla: {$table}");
@@ -53,6 +61,10 @@ class MigrateDataToPostgres extends Command
             }
         }
 
+        } catch (\Exception $e) {
+            $this->error("Error fatal: " . $e->getMessage());
+            return 1;
+        }
         $this->info("Migración completada.");
     }
 }

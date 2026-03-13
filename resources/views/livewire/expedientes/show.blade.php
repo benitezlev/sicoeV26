@@ -21,7 +21,7 @@ state([
 
 // Initialize
 mount(function (Expediente $expediente) {
-    $this->expediente = $expediente->load(['user', 'documentos.cargador']);
+    $this->expediente = $expediente->load(['user.movimientos.autor', 'user.movimientos.plantelAnterior', 'user.movimientos.plantelNuevo', 'user.calificaciones.materia', 'user.calificaciones.grupo', 'documentos.cargador']);
 });
 
 // Actions
@@ -110,9 +110,13 @@ $cargarDocumento = function () {
                 <div class="space-y-1">
                     <flux:heading size="xl">{{ $expediente->user->nombre }} {{ $expediente->user->paterno }} {{ $expediente->user->materno }}</flux:heading>
                     <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500">
+                        <span class="flex items-center gap-1">
+                            <flux:badge size="xs" :color="match($expediente->user->nivel){'fiscalia'=>'purple','municipal'=>'emerald',default=>'blue'}" variant="outline">
+                                {{ ucfirst($expediente->user->nivel) }}
+                            </flux:badge>
+                        </span>
                         <span class="flex items-center gap-1"><flux:icon name="identification" variant="mini" /> {{ $expediente->user->curp }}</span>
-                        <span class="flex items-center gap-1"><flux:icon name="academic-cap" variant="mini" /> {{ $expediente->user->perfil ?? 'Sin perfil' }}</span>
-                        <span class="flex items-center gap-1"><flux:icon name="building-office" variant="mini" /> {{ $expediente->user->dependencia ?? 'Sin dependencia' }}</span>
+                        <span class="flex items-center gap-1"><flux:icon name="building-office" variant="mini" /> {{ $expediente->user->perfil_data['dependencia'] ?? 'Sin dependencia' }}</span>
                     </div>
                 </div>
             </div>
@@ -135,75 +139,216 @@ $cargarDocumento = function () {
         </div>
     </div>
 
-    <!-- Listado de Documentos -->
-    <div class="space-y-4">
-        <flux:heading size="lg" class="px-2 text-zinc-600">Documentación Cargada</flux:heading>
-        
-        <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
-            <flux:table>
-                <flux:table.columns>
-                    <flux:table.column>Tipo de Documento</flux:table.column>
-                    <flux:table.column>Archivo / Fecha</flux:table.column>
-                    <flux:table.column>Cargado Por</flux:table.column>
-                    <flux:table.column align="center">Estatus</flux:table.column>
-                    <flux:table.column align="center">Acciones</flux:table.column>
-                </flux:table.columns>
+    <div x-data="{ tab: 'documentos' }" class="space-y-6">
+        <div class="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl w-fit">
+            <button 
+                @click="tab = 'documentos'" 
+                :class="tab === 'documentos' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700'"
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+            >
+                <flux:icon name="document-text" variant="mini" />
+                Documentación
+            </button>
+            <button 
+                @click="tab = 'historial'" 
+                :class="tab === 'historial' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700'"
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+            >
+                <flux:icon name="clock" variant="mini" />
+                Historial de Movimientos
+            </button>
+            <button 
+                @click="tab = 'kardex'" 
+                :class="tab === 'kardex' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700'"
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+            >
+                <flux:icon name="academic-cap" variant="mini" />
+                Kárdex Académico
+            </button>
+        </div>
 
-                <flux:table.rows>
-                    @forelse ($expediente->documentos as $doc)
-                        <flux:table.row :key="$doc->id">
-                            <flux:table.cell>
-                                <span class="font-bold text-zinc-700 dark:text-zinc-200">{{ $doc->tipo }}</span>
-                                @if($doc->observaciones)
-                                    <div class="mt-1 text-xs text-red-500 italic flex items-center gap-1">
-                                        <flux:icon name="exclamation-circle" variant="mini" />
-                                        {{ $doc->observaciones }}
+        <div x-show="tab === 'documentos'" x-cloak class="animate-in fade-in duration-300">
+            <div class="space-y-4">
+                <flux:heading size="lg" class="px-2 text-zinc-600">Documentación Cargada</flux:heading>
+                
+                <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
+                    <flux:table>
+                        <flux:table.columns>
+                            <flux:table.column>Tipo de Documento</flux:table.column>
+                            <flux:table.column>Archivo / Fecha</flux:table.column>
+                            <flux:table.column>Cargado Por</flux:table.column>
+                            <flux:table.column align="center">Estatus</flux:table.column>
+                            <flux:table.column align="center">Acciones</flux:table.column>
+                        </flux:table.columns>
+
+                        <flux:table.rows>
+                            @forelse ($expediente->documentos as $doc)
+                                <flux:table.row :key="$doc->id">
+                                    <flux:table.cell>
+                                        <span class="font-bold text-zinc-700 dark:text-zinc-200">{{ $doc->tipo }}</span>
+                                        @if($doc->observaciones)
+                                            <div class="mt-1 text-xs text-red-500 italic flex items-center gap-1">
+                                                <flux:icon name="exclamation-circle" variant="mini" />
+                                                {{ $doc->observaciones }}
+                                            </div>
+                                        @endif
+                                    </flux:table.cell>
+
+                                    <flux:table.cell>
+                                        <div class="flex flex-col">
+                                            <a href="{{ asset('storage/' . $doc->archivo) }}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                                                <flux:icon name="document-text" variant="mini" /> ver_archivo.pdf
+                                            </a>
+                                            <span class="text-[10px] text-zinc-400 font-mono">{{ \Carbon\Carbon::parse($doc->fecha_carga)->format('d/m/Y H:i') }}</span>
+                                        </div>
+                                    </flux:table.cell>
+
+                                    <flux:table.cell>
+                                        <span class="text-xs text-zinc-600">{{ $doc->cargador?->nombre ?? 'Sistema' }}</span>
+                                    </flux:table.cell>
+
+                                    <flux:table.cell align="center">
+                                        <flux:badge size="sm" :color="match($doc->estatus) {
+                                            'validado' => 'green',
+                                            'observado' => 'red',
+                                            default => 'zinc'
+                                        }" variant="inset">
+                                            {{ ucfirst($doc->estatus) }}
+                                        </flux:badge>
+                                    </flux:table.cell>
+
+                                    <flux:table.cell align="center">
+                                        <div class="flex gap-2 justify-center">
+                                            @if($doc->estatus !== 'validado')
+                                                <flux:button variant="ghost" size="sm" icon="check-circle" color="green" wire:click="validarDocumento({{ $doc->id }})" />
+                                            @endif
+                                            
+                                            <flux:button variant="ghost" size="sm" icon="chat-bubble-bottom-center-text" color="amber" wire:click="abrirModalObservacion({{ $doc->id }})" />
+                                        </div>
+                                    </flux:table.cell>
+                                </flux:table.row>
+                            @empty
+                                <flux:table.row>
+                                    <flux:table.cell colspan="5" align="center" class="py-12 text-zinc-400">
+                                        No hay documentos registrados en este expediente.
+                                    </flux:table.cell>
+                                </flux:table.row>
+                            @endforelse
+                        </flux:table.rows>
+                    </flux:table>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="tab === 'historial'" x-cloak class="animate-in fade-in duration-300">
+            <div class="space-y-6 py-4">
+                <flux:heading size="lg" class="px-2 text-zinc-600">Línea de Tiempo de Adscripción</flux:heading>
+                
+                <div class="relative pl-8 space-y-8 before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-zinc-200 dark:before:bg-zinc-700">
+                    @forelse ($expediente->user->movimientos->sortByDesc('created_at') as $mov)
+                        <div class="relative">
+                            <div class="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 border-white dark:border-zinc-800 bg-blue-500 shadow-sm"></div>
+                            <div class="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm transition-all hover:shadow-md">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <flux:badge size="sm" color="blue" inset="top bottom">{{ ucfirst(str_replace('_', ' ', $mov->tipo_movimiento)) }}</flux:badge>
+                                        <span class="text-xs text-zinc-400 font-mono">{{ $mov->created_at->format('d/m/Y H:i') }}</span>
                                     </div>
-                                @endif
-                            </flux:table.cell>
-
-                            <flux:table.cell>
-                                <div class="flex flex-col">
-                                    <a href="{{ asset('storage/' . $doc->archivo) }}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                                        <flux:icon name="document-text" variant="mini" /> ver_archivo.pdf
-                                    </a>
-                                    <span class="text-[10px] text-zinc-400 font-mono">{{ \Carbon\Carbon::parse($doc->fecha_carga)->format('d/m/Y H:i') }}</span>
+                                    <span class="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Ref: #MOV-{{ $mov->id }}</span>
                                 </div>
-                            </flux:table.cell>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                                    <div class="space-y-2 p-3 bg-white dark:bg-zinc-800 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700">
+                                        <span class="text-[10px] text-zinc-400 font-bold uppercase block">Estado Anterior</span>
+                                        <div class="flex items-center gap-2">
+                                            <flux:badge size="xs" color="zinc" variant="outline">{{ ucfirst($mov->nivel_anterior ?? 'N/A') }}</flux:badge>
+                                            <span class="text-sm text-zinc-600 italic">{{ $mov->plantelAnterior->name ?? 'Sin plantel' }}</span>
+                                        </div>
+                                        <div class="text-xs text-zinc-500">
+                                            {{ $mov->perfil_data_anterior['dependencia'] ?? 'Sin dependencia' }}
+                                        </div>
+                                    </div>
 
-                            <flux:table.cell>
-                                <span class="text-xs text-zinc-600">{{ $doc->cargador?->nombre ?? 'Sistema' }}</span>
-                            </flux:table.cell>
+                                    <div class="hidden md:flex justify-center">
+                                        <flux:icon name="arrow-long-right" class="text-zinc-300" />
+                                    </div>
 
-                            <flux:table.cell align="center">
-                                <flux:badge size="sm" :color="match($doc->estatus) {
-                                    'validado' => 'green',
-                                    'observado' => 'red',
-                                    default => 'zinc'
-                                }" variant="inset">
-                                    {{ ucfirst($doc->estatus) }}
-                                </flux:badge>
-                            </flux:table.cell>
-
-                            <flux:table.cell align="center">
-                                <div class="flex gap-2 justify-center">
-                                    @if($doc->estatus !== 'validado')
-                                        <flux:button variant="ghost" size="sm" icon="check-circle" color="green" wire:click="validarDocumento({{ $doc->id }})" />
-                                    @endif
-                                    
-                                    <flux:button variant="ghost" size="sm" icon="chat-bubble-bottom-center-text" color="amber" wire:click="abrirModalObservacion({{ $doc->id }})" />
+                                    <div class="space-y-2 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/50">
+                                        <span class="text-[10px] text-blue-400 font-bold uppercase block">Estado Nuevo</span>
+                                        <div class="flex items-center gap-2">
+                                            <flux:badge size="xs" color="blue" variant="solid">{{ ucfirst($mov->nivel_nuevo) }}</flux:badge>
+                                            <span class="text-sm font-bold text-zinc-800 dark:text-zinc-200">{{ $mov->plantelNuevo->name ?? 'Sin plantel' }}</span>
+                                        </div>
+                                        <div class="text-xs text-zinc-700 dark:text-zinc-300 font-medium">
+                                            {{ $mov->perfil_data_nuevo['dependencia'] ?? 'Sin dependencia' }}
+                                        </div>
+                                    </div>
                                 </div>
-                            </flux:table.cell>
-                        </flux:table.row>
+
+                                <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center text-xs">
+                                    <span class="text-zinc-500"><b class="text-zinc-400">Motivo:</b> {{ $mov->motivo }}</span>
+                                    <span class="text-zinc-400">Autorizado por: <b>{{ $mov->autor->nombre ?? 'Sistema' }}</b></span>
+                                </div>
+                            </div>
+                        </div>
                     @empty
-                        <flux:table.row>
-                            <flux:table.cell colspan="5" align="center" class="py-12 text-zinc-400">
-                                No hay documentos registrados en este expediente.
-                            </flux:table.cell>
-                        </flux:table.row>
+                        <div class="text-center py-10 text-zinc-400 italic">
+                            No se han registrado movimientos de adscripción para este usuario.
+                        </div>
                     @endforelse
-                </flux:table.rows>
-            </flux:table>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="tab === 'kardex'" x-cloak class="animate-in fade-in duration-300">
+            <div class="space-y-6 py-4">
+                <flux:heading size="lg" class="px-2 text-zinc-600">Historial Académico del Elemento</flux:heading>
+                
+                <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
+                    <flux:table>
+                        <flux:table.columns>
+                            <flux:table.column>Materia</flux:table.column>
+                            <flux:table.column>Grupo</flux:table.column>
+                            <flux:table.column align="center" class="w-24">Unidad</flux:table.column>
+                            <flux:table.column align="center" class="w-28">Calificación</flux:table.column>
+                            <flux:table.column>Fecha Registro</flux:table.column>
+                        </flux:table.columns>
+
+                        <flux:table.rows>
+                            @forelse ($expediente->user->calificaciones->sortByDesc('created_at') as $cal)
+                                <flux:table.row :key="$cal->id">
+                                    <flux:table.cell>
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-zinc-700 dark:text-zinc-200 leading-tight">{{ $cal->materia->nombre }}</span>
+                                            <span class="text-[9px] text-zinc-400 uppercase tracking-widest font-mono">ID: {{ $cal->materia->identificador ?? 'N/A' }}</span>
+                                        </div>
+                                    </flux:table.cell>
+                                    <flux:table.cell>
+                                        <span class="text-xs text-zinc-600">{{ $cal->grupo->nombre }}</span>
+                                    </flux:table.cell>
+                                    <flux:table.cell align="center">
+                                        <flux:badge size="xs" color="zinc" variant="outline" class="font-mono px-2">{{ $cal->unidad }}</flux:badge>
+                                    </flux:table.cell>
+                                    <flux:table.cell align="center">
+                                        <span class="text-base font-black {{ $cal->calificacion >= 6 ? 'text-emerald-600' : 'text-red-500' }}">
+                                            {{ number_format($cal->calificacion, 1) }}
+                                        </span>
+                                    </flux:table.cell>
+                                    <flux:table.cell>
+                                        <span class="text-[10px] text-zinc-400 font-mono italic">{{ $cal->created_at->format('d/m/Y') }}</span>
+                                    </flux:table.cell>
+                                </flux:table.row>
+                            @empty
+                                <flux:table.row>
+                                    <flux:table.cell colspan="5" align="center" class="py-16 text-zinc-400 italic">
+                                        No se han capturado calificaciones para este expediente.
+                                    </flux:table.cell>
+                                </flux:table.row>
+                            @endforelse
+                        </flux:table.rows>
+                    </flux:table>
+                </div>
+            </div>
         </div>
     </div>
 

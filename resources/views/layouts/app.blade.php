@@ -36,6 +36,7 @@
                 <flux:navlist.item icon="link" href="{{ route('panel.materias') }}" :current="request()->routeIs('panel.materias*')">Materia-Curso</flux:navlist.item>
                 <flux:navlist.item icon="user-group" href="{{ route('grupos.index') }}" :current="request()->routeIs('grupos.*')">Grupos</flux:navlist.item>
                 <flux:navlist.item icon="check-badge" href="{{ route('asistencias.index') }}" :current="request()->routeIs('asistencias.index')">Asistencias</flux:navlist.item>
+                <flux:navlist.item icon="pencil-square" href="{{ route('calificaciones.index') }}" :current="request()->routeIs('calificaciones.*')">Calificaciones</flux:navlist.item>
             </flux:navlist>
 
             <flux:spacer />

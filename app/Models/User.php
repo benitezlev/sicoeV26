@@ -14,10 +14,13 @@ use Spatie\Permission\Traits\HasRoles;
 
 
 
+use App\Traits\HasJurisdiction;
+
 class User extends Authenticatable
 {
     use HasApiTokens;
     use HasRoles;
+    use HasJurisdiction;
     use HasProfilePhoto;
 
 
@@ -33,24 +36,22 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
+        'nombre',
         'paterno',
         'materno',
-        'nombre',
         'email',
         'password',
         'username',
-        'name',
-        'email',
-        'password',
         'curp',
         'cuip',
         'cup',
-        'dependencia',
-        'adscripcion',
-        'perfil',
         'sexo',
         'tipo',
-
+        'nivel',
+        'perfil_data',
+        'plantel_id',
+        'municipio_id',
+        'firma_digital',
     ];
 
     /**
@@ -84,6 +85,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'perfil_data' => 'array',
         ];
     }
 
@@ -157,4 +159,18 @@ class User extends Authenticatable
 
 
 
+    public function movimientos()
+    {
+        return $this->hasMany(UsuarioMovimiento::class);
+    }
+
+    public function calificaciones()
+    {
+        return $this->hasMany(Calificacion::class);
+    }
+
+    public function asistencias()
+    {
+        return $this->hasMany(Asistencia::class);
+    }
 }

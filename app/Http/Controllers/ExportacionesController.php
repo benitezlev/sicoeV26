@@ -32,4 +32,21 @@ class ExportacionesController extends Controller
             ->download("Grupo_{$grupo->clave}.pdf");
     }
 
+    public function exportarActa(Request $request)
+    {
+        $grupo = Grupo::with('plantel')->findOrFail($request->grupo_id);
+        $materia = \App\Models\Materia::findOrFail($request->materia_id);
+        $unidad = $request->unidad;
+
+        $alumnos = $grupo->alumnos()->orderBy('paterno')->get();
+        
+        $calificaciones = \App\Models\Calificacion::where('grupo_id', $grupo->id)
+            ->where('materia_id', $materia->id)
+            ->where('unidad', $unidad)
+            ->get();
+
+        return Pdf::loadView('pdf.acta-calificaciones', compact('grupo', 'materia', 'unidad', 'alumnos', 'calificaciones'))
+            ->setPaper('letter', 'portrait')
+            ->download("Acta_{$grupo->id}_U{$unidad}.pdf");
+    }
 }

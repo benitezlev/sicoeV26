@@ -2,6 +2,9 @@
 
 use function Livewire\Volt\{state, computed, layout, usesPagination, on};
 use App\Models\User;
+use App\Models\Municipio;
+use App\Models\Plantel;
+use App\Models\Expediente;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Flux\Flux;
@@ -21,6 +24,13 @@ state([
     'password' => '',
     'selectedRoles' => [],
     'tipo' => 'alumno',
+    'nivel' => 'estatal',
+    'plantel_id' => '',
+    'municipio_id' => '',
+    'dependencia' => '',
+    'adscripcion' => '',
+    'area_especializada' => '',
+    'sexo' => 'H',
     'showUserModal' => false,
 ]);
 
@@ -33,7 +43,8 @@ $users = computed(function () {
                   ->orWhere('paterno', 'like', '%' . $this->search . '%')
                   ->orWhere('materno', 'like', '%' . $this->search . '%')
                   ->orWhere('curp', 'like', '%' . $this->search . '%')
-                  ->orWhere('email', 'like', '%' . $this->search . '%');
+                  ->orWhere('email', 'like', '%' . $this->search . '%')
+                  ->orWhere('username', 'like', '%' . $this->search . '%');
             });
         })
         ->when($this->roleFilter, function ($query) {
@@ -44,6 +55,8 @@ $users = computed(function () {
 });
 
 $roles = computed(fn() => Role::all());
+$municipios = computed(fn() => Municipio::orderBy('nombre')->get());
+$planteles = computed(fn() => Plantel::all());
 
 $edit = function ($id) {
     $user = User::with('roles')->findOrFail($id);
@@ -57,6 +70,17 @@ $edit = function ($id) {
     $this->email = $user->email;
     $this->curp = $user->curp;
     $this->tipo = $user->tipo ?? 'alumno';
+    $this->nivel = $user->nivel ?? 'estatal';
+    $this->plantel_id = $user->plantel_id;
+    $this->municipio_id = $user->municipio_id;
+    $this->sexo = $user->sexo ?? 'H';
+    
+    // Desglosar perfil_data
+    $perfil = $user->perfil_data ?? [];
+    $this->dependencia = $perfil['dependencia'] ?? '';
+    $this->adscripcion = $perfil['adscripcion'] ?? '';
+    $this->area_especializada = $perfil['area_especializada'] ?? '';
+
     $this->selectedRoles = $user->roles->pluck('name')->toArray();
     $this->password = '';
 
@@ -64,6 +88,7 @@ $edit = function ($id) {
 };
 
 $create = function () {
+    $this->resetErrorBag();
     $this->userId = null;
     $this->nombre = '';
     $this->paterno = '';
@@ -72,6 +97,13 @@ $create = function () {
     $this->curp = '';
     $this->password = '';
     $this->tipo = 'alumno';
+    $this->nivel = 'estatal';
+    $this->plantel_id = '';
+    $this->municipio_id = '';
+    $this->dependencia = '';
+    $this->adscripcion = '';
+    $this->area_especializada = '';
+    $this->sexo = 'H';
     $this->selectedRoles = [];
 
     $this->dispatch('modal-show', name: 'user-modal');
@@ -85,6 +117,9 @@ $save = function () {
         'email' => 'required|email|unique:users,email,' . $this->userId,
         'curp' => 'nullable|string|size:18',
         'tipo' => 'required|string',
+        'nivel' => 'required|string',
+        'plantel_id' => 'nullable|exists:planteles,id',
+        'sexo' => 'required|in:H,M',
     ];
 
     if (!$this->userId) {
@@ -93,18 +128,77 @@ $save = function () {
 
     $data = $this->validate($rules);
 
+    // Forzar jurisdicción si no es super admin
+    if (!auth()->user()->hasRole('admin_ti')) {
+        if (auth()->user()->plantel_id) {
+            $data['plantel_id'] = auth()->user()->plantel_id;
+        }
+        if (auth()->user()->municipio_id) {
+            $data['municipio_id'] = auth()->user()->municipio_id;
+        }
+        if (auth()->user()->nivel) {
+            $data['nivel'] = auth()->user()->nivel;
+        }
+    } else {
+        // Si es super admin, tomar el municipio_id del selector
+        $data['municipio_id'] = $this->municipio_id;
+    }
+
     if ($this->password) {
         $data['password'] = Hash::make($this->password);
     }
 
-    $data['name'] = trim($this->nombre . ' ' . $this->paterno . ' ' . ($this->materno ?? ''));
-    $data['username'] = $this->email;
+    $data['username'] = $this->curp ?? $this->email;
+    
+    // Empaquetar perfil_data
+    $data['perfil_data'] = [
+        'municipio_id' => $this->municipio_id,
+        'dependencia' => $this->dependencia,
+        'adscripcion' => $this->adscripcion,
+        'area_especializada' => $this->area_especializada,
+    ];
 
     if ($this->userId) {
         $user = User::findOrFail($this->userId);
+        
+        // Detectar cambios antes de actualizar
+        $originalNivel = $user->nivel;
+        $originalPlantel = $user->plantel_id;
+        $originalPerfil = $user->perfil_data;
+
         $user->update($data);
+
+        // Registrar movimiento si hubo cambios críticos
+        if ($originalNivel != $data['nivel'] || $originalPlantel != $data['plantel_id'] || $originalPerfil != $data['perfil_data']) {
+            \App\Models\UsuarioMovimiento::create([
+                'user_id' => $user->id,
+                'tipo_movimiento' => 'cambio_adscripcion',
+                'nivel_anterior' => $originalNivel,
+                'perfil_data_anterior' => $originalPerfil,
+                'plantel_id_anterior' => $originalPlantel,
+                'nivel_nuevo' => $user->nivel,
+                'perfil_data_nuevo' => $user->perfil_data,
+                'plantel_id_nuevo' => $user->plantel_id,
+                'registrado_por' => auth()->id(),
+                'motivo' => 'Actualización manual desde panel administrativo',
+            ]);
+        }
     } else {
         $user = User::create($data);
+
+        // Crear expediente automático para el nuevo usuario
+        $prefix = match($user->nivel) {
+            'municipal' => 'MUN',
+            'fiscalia' => 'FIS',
+            default => 'EST'
+        };
+
+        Expediente::create([
+            'user_id' => $user->id,
+            'folio' => "{$prefix}-" . date('Y') . "-" . str_pad($user->id, 5, '0', STR_PAD_LEFT),
+            'estatus' => 'incompleto',
+            'fecha_apertura' => now(),
+        ]);
     }
 
     $user->syncRoles($this->selectedRoles);
@@ -148,8 +242,9 @@ $delete = function ($id) {
             
             <div class="flex gap-2">
                 @can('gestionar alumnos')
-                <flux:button href="{{ route('alumnos.importar') }}" icon="arrow-up-tray" variant="outline">Importar Alumnos</flux:button>
-                <flux:button variant="primary" icon="plus" wire:click="create" wire:loading.attr="disabled">Nuevo Usuario</flux:button>
+                <flux:button href="{{ route('usuarios.carga-masiva') }}" variant="ghost" icon="cloud-arrow-up" size="sm">Documentación Masiva</flux:button>
+                <flux:button href="{{ route('alumnos.importar') }}" variant="ghost" icon="document-plus" size="sm">Importar CSV</flux:button>
+                <flux:button wire:click="create" variant="primary" icon="plus" size="sm">Nuevo Usuario</flux:button>
                 @endcan
             </div>
         </div>
@@ -193,8 +288,21 @@ $delete = function ($id) {
 
                             <flux:table.cell>
                                 <div class="flex flex-col text-xs whitespace-normal">
-                                    <span class="text-zinc-400 uppercase tracking-tighter">CURP</span>
-                                    <span class="font-mono text-zinc-600 dark:text-zinc-300 break-all">{{ $user->curp ?? 'N/A' }}</span>
+                                    <div class="flex items-center gap-1">
+                                        <flux:badge size="xs" :color="$user->nivel === 'fiscalia' ? 'purple' : ($user->nivel === 'municipal' ? 'emerald' : 'blue')" variant="outline">
+                                            {{ ucfirst($user->nivel) }}
+                                        </flux:badge>
+                                        <span class="font-mono text-zinc-600 dark:text-zinc-300 break-all">{{ $user->curp ?? $user->username }}</span>
+                                    </div>
+                                    <span class="text-zinc-500 italic truncate max-w-[180px]">
+                                        @if($user->nivel === 'municipal' && isset($user->perfil_data['municipio_id']))
+                                            {{ \App\Models\Municipio::find($user->perfil_data['municipio_id'])->nombre ?? 'Mun. Desconocido' }}
+                                        @elseif($user->nivel === 'fiscalia' && isset($user->perfil_data['area_especializada']))
+                                            Fiscalía - {{ $user->perfil_data['area_especializada'] }}
+                                        @else
+                                            {{ $user->perfil_data['dependencia'] ?? 'Sin dependencia' }}
+                                        @endif
+                                    </span>
                                 </div>
                             </flux:table.cell>
 
@@ -208,9 +316,11 @@ $delete = function ($id) {
 
                             <flux:table.cell align="center">
                                 @if($user->expediente)
-                                    <flux:badge size="sm" :color="$user->expediente->estatus === 'completo' ? 'green' : 'amber'" variant="pill">
-                                        {{ ucfirst($user->expediente->estatus) }}
-                                    </flux:badge>
+                                    <flux:button variant="ghost" size="sm" :href="route('expedientes.show', $user->expediente)" class="p-0">
+                                        <flux:badge size="sm" :color="$user->expediente->estatus === 'completo' ? 'green' : ($user->expediente->estatus === 'observado' ? 'red' : 'amber')" variant="pill" class="cursor-pointer hover:opacity-80 transition-opacity">
+                                            {{ ucfirst($user->expediente->estatus) }}
+                                        </flux:badge>
+                                    </flux:button>
                                 @else
                                     <span class="text-xs text-zinc-400 italic">No generado</span>
                                 @endif
@@ -218,6 +328,10 @@ $delete = function ($id) {
 
                             <flux:table.cell align="center">
                                 <div class="flex gap-2 justify-center">
+                                    @if($user->expediente)
+                                        <flux:button variant="ghost" size="sm" icon="folder-open" :href="route('expedientes.show', $user->expediente)" />
+                                    @endif
+                                    
                                     <flux:button variant="ghost" size="sm" icon="pencil-square" wire:click="edit({{ $user->id }})" wire:loading.attr="disabled" />
                                     
                                     @if($user->id !== auth()->id())
@@ -281,11 +395,48 @@ $delete = function ($id) {
                 <flux:input wire:model="email" label="Correo Electrónico" placeholder="gmail@ejemplo.com" />
                 <flux:input wire:model="password" type="password" label="Contraseña" :placeholder="$userId ? 'Dejar en blanco para no cambiar' : 'Mínimo 8 caracteres'" />
                 
+                <flux:select wire:model="sexo" label="Sexo">
+                    <flux:select.option value="H">Hombre</flux:select.option>
+                    <flux:select.option value="M">Mujer</flux:select.option>
+                </flux:select>
+
                 <flux:select wire:model="tipo" label="Tipo de Usuario">
                     <flux:select.option value="alumno">Alumno</flux:select.option>
                     <flux:select.option value="docente">Docente</flux:select.option>
-                    <flux:select.option value="staff">Staff/Administrativo</flux:select.option>
+                    <flux:select.option value="admin">Administrador</flux:select.option>
                 </flux:select>
+
+                @if(auth()->user()->hasRole('admin_ti'))
+                <flux:select wire:model.live="nivel" label="Nivel / Adscripción">
+                    <flux:select.option value="estatal">Seguridad Estatal</flux:select.option>
+                    <flux:select.option value="municipal">Seguridad Municipal</flux:select.option>
+                    <flux:select.option value="fiscalia">Fiscalía</flux:select.option>
+                    <flux:select.option value="administrativo">Administrativo / UMS</flux:select.option>
+                </flux:select>
+                
+                <flux:select wire:model="plantel_id" label="Plantel Asignado">
+                    <flux:select.option value="">Sin plantel específico</flux:select.option>
+                    @foreach($this->planteles as $plantel)
+                        <flux:select.option value="{{ $plantel->id }}">{{ $plantel->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+                @endif
+
+                @if($nivel === 'municipal')
+                    <flux:select wire:model="municipio_id" label="Municipio">
+                        <flux:select.option value="">Selecciona municipio</flux:select.option>
+                        @foreach($this->municipios as $mun)
+                            <flux:select.option value="{{ $mun->id }}">{{ $mun->nombre }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                @endif
+
+                @if($nivel === 'fiscalia')
+                    <flux:input wire:model="area_especializada" label="Área Especializada" placeholder="Ej. Homicidios, Robo..." />
+                @endif
+
+                <flux:input wire:model="dependencia" label="Dependencia/Corporación" placeholder="Ej. Policía Estatal, DGSC..." />
+                <flux:input wire:model="adscripcion" label="Unidad de Adscripción" placeholder="Ej. Región I, Comandancia..." />
 
                 <flux:fieldset label="Asignar Roles">
                     <div class="flex flex-wrap gap-4 mt-2">

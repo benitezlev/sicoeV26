@@ -1,53 +1,58 @@
-# 🎯 Plan Estratégico: Expansión Multi-Nivel SICOE
+# 🎯 Plan Estratégico: Rediseño de Identidad Universal SICOE (PostgreSQL)
 
-Este documento detalla la estrategia técnica y arquitectónica para integrar los tres niveles de capacitación solicitados: **Estatal**, **Municipal** y **Certificaciones CONOCER**, asegurando escalabilidad y eficiencia.
-
----
-
-## 1. 📊 Recomendación de Base de Datos: Migración a PostgreSQL
-
-**Recomendación:** **SÍ, migrar a PostgreSQL.**
-
-### ¿Por qué PostgreSQL para este nuevo alcance?
-1. **JSONB de Alto Rendimiento:** Dado que aún no tenemos los campos definidos para Municipios y CONOCER, PostgreSQL permite almacenar datos dinámicos en formato `JSONB` con la capacidad de crear índices (GIN) sobre esos campos. Esto nos permite agregar campos "al vuelo" sin alterar la estructura física de la tabla cada semana.
-2. **Consultas Complejas y Concurrencia:** Al manejar múltiples niveles con procesos distintos, las consultas serán más pesadas. PostgreSQL gestiona mejor el bloqueo de filas y la escritura concurrente.
-3. **Escalabilidad Geográfica:** Si a futuro se requiere mapear planteles municipales, PostGIS (extensión de Postgres) es el estándar de la industria.
+Este documento detalla la nueva táctica de "Borrón y Cuenta Nueva" para la infraestructura de datos en PostgreSQL, integrando los tres niveles operativos: **Estatal**, **Municipal** y **Fiscalía**.
 
 ---
 
-## 2. 🏛️ Estrategia de Arquitectura de Datos (Usuario Unificado)
+## 1. 🏛️ Arquitectura de Identidad Unificada
 
-Para evitar duplicar tablas o tener una tabla por cada nivel, implementaremos un modelo de **Identidad Universal con Perfiles Flexibles**.
+En lugar de tener tablas separadas, utilizaremos una tabla `users` enriquecida que servirá como el núcleo de identidad para todos los niveles, complementada con un campo de **Metadatos Dinámicos**.
 
-### Estructura Propuesta:
-| Tabla | Propósito | Comentarios |
-| :--- | :--- | :--- |
-| `users` | **Identidad Core** | Datos permanentes e iguales: CURP, Nombre, Email, Password, Sexo, Foto. |
-| `expedientes` | **Contexto de Nivel** | Relación 1:1 con `users`. Contendrá campos comunes de seguridad. |
-| `metadata` (JSONB) | **Campos Dinámicos** | Dentro de la tabla `users` o `expedientes`. Aquí guardaremos: |
-| | *Municipal:* | Municipio, Clave de Ayuntamiento, Distrito. |
-| | *CONOCER:* | ID de Estándar, Folio de Certificación, Fecha de Renovación. |
-
----
-
-## 3. 🗺️ Mapa de Ruta Estratégico (Roadmap)
-
-### Fase 1: Infraestructura (Mañana)
-- [ ] **Configuración PostgreSQL:** Preparar el entorno para recibir la migración.
-- [ ] **Migración de Datos:** Pasar la base actual de MySQL a Postgres.
-- [ ] **Actualización de Eloquent:** Ajustar el modelo `User` para manejar columnas JSON.
-
-### Fase 2: Modularización del Front-end
-- [ ] **Componentes Base Reutilizables:** Crearemos una librería de inputs de Flux UI que se adapten al nivel del usuario.
-- [ ] **Lógica de "Nivel":** Implementar un `Middleware` que identifique si el administrador está operando en nivel Estatal, Municipal o CONOCER.
-
-### Fase 3: Integración de Campos Específicos
-- [ ] Una vez recibidos los campos de Municipios y CONOCER, solo necesitaremos actualizar el esquema JSON, no las migraciones de base de datos.
+### Estructura del Modelo `User`:
+- **Campos Core (Fijos):**
+  - `id`, `nombre`, `paterno`, `materno`
+  - `curp` (Identificador único nacional)
+  - `cuip`, `cup` (Identificadores policiales)
+  - `sexo`, `fecha_nacimiento`
+  - `email`, `password`, `tipo` (admin, docente, alumno)
+- **Campos de Jurisdicción:**
+  - `nivel` (Enum: `estatal`, `municipal`, `fiscalia`)
+  - `plantel_id` (Relación con el plantel físico)
+- **Campos de Perfil Flexible (JSONB):**
+  - `perfil_data`: Columna tipo JSONB para almacenar datos específicos según el nivel sin necesidad de crear nuevas columnas:
+    - *Municipal:* Municipio, Corporación, Distrito.
+    - *Fiscalía:* Unidad Administrativa, Área Especializada, Cargo.
+    - *Estatal:* Dependencia, Adscripción.
 
 ---
 
-## 4. 📝 Acción Inmediata (Bitácora)
+## 2. 📑 Reestructuración de Expedientes y Documentación
 
-Se ha actualizado la bitácora de estado con el compromiso de iniciar la migración y la reestructuración de identidad el día de mañana.
+El sistema de expedientes se adaptará para que los documentos requeridos dependan del `nivel` del usuario.
 
-> **Nota para el equipo:** El objetivo es que SICOE sea una "Multi-tenancy" interna, donde el sistema detecte el nivel del usuario y presente las interfaces correspondientes sin cambiar la base del código.
+- **`expedientes`:** Seguirá siendo 1:1 con `users`, pero con un `folio` único que identifique la procedencia (ej: `EST-001`, `MUN-001`, `FIS-001`).
+- **`documentos_requeridos`:** Tabla de configuración donde definiremos qué documentos pide la Fiscalía vs qué documentos pide un Municipio.
+
+---
+
+## 3. 🕒 Plan de Ejecución Inmediata (30 min)
+
+### Fase A: Limpieza Total
+1. Resetear la base de datos `sicoe_pg` para eliminar artefactos de intentos previos.
+2. Unificar las migraciones base (`users`, `planteles`, `expedientes`).
+
+### Fase B: Despliegue de Esquema
+1. Aplicar la nueva migración de `users` con el campo `nivel` y `perfil_data` (JSONB).
+2. Crear la tabla `municipios` como catálogo base.
+
+### Fase C: Sembrado de Datos Core
+1. Insertar roles y permisos esenciales.
+2. Insertar planteles actuales.
+3. Crear el primer usuario administrador con perfiles mixtos.
+
+---
+
+## 4. ✅ Beneficios de esta Táctica
+- **Cero Redundancia:** No repetimos datos personales en tablas distintas.
+- **Flexibilidad Total:** Si mañana la Fiscalía pide un campo "Rh Negativo", no necesitamos migrar la base de datos, solo lo guardamos en el JSONB.
+- **Reporteo Centralizado:** Un solo reporte puede filtrar personal de los 3 niveles simultáneamente.

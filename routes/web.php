@@ -29,6 +29,7 @@ Route::middleware(['auth', 'role:admin_ti'])->prefix('admin')->group(function ()
     Volt::route('plantel', 'planteles.index')->name('plantel.index');
     Volt::route('/usuarios', 'usuarios.index')->name('alumnos.index');
     Volt::route('/alumnos/importar', 'usuarios.import')->name('alumnos.importar');
+    Volt::route('/usuarios/carga-masiva', 'usuarios.bulk-documents')->name('usuarios.carga-masiva');
 
     // Rutas Docentes
     Volt::route('/docente', 'docentes.index')->name('profesores');
@@ -42,6 +43,10 @@ Route::middleware(['auth', 'role:admin_ti'])->prefix('admin')->group(function ()
     // rutas expedientes
     Volt::route('/expedientes', 'expedientes.index')->name('expedientes.index');
     Volt::route('/expedientes/{expediente}', 'expedientes.show')->name('expedientes.show');
+    
+    // Calificaciones (Movido aquí para mayor visibilidad del sistema)
+    Volt::route('/calificaciones', 'calificaciones.index')->name('calificaciones.index');
+    Route::get('/calificaciones/acta', [ExportacionesController::class, 'exportarActa'])->name('calificaciones.acta');
 });
 
  Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {

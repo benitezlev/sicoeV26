@@ -5,8 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+use App\Traits\HasJurisdiction;
+
 class Expediente extends Model
 {
+    use HasJurisdiction;
 
    protected $fillable = [
         'user_id', 'folio', 'estatus', 'fecha_apertura', 'observaciones'
@@ -67,9 +70,19 @@ class Expediente extends Model
 
     public function validarDocumentosPorPerfil(): array
     {
-        $perfil = $this->user->perfil;
+        $perfil = $this->user->tipo; // Usamos tipo o perfil según corresponda
+        $nivel = $this->user->nivel;
 
-        $requeridos = DocumentoRequerido::where('perfil', $perfil)->pluck('tipo');
+        // Documentos que son para este perfil Y (no tienen nivel asignado O coinciden con el nivel del usuario)
+        $requeridos = DocumentoRequerido::where(function($q) use ($perfil, $nivel) {
+                $q->where('perfil', $perfil)
+                  ->where(function($sq) use ($nivel) {
+                      $sq->whereNull('nivel')
+                        ->orWhere('nivel', $nivel);
+                  });
+            })
+            ->pluck('tipo');
+
         $validados = $this->documentos()->where('estatus', 'validado')->pluck('tipo');
 
         $faltantes = $requeridos->diff($validados);
@@ -78,7 +91,8 @@ class Expediente extends Model
         if ($faltantes->isEmpty()) {
             $this->update(['estatus' => 'completo']);
         } else {
-            $this->update(['estatus' => 'incompleto']);
+            $tieneObservaciones = $this->documentos()->where('estatus', 'observado')->exists();
+            $this->update(['estatus' => $tieneObservaciones ? 'observado' : 'incompleto']);
         }
 
         return $faltantes->toArray();

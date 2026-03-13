@@ -6,8 +6,11 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Traits\HasJurisdiction;
+
 class Grupo extends Model
 {
+    use HasJurisdiction;
      protected $fillable = [
         'nombre','plantel_id','curso_id','periodo','estado',
         'fecha_inicio','fecha_fin','hora_inicio','hora_fin','total_horas'
