@@ -20,4 +20,9 @@ class Plantel extends Model
     {
         return $this->belongsTo(ConfiguracionInstitucional::class);
     }
+
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
 }

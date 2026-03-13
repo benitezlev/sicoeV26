@@ -65,6 +65,25 @@ $groupStats = computed(function() {
         });
 });
 
+$plantelStats = computed(function() {
+    return \App\Models\Plantel::withCount(['users' => function($q) {
+            $q->role('alumno');
+        }])
+        ->get()
+        ->map(function($plantel) {
+            $presentes = \App\Models\AsistenciaIndividual::whereHas('user', function($q) use ($plantel) {
+                    $q->where('plantel_id', $plantel->id);
+                })
+                ->whereDate('fecha', now())
+                ->where('estatus', 'presente')
+                ->count();
+            
+            $plantel->presentes = $presentes;
+            $plantel->porcentaje = $plantel->users_count > 0 ? round(($presentes / $plantel->users_count) * 100) : 0;
+            return $plantel;
+        });
+});
+
 ?>
 
 <div class="space-y-8">
@@ -146,21 +165,21 @@ $groupStats = computed(function() {
 
     @if($this->distribution)
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Distribución por Nivel -->
-        <div class="lg:col-span-1 bg-white dark:bg-zinc-800 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
-            <flux:heading size="lg" class="mb-6">Estado de Fuerza por Nivel</flux:heading>
+        <!-- Columna 1: Distribución por Nivel -->
+        <div class="bg-white dark:bg-zinc-800 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+            <flux:heading size="lg" class="mb-6">Fuerza por Nivel</flux:heading>
             <div class="space-y-4">
                 @foreach($this->distribution as $dist)
                     <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-[10px] text-zinc-400 uppercase font-bold tracking-widest">{{ $dist->nivel ?? 'S/N' }}</span>
-                            <span class="text-[10px] text-emerald-500 font-bold">{{ $dist->porcentaje }}% REAL</span>
+                            <span class="text-[10px] text-emerald-500 font-bold">{{ $dist->porcentaje }}%</span>
                         </div>
                         <div class="flex items-baseline gap-2">
                             <div class="text-2xl font-black">{{ $dist->presentes }}</div>
-                            <div class="text-xs text-zinc-400">/ {{ $dist->total }} elementos</div>
+                            <div class="text-[10px] text-zinc-400">/ {{ $dist->total }} elementos</div>
                         </div>
-                        <div class="mt-2 w-full bg-zinc-200 dark:bg-zinc-700 h-1.5 rounded-full overflow-hidden">
+                        <div class="mt-2 w-full bg-zinc-200 dark:bg-zinc-700 h-1 rounded-full overflow-hidden">
                             <div class="bg-emerald-500 h-full transition-all duration-500" style="width: {{ $dist->porcentaje }}%"></div>
                         </div>
                     </div>
@@ -168,16 +187,38 @@ $groupStats = computed(function() {
             </div>
         </div>
 
-        <!-- Estado de Fuerza por Grupo -->
-        <div class="lg:col-span-2 bg-white dark:bg-zinc-800 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
-            <flux:heading size="lg" class="mb-6">Operatividad por Grupo Académico</flux:heading>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Columna 2: Distribución por Plantel -->
+        <div class="bg-white dark:bg-zinc-800 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+            <flux:heading size="lg" class="mb-6">Fuerza por Plantel</flux:heading>
+            <div class="space-y-4">
+                @foreach($this->plantelStats as $plantel)
+                    <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] text-zinc-400 uppercase font-bold tracking-widest truncate max-w-[150px]">{{ $plantel->name }}</span>
+                            <span class="text-[10px] text-blue-500 font-bold">{{ $plantel->porcentaje }}%</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <div class="text-2xl font-black">{{ $plantel->presentes }}</div>
+                            <div class="text-[10px] text-zinc-400">/ {{ $plantel->users_count }} alumnos</div>
+                        </div>
+                        <div class="mt-2 w-full bg-zinc-200 dark:bg-zinc-700 h-1 rounded-full overflow-hidden">
+                            <div class="bg-blue-500 h-full transition-all duration-500" style="width: {{ $plantel->porcentaje }}%"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <!-- Columna 3: Operatividad por Grupo -->
+        <div class="bg-white dark:bg-zinc-800 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
+            <flux:heading size="lg" class="mb-6">Fuerza por Grupo</flux:heading>
+            <div class="space-y-4 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
                 @foreach($this->groupStats as $grupo)
-                    <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 group hover:border-blue-500 transition-colors">
+                    <div class="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                         <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <div class="text-sm font-bold text-zinc-900 dark:text-white leading-tight">{{ $grupo->nombre }}</div>
-                                <div class="text-[9px] text-zinc-500 uppercase">{{ $grupo->periodo }} | {{ $grupo->curso?->nombre }}</div>
+                            <div class="truncate">
+                                <div class="text-sm font-bold text-zinc-900 dark:text-white truncate">{{ $grupo->nombre }}</div>
+                                <div class="text-[9px] text-zinc-500 uppercase truncate">{{ $grupo->periodo }}</div>
                             </div>
                             <flux:badge size="sm" :color="$grupo->porcentaje > 80 ? 'green' : 'amber'" variant="pill">
                                 {{ $grupo->porcentaje }}%
@@ -185,12 +226,11 @@ $groupStats = computed(function() {
                         </div>
                         <div class="flex items-center gap-4">
                             <div class="flex-1">
-                                <div class="flex justify-between text-[10px] mb-1">
-                                    <span class="text-zinc-500">Presentes: <b>{{ $grupo->presentes }}</b></span>
-                                    <span class="text-zinc-500">Total: <b>{{ $grupo->alumnos_count }}</b></span>
+                                <div class="flex justify-between text-[9px] mb-1">
+                                    <span class="text-zinc-500">{{ $grupo->presentes }} PRES / {{ $grupo->alumnos_count }} TOT</span>
                                 </div>
                                 <div class="w-full bg-zinc-200 dark:bg-zinc-700 h-1 rounded-full overflow-hidden">
-                                    <div class="bg-blue-500 h-full transition-all duration-500" style="width: {{ $grupo->porcentaje }}%"></div>
+                                    <div class="bg-indigo-500 h-full transition-all duration-500" style="width: {{ $grupo->porcentaje }}%"></div>
                                 </div>
                             </div>
                         </div>
