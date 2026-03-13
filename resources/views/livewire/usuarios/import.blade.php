@@ -237,17 +237,30 @@ $resetear = function () {
                 </div>
 
                 <form wire:submit="importar" class="space-y-6">
-                    <flux:field>
-                        <flux:label>Seleccionar Archivo</flux:label>
-                        <flux:input type="file" wire:model="archivo" accept=".csv,.xlsx" />
-                        <flux:error name="archivo" />
-                    </flux:field>
+                    <div 
+                        x-data="{ uploading: false, progress: 0 }"
+                        x-on:livewire-upload-start="uploading = true"
+                        x-on:livewire-upload-finish="uploading = false"
+                        x-on:livewire-upload-error="uploading = false"
+                        x-on:livewire-upload-progress="progress = $event.detail.progress"
+                        class="space-y-4"
+                    >
+                        <flux:field>
+                            <flux:label>Seleccionar Archivo (CSV / XLSX)</flux:label>
+                            <input type="file" wire:model="archivo" accept=".csv,.xlsx" class="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-zinc-900 dark:file:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-xl p-2 bg-white dark:bg-zinc-900 shadow-sm" />
+                            <flux:error name="archivo" />
+                        </flux:field>
+
+                        <!-- Barra de progreso real de Livewire -->
+                        <div x-show="uploading" class="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-blue-600 h-full transition-all duration-300" :style="'width: ' + progress + '%'"></div>
+                        </div>
+                    </div>
 
                     <div class="flex justify-end gap-2">
                         <flux:button type="submit" variant="primary" icon="arrow-up-tray" wire:loading.attr="disabled" wire:target="archivo, importar">
                             <span wire:loading.remove wire:target="importar">Comenzar Importación</span>
-                            <span wire:loading wire:target="importar font-bold">Procesando registros...</span>
-                            <span wire:loading wire:target="archivo" class="text-[10px] animate-pulse">Subiendo archivo al servidor...</span>
+                            <span wire:loading wire:target="importar" class="font-bold">Procesando registros...</span>
                         </flux:button>
                     </div>
                 </form>
