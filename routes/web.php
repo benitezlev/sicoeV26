@@ -5,7 +5,6 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ExportacionesController;
 use App\Http\Controllers\CursoController;
 use App\Http\Controllers\PanelMateriasController;
-use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\AsistenciaController;
 use Livewire\Volt\Volt;
 
