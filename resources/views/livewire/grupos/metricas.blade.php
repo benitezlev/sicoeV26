@@ -1,41 +1,25 @@
 <?php
 
-use Livewire\Volt\Component;
-use App\Models\Curso;
+use function Livewire\Volt\{state, layout, mount, computed};
 use App\Models\Grupo;
-use Livewire\Attributes\Layout;
+use App\Models\Curso;
+use App\Models\Calificacion;
 
-#[Layout('layouts.app')]
-class Metricas extends Component
-{
-    public Grupo $grupo;
+layout('layouts.app');
 
-    public function mount(Grupo $grupo)
-    {
-        $this->grupo = $this->grupo->load(['curso', 'alumnos', 'expediente', 'plantel']);
-    }
+state(['grupo' => null]);
 
-    public function with(): array
-    {
-        $totalAlumnos = $this->grupo->alumnos->count();
-        $alumnosAlta = $this->grupo->alumnos()->wherePivot('estado', 'activo')->count();
-        $alumnosBaja = $this->grupo->alumnos()->wherePivot('estado', 'baja')->count();
-        
-        $documentos = $this->grupo->expediente->count();
-        
-        // Métrica: % de aprobación (Mock o cálculo simple si existiese Calificaciones en la relación)
-        // Por ahora contaremos cuántas calificaciones existen
-        $evaluacionesEmitidas = \App\Models\Calificacion::where('grupo_id', $this->grupo->id)->count();
+mount(function (Grupo $grupo) {
+    $this->grupo = $grupo->load(['curso', 'alumnos', 'expediente', 'plantel']);
+});
 
-        return compact(
-            'totalAlumnos',
-            'alumnosAlta',
-            'alumnosBaja',
-            'documentos',
-            'evaluacionesEmitidas'
-        );
-    }
-} ?>
+$totalAlumnos = computed(fn() => $this->grupo?->alumnos->count() ?? 0);
+$alumnosAlta = computed(fn() => $this->grupo?->alumnos()->wherePivot('estado', 'activo')->count() ?? 0);
+$alumnosBaja = computed(fn() => $this->grupo?->alumnos()->wherePivot('estado', 'baja')->count() ?? 0);
+$documentos = computed(fn() => $this->grupo?->expediente->count() ?? 0);
+$evaluacionesEmitidas = computed(fn() => Calificacion::where('grupo_id', $this->grupo?->id)->count());
+
+?>
 
 <div class="p-6">
     <x-slot name="header">Insights Operativos</x-slot>
@@ -91,22 +75,18 @@ class Metricas extends Component
                     <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-full text-left mb-6">Tasa de Retención</span>
                     
                     @php
-                        $porcentajeRetencion = $totalAlumnos > 0 ? round(($alumnosAlta / $totalAlumnos) * 100) : 0;
-                        $colorRetencion = $porcentajeRetencion >= 80 ? 'text-green-500' : ($porcentajeRetencion >= 50 ? 'text-amber-500' : 'text-red-500');
+                        $retencion = $this->totalAlumnos > 0 ? round(($this->alumnosAlta / $this->totalAlumnos) * 100) : 0;
+                        $color = $retencion >= 80 ? 'text-green-500' : ($retencion >= 50 ? 'text-amber-500' : 'text-red-500');
                     @endphp
 
                     <div class="relative size-32 mb-4 group cursor-help">
-                        <!-- Circulo SVG Simulado -->
                         <svg class="size-full -rotate-90" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
-                            <!-- Background Circle -->
                             <circle cx="18" cy="18" r="16" fill="none" class="stroke-current text-zinc-100 dark:text-zinc-700/50" stroke-width="3.5" stroke-dasharray="100 100" stroke-linecap="round"></circle>
-                            <!-- Guage Circle -->
-                            <circle cx="18" cy="18" r="16" fill="none" class="stroke-current {{ $colorRetencion }} drop-shadow-md transition-all duration-1000 ease-in-out group-hover:drop-shadow-lg" stroke-width="3.5" stroke-dasharray="{{ $porcentajeRetencion }} 100" stroke-linecap="round"></circle>
+                            <circle cx="18" cy="18" r="16" fill="none" class="stroke-current {{ $color }} drop-shadow-md transition-all duration-1000 ease-in-out group-hover:drop-shadow-lg" stroke-width="3.5" stroke-dasharray="{{ $retencion }} 100" stroke-linecap="round"></circle>
                         </svg>
                         
-                        <!-- Percentage Text -->
                         <div class="absolute top-1/2 start-1/2 transform -translate-y-1/2 -translate-x-1/2 flex flex-col items-center">
-                            <span class="text-3xl font-black text-zinc-800 dark:text-white tracking-tighter">{{ $porcentajeRetencion }}<span class="text-sm">%</span></span>
+                            <span class="text-3xl font-black text-zinc-800 dark:text-white tracking-tighter">{{ $retencion }}<span class="text-sm">%</span></span>
                         </div>
                     </div>
                     
@@ -119,48 +99,43 @@ class Metricas extends Component
                 
                 <!-- Tarjetas de Totalizadores -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- Total Cadetes -->
                     <div class="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-3xl border border-blue-100 dark:border-blue-900/30 flex flex-col relative overflow-hidden shadow-sm group hover:scale-[1.02] transition-transform">
                         <div class="absolute -right-2 -bottom-2 bg-blue-500/10 dark:bg-blue-500/20 p-4 rounded-full group-hover:scale-110 transition-transform">
                             <flux:icon name="users" class="size-6 text-blue-600 dark:text-blue-400" />
                         </div>
                         <span class="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest mb-1">Matrícula Total</span>
-                        <span class="text-3xl font-black text-blue-700 dark:text-blue-300 font-mono">{{ $totalAlumnos }}</span>
+                        <span class="text-3xl font-black text-blue-700 dark:text-blue-300 font-mono">{{ $this->totalAlumnos }}</span>
                         <span class="text-[9px] text-blue-500/70 uppercase font-black tracking-widest mt-2">Registros Históricos</span>
                     </div>
 
-                    <!-- Alumnos Activos -->
                     <div class="bg-green-50 dark:bg-green-900/10 p-5 rounded-3xl border border-green-100 dark:border-green-900/30 flex flex-col relative overflow-hidden shadow-sm group hover:scale-[1.02] transition-transform">
                         <div class="absolute -right-2 -bottom-2 bg-green-500/10 dark:bg-green-500/20 p-4 rounded-full group-hover:scale-110 transition-transform">
                             <flux:icon name="user-check" class="size-6 text-green-600 dark:text-green-400" />
                         </div>
                         <span class="text-[10px] text-green-600 dark:text-green-400 font-bold uppercase tracking-widest mb-1">Alta Activa</span>
-                        <span class="text-3xl font-black text-green-700 dark:text-green-300 font-mono">{{ $alumnosAlta }}</span>
+                        <span class="text-3xl font-black text-green-700 dark:text-green-300 font-mono">{{ $this->alumnosAlta }}</span>
                         <span class="text-[9px] text-green-500/70 uppercase font-black tracking-widest mt-2">En proceso de Formación</span>
                     </div>
 
-                    <!-- Bajas -->
                     <div class="bg-red-50 dark:bg-red-900/10 p-5 rounded-3xl border border-red-100 dark:border-red-900/30 flex flex-col relative overflow-hidden shadow-sm group hover:scale-[1.02] transition-transform">
                         <div class="absolute -right-2 -bottom-2 bg-red-500/10 dark:bg-red-500/20 p-4 rounded-full group-hover:scale-110 transition-transform">
                             <flux:icon name="user-minus" class="size-6 text-red-600 dark:text-red-400" />
                         </div>
                         <span class="text-[10px] text-red-600 dark:text-red-400 font-bold uppercase tracking-widest mb-1">Bajas / Deserciones</span>
-                        <span class="text-3xl font-black text-red-700 dark:text-red-300 font-mono">{{ $alumnosBaja }}</span>
+                        <span class="text-3xl font-black text-red-700 dark:text-red-300 font-mono">{{ $this->alumnosBaja }}</span>
                         <span class="text-[9px] text-red-500/70 uppercase font-black tracking-widest mt-2">Incidencias Críticas</span>
                     </div>
 
-                    <!-- Expedientes Completados -->
                     <div class="bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-3xl border border-zinc-200 dark:border-zinc-700 flex flex-col relative overflow-hidden shadow-sm group hover:scale-[1.02] transition-transform">
                         <div class="absolute -right-2 -bottom-2 bg-zinc-200/50 dark:bg-zinc-700/50 p-4 rounded-full group-hover:scale-110 transition-transform">
                             <flux:icon name="document-duplicate" class="size-6 text-zinc-500 dark:text-zinc-400" />
                         </div>
                         <span class="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest mb-1">Volumen Documental</span>
-                        <span class="text-3xl font-black text-zinc-700 dark:text-zinc-300 font-mono">{{ $documentos }}</span>
+                        <span class="text-3xl font-black text-zinc-700 dark:text-zinc-300 font-mono">{{ $this->documentos }}</span>
                         <span class="text-[9px] text-zinc-400 uppercase font-black tracking-widest mt-2">Archivos en Plataforma</span>
                     </div>
                 </div>
 
-                <!-- Detalle Extendido (Módulo Transaccional) -->
                 <div class="bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700 p-6 shadow-sm">
                     <div class="flex items-center gap-3 mb-6">
                         <div class="p-2 bg-amber-500/10 rounded-xl">
@@ -170,7 +145,6 @@ class Metricas extends Component
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Eval Registradas -->
                         <div class="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900/40 rounded-2xl border border-zinc-100 dark:border-zinc-700/50">
                             <div class="flex items-center gap-4">
                                 <div class="size-10 bg-white dark:bg-zinc-800 rounded-xl shadow-sm flex items-center justify-center border border-zinc-100 dark:border-zinc-700">
@@ -181,10 +155,9 @@ class Metricas extends Component
                                     <span class="text-[10px] text-zinc-500">Calificaciones parciales/Cursos capturados</span>
                                 </div>
                             </div>
-                            <span class="text-xl font-black text-zinc-800 dark:text-white font-mono">{{ $evaluacionesEmitidas }}</span>
+                            <span class="text-xl font-black text-zinc-800 dark:text-white font-mono">{{ $this->evaluacionesEmitidas }}</span>
                         </div>
 
-                        <!-- Estado Actual de Curso -->
                         <div class="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900/40 rounded-2xl border border-zinc-100 dark:border-zinc-700/50">
                             <div class="flex items-center gap-4">
                                 <div class="size-10 bg-white dark:bg-zinc-800 rounded-xl shadow-sm flex items-center justify-center border border-zinc-100 dark:border-zinc-700">
