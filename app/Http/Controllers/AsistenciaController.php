@@ -27,6 +27,11 @@ class AsistenciaController extends Controller
             },
         ])->findOrFail($grupoId);
 
+        // Si es curso corto (<= 40 hrs), usar formato especial
+        if ($grupo->total_horas <= 40) {
+            return $this->generarLista40Horas($grupo);
+        }
+
         // Mes solicitado (default: actual)
         $mesObjetivo = request('mes', now()->format('Y-m'));
         $inicioMes   = Carbon::createFromFormat('Y-m', $mesObjetivo)->startOfMonth();
@@ -53,6 +58,32 @@ class AsistenciaController extends Controller
             ])
             ->setPaper([0, 0, 612, 1008], 'landscape')
             ->download("lista_asistencia_{$grupo->id}_{$inicioMes->format('Y_m')}.pdf");
+    }
+
+    private function generarLista40Horas($grupo)
+    {
+        $alumnos = $grupo->alumnos;
+        
+        // Obtener calificaciones para diagnóstica y final
+        foreach ($alumnos as $alumno) {
+            $alumno->nota_diagnostica = \App\Models\Calificacion::where('grupo_id', $grupo->id)
+                ->where('user_id', $alumno->id)
+                ->where('unidad', 'diagnostica')
+                ->value('calificacion') ?? '';
+            
+            $alumno->nota_final = \App\Models\Calificacion::where('grupo_id', $grupo->id)
+                ->where('user_id', $alumno->id)
+                ->where('unidad', 'final')
+                ->value('calificacion') ?? '';
+        }
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('asistencias.formato_40hrs', [
+                'grupo'   => $grupo,
+                'alumnos' => $alumnos,
+                'docente' => $grupo->docente(),
+            ])
+            ->setPaper('letter', 'portrait')
+            ->download("asistencia_40hrs_{$grupo->id}.pdf");
     }
 
     // Subir lista escaneada

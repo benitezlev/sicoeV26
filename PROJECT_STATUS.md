@@ -2,8 +2,10 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-03-17 13:45)
-1.  **Apertura de Grupos [FIX]:** Corrección de error `Not null violation` en la columna `estado`. Se añadió validación obligatoria y se forzó el estatus inicial como "activo" en el flujo de creación.
+## 🕒 Últimos Cambios Importantes (2026-03-17 14:15)
+1.  **Cursos de 40 Horas [NUEVO]:** Implementación de lógica bi-modal. El sistema ahora detecta cursos de corta duración y conmuta automáticamente al nuevo formato institucional (Portrait) que incluye Calificación Diagnóstica y Final en la misma lista de asistencia.
+2.  **Libreta Digital Adaptativa:** El módulo de calificaciones ahora muestra opciones de "Diagnóstica" y "Final" para grupos de 40 horas, optimizando el flujo de trabajo para coordinadores.
+3.  **Apertura de Grupos [FIX]:** Corrección de error `Not null violation` en la columna `estado`. Se añadió validación obligatoria y se forzó el estatus inicial como "activo" en el flujo de creación.
 2.  **Catálogo de Cursos [FIX]:** Corrección de error `Not null violation` en la columna `categoria`. Se integró el campo al componente Livewire, validaciones y formulario de alta/edición.
 3.  **Importación Masiva de Alumnos (v2) [COMPLETADO]:** Procesamiento exitoso de toda la matrícula. Se resolvieron conflictos de unicidad en Postgres, sanitización de UTF-8 y manejo de BOM en encabezados.
 3.  **Optimización de Calificaciones y Asistencias:** Corrección de errores SQL de ordenamiento dinámico. Estandarización de nombres en la interfaz usando el campo persistido `nombre_completo`.

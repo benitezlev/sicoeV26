@@ -16,6 +16,7 @@ state([
     'notas' => [], // [user_id => calificacion]
     'observaciones' => [], // [user_id => observation]
     'isDirty' => false,
+    'esCursoCorto' => false,
 ]);
 
 $setMasivo = function($valor) {
@@ -55,7 +56,18 @@ $alumnos = computed(function() {
         ->get();
 });
 
-updated(['grupo_id', 'materia_id', 'unidad'], function() {
+updated(['grupo_id', 'materia_id', 'unidad'], function($value, $key) {
+    if ($key === 'grupo_id') {
+        $grupo = Grupo::find($value);
+        $this->esCursoCorto = $grupo && $grupo->total_horas <= 40;
+        
+        // Si cambia a curso corto, resetear unidad de ser necesario
+        if ($this->esCursoCorto) {
+            $this->unidad = 'diagnostica';
+        } else {
+            $this->unidad = '1';
+        }
+    }
     $this->loadNotas();
 });
 
@@ -169,11 +181,16 @@ $guardar = function() {
                 <flux:field>
                     <flux:label>Parcial / Rubro a Evaluar</flux:label>
                     <flux:select wire:model.live="unidad" icon="clipboard-document-check">
-                        <flux:select.option value="1">1ra Unidad / Parcial</flux:select.option>
-                        <flux:select.option value="2">2da Unidad / Parcial</flux:select.option>
-                        <flux:select.option value="3">3ra Unidad / Parcial</flux:select.option>
-                        <flux:select.option value="PROMEDIO_FINAL">Promedio Final del Semestre</flux:select.option>
-                        <flux:select.option value="EXTRAORDINARIO">Examen Extraordinario (Global)</flux:select.option>
+                        @if($this->esCursoCorto)
+                            <flux:select.option value="diagnostica">Evaluación Diagnóstica</flux:select.option>
+                            <flux:select.option value="final">Evaluación Final (Certificación)</flux:select.option>
+                        @else
+                            <flux:select.option value="1">1ra Unidad / Parcial</flux:select.option>
+                            <flux:select.option value="2">2da Unidad / Parcial</flux:select.option>
+                            <flux:select.option value="3">3ra Unidad / Parcial</flux:select.option>
+                            <flux:select.option value="PROMEDIO_FINAL">Promedio Final del Semestre</flux:select.option>
+                            <flux:select.option value="EXTRAORDINARIO">Examen Extraordinario (Global)</flux:select.option>
+                        @endif
                     </flux:select>
                 </flux:field>
             </div>
@@ -191,7 +208,7 @@ $guardar = function() {
                         <div>
                             <h2 class="text-lg font-black text-zinc-900 dark:text-white uppercase tracking-tight">Cédula de Calificación</h2>
                             <p class="text-[11px] text-zinc-500 font-bold tracking-widest uppercase">
-                                Capturando <span class="text-blue-600 dark:text-blue-400">{{ match($unidad) { '1'=>'1ra Unidad', '2'=>'2da Unidad', '3'=>'3ra Unidad', 'PROMEDIO_FINAL'=>'Promedio Final', 'EXTRAORDINARIO'=>'Extraordinario', default=>$unidad } }}</span>
+                                Capturando <span class="text-blue-600 dark:text-blue-400">{{ match($unidad) { '1'=>'1ra Unidad', '2'=>'2da Unidad', '3'=>'3ra Unidad', 'PROMEDIO_FINAL'=>'Promedio Final', 'EXTRAORDINARIO'=>'Extraordinario', 'diagnostica' => 'Diagnóstica', 'final' => 'Final', default=>$unidad } }}</span>
                             </p>
                         </div>
                     </div>
