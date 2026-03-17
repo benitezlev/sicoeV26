@@ -2,11 +2,11 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-03-17 10:15)
-1.  **Resolución Crítica de Unicidad (CUP/CUIP):** Se implementó la conversión automática de cadenas vacías a NULL en el motor de importación, eliminando los conflictos de duplicidad en PostgreSQL. Se realizó limpieza de datos existentes.
-2.  **Optimización de Captura de Calificaciones:** Mejora de la Libreta Digital con navegación por flechas de teclado, sistema de asignación masiva de notas (Llenado rápido) e indicadores visuales de cambios pendientes (isDirty).
-3.  **Continuidad del Diseño (Flux UI):** Validación y estandarización de los módulos de Materias y Asistencias bajo el sistema de diseño premium del proyecto.
-4.  **Importación Masiva de Alumnos (v2) [VERIFICADO]:** Éxito total en el procesamiento de registros. El motor gestionó correctamente el BOM, delimitadores y la conversión de campos vacíos a NULL para PostgreSQL.
+## 🕒 Últimos Cambios Importantes (2026-03-17 11:00)
+1.  **Importación Masiva de Alumnos (v2) [COMPLETADO]:** Procesamiento exitoso de toda la matrícula. Se resolvieron conflictos de unicidad en Postgres, sanitización de UTF-8 y manejo de BOM en encabezados.
+2.  **Optimización de Calificaciones y Asistencias:** Corrección de errores SQL de ordenamiento dinámico. Estandarización de nombres en la interfaz usando el campo persistido `nombre_completo`.
+3.  **Robustecimiento de Lógica de Negocio (Grupos):** Solución al error de tipo en `diasHabilesEntreFechas` activando validaciones defensivas para la decodificación de JSON mixtos en la base de datos.
+4.  **UX de Libreta Digital:** Implementación de navegación selectiva por flechas de teclado y funciones de llenado masivo para agilizar la operación administrativa.
 
 ## 🛠️ Stack y Decisiones Técnicas
 - **Estándar:** `Laravel 12` + `Livewire 3 (Volt)` + `Blade` + `Tailwind CSS`.
@@ -23,4 +23,4 @@ Este documento resume el estado actual del proyecto, los cambios recientes y las
 3.  **Refactorización UI:** Continuar con el rediseño de reportes históricos de alumnos.
 
 ---
-*Última actualización: 2026-03-17 10:40:00*
+*Última actualización: 2026-03-17 11:00:00*
