@@ -132,6 +132,10 @@
     </style>
 </head>
 <body>
+    <div style="width: 100%; margin-bottom: 10px;">
+        <img src="{{ public_path('img/pleca.png') }}" style="width: 100%; height: auto;" alt="Institucional">
+    </div>
+
     <div class="top-slogan">
         "2026. Bicentenario de la vida municipal en el Estado de México"
     </div>
