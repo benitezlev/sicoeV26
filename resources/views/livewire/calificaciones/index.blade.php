@@ -15,7 +15,25 @@ state([
     'unidad' => '1',
     'notas' => [], // [user_id => calificacion]
     'observaciones' => [], // [user_id => observation]
+    'isDirty' => false,
 ]);
+
+$setMasivo = function($valor) {
+    if (!$this->grupo_id) return;
+    foreach($this->alumnos as $alumno) {
+        if (!isset($this->notas[$alumno->id]) || $this->notas[$alumno->id] === '') {
+            $this->notas[$alumno->id] = $valor;
+        }
+    }
+    $this->isDirty = true;
+};
+
+$limpiarLibreta = function() {
+    $this->notas = [];
+    $this->observaciones = [];
+    $this->loadNotas();
+    $this->isDirty = false;
+};
 
 $grupos = computed(fn() => Grupo::where('estado', 'activo')->orderBy('nombre')->get());
 
@@ -94,6 +112,7 @@ $guardar = function() {
     }
 
     if ($guardados > 0) {
+        $this->isDirty = false;
         Flux::toast(heading: 'Acta Registrada', text: "Se guardaron $guardados calificaciones exitosamente.", variant: 'success');
     } else {
         Flux::toast(heading: 'Sin datos', text: 'No ingresaste ninguna calificación para guardar.', variant: 'warning');
@@ -113,9 +132,14 @@ $guardar = function() {
             </div>
             
             @if($grupo_id && $materia_id && count($this->alumnos) > 0)
-                <flux:button variant="primary" icon="check-circle" wire:click="guardar" class="font-black uppercase tracking-widest text-[10px]">
-                    Guardar Libreta
-                </flux:button>
+                <div class="flex items-center gap-2">
+                    @if($isDirty)
+                        <flux:badge color="amber" variant="solid" class="animate-pulse">Cambios Pendientes</flux:badge>
+                    @endif
+                    <flux:button variant="primary" icon="check-circle" wire:click="guardar" class="font-black uppercase tracking-widest text-[10px]">
+                        Guardar Libreta
+                    </flux:button>
+                </div>
             @endif
         </div>
 
@@ -169,9 +193,26 @@ $guardar = function() {
                             </p>
                         </div>
                     </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black uppercase text-zinc-400 mr-2">Asignación Rápida:</span>
+                        <flux:button variant="ghost" size="sm" class="text-[9px] font-bold" wire:click="setMasivo(10)">Poner 10</flux:button>
+                        <flux:button variant="ghost" size="sm" class="text-[9px] font-bold" wire:click="setMasivo(6)">Poner 6</flux:button>
+                        <flux:button variant="ghost" size="sm" class="text-[9px] font-bold text-red-500" wire:click="limpiarLibreta">Borrar Todo</flux:button>
+                    </div>
                 </div>
 
-                <table class="w-full text-left border-collapse whitespace-nowrap">
+                <table class="w-full text-left border-collapse whitespace-nowrap" 
+                    x-data="{ 
+                        focusNext(index) {
+                            let next = document.getElementById('nota-' + (index + 1));
+                            if (next) next.focus();
+                        },
+                        focusPrev(index) {
+                            let prev = document.getElementById('nota-' + (index - 1));
+                            if (prev) prev.focus();
+                        }
+                    }">
                     <thead>
                         <tr class="border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
                             <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 select-none">Ficha del Cadete / Alumno</th>
@@ -180,7 +221,7 @@ $guardar = function() {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                        @foreach ($this->alumnos as $alumno)
+                        @foreach ($this->alumnos as $index => $alumno)
                             <tr wire:key="alm-cal-{{ $alumno->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors group">
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-4">
@@ -197,11 +238,15 @@ $guardar = function() {
                                 <td class="px-6 py-4 text-center">
                                     <div class="relative w-24 mx-auto">
                                         <input type="number" step="0.1" min="0" max="10" 
-                                            wire:model.defer="notas.{{ $alumno->id }}" 
+                                            id="nota-{{ $index }}"
+                                            wire:model.live.debounce.500ms="notas.{{ $alumno->id }}" 
+                                            @keydown.arrow-down.prevent="focusNext({{ $index }})"
+                                            @keydown.arrow-up.prevent="focusPrev({{ $index }})"
+                                            @input="$wire.set('isDirty', true)"
                                             class="w-full text-center font-mono font-black text-lg py-2 px-3 bg-white dark:bg-zinc-900 border-2 rounded-xl transition-all focus:outline-none focus:ring-0
                                             {{ floatval($notas[$alumno->id] ?? 0) < 6 && ($notas[$alumno->id] ?? '') !== '' 
                                                 ? 'border-red-400 text-red-600 focus:border-red-500 bg-red-50/30' 
-                                                : 'border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:border-blue-500 hover:border-zinc-300 dark:hover:border-zinc-600' }}" />
+                                                : (isset($notas[$alumno->id]) && $notas[$alumno->id] !== '' ? 'border-green-200 dark:border-green-900/50' : 'border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white focus:border-blue-500 hover:border-zinc-300 dark:hover:border-zinc-600') }}" />
                                         
                                         @if(floatval($notas[$alumno->id] ?? 0) < 6 && ($notas[$alumno->id] ?? '') !== '')
                                             <div class="absolute -right-2 -top-2 size-5 bg-red-500 text-white rounded-full flex items-center justify-center shadow-sm">
@@ -212,7 +257,9 @@ $guardar = function() {
                                 </td>
 
                                 <td class="px-6 py-4">
-                                    <input type="text" wire:model.defer="observaciones.{{ $alumno->id }}" placeholder="Ej. Excelente ensayo, faltó a examen..." 
+                                    <input type="text" wire:model.live.debounce.500ms="observaciones.{{ $alumno->id }}" 
+                                        @input="$wire.set('isDirty', true)"
+                                        placeholder="Ej. Excelente ensayo, faltó a examen..." 
                                         class="w-full bg-transparent border-0 border-b border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-0 text-xs py-2 px-1 text-zinc-800 dark:text-zinc-200 transition-colors" />
                                 </td>
                             </tr>
