@@ -1,6 +1,6 @@
 <?php
 
-use function Livewire\Volt\{state, computed, layout, usesPagination};
+use function Livewire\Volt\{state, computed, layout, usesPagination, updated};
 use App\Models\Grupo;
 use App\Models\Plantel;
 use App\Models\Curso;
