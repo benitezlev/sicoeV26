@@ -2,10 +2,10 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-03-17 14:20)
-1.  **Flexibilidad de Formatos [UPGRADE]:** Se añadió un interruptor manual en la configuración de grupos para forzar el "Formato Especial" (Diagnóstica/Final), permitiendo que cursos de más de 40 horas también utilicen este esquema si Control Escolar lo requiere.
-2.  **Cursos de 40 Horas [SOPORTE]:** Se mantiene la detección automática para cursos cortos, pero ahora con anulación manual disponible.
-3.  **Libreta Digital Adaptativa:** Sincronización completa entre el switch de formato y las opciones de calificación mostradas al coordinador.
+## 🕒 Últimos Cambios Importantes (2026-03-17 17:30)
+1.  **Estandarización Visual de Reportes [PREMIUM]:** Se unificó el diseño de todos los listados de asistencia (Horizontal y Especial) bajo la nueva identidad institucional: banner negro de alto impacto, línea de metadatos delimitada por tuberías y firmas formalizadas con logotipos de la UMS.
+2.  **Flexibilidad de Formatos [UPGRADE]:** Implementación de un interruptor manual en la configuración de grupos para conmutar entre la modalidad "Unidades" y "Diagnóstica/Final".
+3.  **Correcciones de Reactividad:** Se resolvió un error crítico de importación en Livewire Volt y se optimizó la sincronización en tiempo real del formulario de grupos.
 2.  **Catálogo de Cursos [FIX]:** Corrección de error `Not null violation` en la columna `categoria`. Se integró el campo al componente Livewire, validaciones y formulario de alta/edición.
 3.  **Importación Masiva de Alumnos (v2) [COMPLETADO]:** Procesamiento exitoso de toda la matrícula. Se resolvieron conflictos de unicidad en Postgres, sanitización de UTF-8 y manejo de BOM en encabezados.
 3.  **Optimización de Calificaciones y Asistencias:** Corrección de errores SQL de ordenamiento dinámico. Estandarización de nombres en la interfaz usando el campo persistido `nombre_completo`.

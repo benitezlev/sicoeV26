@@ -52,8 +52,8 @@ class AsistenciaController extends Controller
                 'grupo'      => $grupo,
                 'mes'        => $mes,
                 'diasDelMes' => $diasDelMes,
-                // Ya vienen ordenados desde la consulta:
                 'alumnos'    => $grupo->alumnos,
+                'docente'    => $grupo->docente(),
                 'sinDias'    => empty($diasDelMes) ? "Sin clases programadas en este mes dentro del periodo del grupo." : null,
             ])
             ->setPaper([0, 0, 612, 1008], 'landscape')
@@ -75,6 +75,22 @@ class AsistenciaController extends Controller
                 ->where('user_id', $alumno->id)
                 ->where('unidad', 'final')
                 ->value('calificacion') ?? '';
+            
+            // Detección de asistencia para los 5 días de la semana (L-V)
+            $diasFull = $grupo->diasHabilesEntreFechas();
+            $diasMap = ['LU' => 'asistencia_l', 'MA' => 'asistencia_m', 'MI' => 'asistencia_mi', 'JU' => 'asistencia_j', 'VI' => 'asistencia_v'];
+            
+            foreach ($diasMap as $abbr => $prop) {
+                $alumno->$prop = false;
+                $diaData = collect($diasFull)->firstWhere('abreviado', $abbr);
+                if ($diaData) {
+                    $alumno->$prop = \App\Models\AsistenciaIndividual::where('grupo_id', $grupo->id)
+                        ->where('user_id', $alumno->id)
+                        ->whereDate('fecha', $diaData['fecha']->format('Y-m-d'))
+                        ->where('estatus', 'presente')
+                        ->exists();
+                }
+            }
         }
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('asistencias.formato_40hrs', [
@@ -82,7 +98,7 @@ class AsistenciaController extends Controller
                 'alumnos' => $alumnos,
                 'docente' => $grupo->docente(),
             ])
-            ->setPaper('letter', 'portrait')
+            ->setPaper('letter', 'landscape')
             ->download("asistencia_40hrs_{$grupo->id}.pdf");
     }
 

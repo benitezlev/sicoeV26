@@ -2,148 +2,169 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Lista de Asistencia 40 Horas - {{ $grupo->nombre }}</title>
+    <title>Lista de Asistencia - {{ $grupo->nombre }}</title>
     <style>
         @page {
-            margin: 1cm;
+            size: letter landscape;
+            margin: 0.5cm 1cm;
         }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
             font-size: 8px;
-            color: #1a1a1a;
-            line-height: 1.2;
+            color: #000;
+            line-height: 1.1;
+            margin: 0;
+            padding: 0;
         }
-        .header-table {
-            width: 100%;
-            border-collapse: collapse;
+        .top-slogan {
+            text-align: right;
+            font-size: 8px;
+            font-weight: bold;
             margin-bottom: 5px;
-        }
-        .header-table td {
-            border: none;
-            padding: 2px;
-        }
-        .pleca {
-            width: 100%;
-            height: auto;
-            max-height: 50px;
+            color: #555;
         }
         .course-banner {
             background-color: #000;
             color: #fff;
             text-align: center;
             font-weight: bold;
-            font-size: 14px;
-            padding: 8px;
-            margin: 10px 0;
-            text-transform: uppercase;
-        }
-        .info-grid {
+            font-size: 16px;
+            padding: 10px 5px;
             width: 100%;
-            margin-bottom: 10px;
-            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .metadata-line {
+            width: 100%;
+            text-align: center;
+            font-size: 8px;
+            font-weight: bold;
+            margin: 8px 0;
             text-transform: uppercase;
         }
-        .info-grid td {
-            padding: 3px 0;
+        .metadata-line span {
+            display: inline-block;
+            margin: 0 5px;
         }
         .main-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .main-table th, .main-table td {
             border: 1px solid #000;
             padding: 4px 2px;
             text-align: center;
+            vertical-align: middle;
         }
         .main-table th {
-            background-color: #f2f2f2;
             font-weight: bold;
             font-size: 7px;
+            text-transform: uppercase;
+        }
+        .sub-caption {
+            font-size: 5px;
+            font-weight: normal;
         }
         .name-cell {
             text-align: left !important;
-            padding-left: 5px !important;
-            white-space: nowrap;
+            padding-left: 4px !important;
+            font-size: 8px;
+            font-weight: bold;
         }
         .attendance-col {
-            width: 20px;
+            width: 18px;
+            font-size: 8px;
         }
         .grade-col {
-            width: 45px;
+            width: 50px;
             font-weight: bold;
+            font-size: 9px;
         }
-        .footer-signatures {
+        .footer-container {
             width: 100%;
-            margin-top: 30px;
-            text-align: center;
+            margin-top: 15px;
+            position: relative;
         }
-        .signature-box {
-            width: 30%;
-            display: inline-block;
+        .signature-section {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .sig-block {
+            display: table-cell;
+            width: 35%;
+            text-align: center;
             vertical-align: top;
-            text-align: center;
+            padding-top: 30px;
         }
-        .signature-line {
+        .sig-line {
             border-top: 1px solid #000;
-            margin: 40px 10px 5px 10px;
+            width: 80%;
+            margin: 0 auto 5px auto;
         }
-        .signature-text {
+        .sig-title {
             font-size: 7px;
             font-weight: bold;
+            text-transform: uppercase;
         }
-        .seal-box {
-            width: 80px;
-            height: 80px;
-            border: 1px solid #ccc;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ccc;
+        .logo-block {
+            display: table-cell;
+            width: 30%;
+            text-align: left;
+            vertical-align: bottom;
+        }
+        .ums-logo {
+            width: 100px;
+            margin-bottom: 5px;
+        }
+        .ums-info {
             font-size: 6px;
+            font-weight: bold;
+            color: #444;
+            line-height: 1.2;
         }
-        .diagonal-text {
-            transform: rotate(-45deg);
+        .label-vertical {
+            font-size: 6px;
+            font-weight: bold;
+            margin-bottom: 2px;
         }
     </style>
 </head>
 <body>
-    <img src="{{ public_path('img/pleca.png') }}" class="pleca" alt="Institucional">
+    <div class="top-slogan">
+        "2026. Bicentenario de la vida municipal en el Estado de México"
+    </div>
+
+    <div style="text-align: center; font-weight: bold; font-size: 10px; margin-bottom: 5px;">
+        LISTA DE ASISTENCIA
+    </div>
 
     <div class="course-banner">
         {{ $grupo->curso->nombre }}
     </div>
 
-    <div style="text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 15px;">
-        LISTA DE ASISTENCIA
+    <div class="metadata-line">
+        <span>| <strong>DOCENTE:</strong> {{ $docente['nombre'] ?? $docente['name'] ?? 'POR ASIGNAR' }} |</span>
+        <span>| <strong>FECHA DE INICIO:</strong> {{ $grupo->fecha_inicio?->format('d/m/Y') }} |</span>
+        <span>| <strong>FECHA DE TÉRMINO:</strong> {{ $grupo->fecha_fin?->format('d/m/Y') }} |</span> 
+        <span>| <strong>HORA DE INICIO:</strong> {{ \Carbon\Carbon::parse($grupo->hora_inicio)->format('H:i') }} |</span>
+        <span>| <strong>HORA DE TÉRMINO:</strong> {{ \Carbon\Carbon::parse($grupo->hora_fin)->format('H:i') }} |</span>
+        <span>| <strong>TOTAL DE HORAS:</strong> {{ $grupo->total_horas }} |</span>
+        <span>| <strong>GRUPO:</strong> {{ $grupo->nombre }} |</span>
     </div>
-
-    <table class="info-grid">
-        <tr>
-            <td colspan="2"><strong>DOCENTE:</strong> {{ $docente['nombre'] ?? $docente['name'] ?? 'POR ASIGNAR' }}</td>
-            <td style="text-align: right;"><strong>TOTAL DE HORAS:</strong> {{ $grupo->total_horas }}</td>
-        </tr>
-        <tr>
-            <td><strong>FECHA DE INICIO:</strong> {{ $grupo->fecha_inicio?->format('d/m/Y') }}</td>
-            <td><strong>FECHA DE TÉRMINO:</strong> {{ $grupo->fecha_fin?->format('d/m/Y') }}</td>
-            <td style="text-align: right;"><strong>GRUPO:</strong> {{ $grupo->nombre }}</td>
-        </tr>
-        <tr>
-            <td><strong>HORA DE INICIO:</strong> {{ $grupo->hora_inicio }}</td>
-            <td><strong>HORA DE TÉRMINO:</strong> {{ $grupo->hora_fin }}</td>
-            <td></td>
-        </tr>
-    </table>
 
     <table class="main-table">
         <thead>
             <tr>
-                <th rowspan="2">No.</th>
-                <th rowspan="2">NOMBRE COMPLETO<br><span style="font-weight:normal; font-size:6px;">(Apellido Paterno | Apellido Materno | Nombre(s))</span></th>
-                <th rowspan="2">CUIP</th>
-                <th rowspan="2">PERFIL</th>
-                <th rowspan="2">ADSCRIPCIÓN</th>
+                <th rowspan="2" style="width: 20px;">No.</th>
+                <th rowspan="2" style="width: 250px;">
+                    NOMBRE COMPLETO <br>
+                    <span class="sub-caption">| Apellido Paterno | Apellido Materno | Nombre(s) |</span>
+                </th>
+                <th rowspan="2" style="width: 120px;">CUIP</th>
+                <th rowspan="2" style="width: 100px;">PERFIL</th>
+                <th rowspan="2" style="width: 150px;">ADSCRIPCIÓN</th>
                 <th colspan="5">ASISTENCIA</th>
                 <th rowspan="2">CALIFICACIÓN<br>DIAGNÓSTICA</th>
                 <th rowspan="2">CALIFICACIÓN FINAL</th>
@@ -159,52 +180,67 @@
         <tbody>
             @foreach($alumnos as $index => $alumno)
             <tr>
-                <td>{{ $index + 1 }}</td>
+                <td style="font-size: 9px; font-weight: bold;">{{ $index + 1 }}</td>
                 <td class="name-cell">
                     {{ strtoupper($alumno->paterno) }} {{ strtoupper($alumno->materno) }} {{ strtoupper($alumno->nombre) }}
                 </td>
-                <td style="font-size: 7px;">{{ $alumno->cuip }}</td>
-                <td style="font-size: 7px;">{{ $alumno->perfil }}</td>
-                <td style="font-size: 6px; text-align: left;">{{ $alumno->adscripcion }}</td>
-                <td class="attendance-col"></td>
-                <td class="attendance-col"></td>
-                <td class="attendance-col"></td>
-                <td class="attendance-col"></td>
-                <td class="attendance-col"></td>
-                <td class="grade-col">{{ $alumno->nota_diagnostica }}</td>
-                <td class="grade-col">{{ $alumno->nota_final }}</td>
+                <td style="font-size: 8px; font-family: monospace;">{{ $alumno->cuip }}</td>
+                <td style="font-size: 7px;">{{ strtoupper($alumno->perfil ?? ($alumno->perfil_data['perfil'] ?? '')) }}</td>
+                <td style="font-size: 6px; text-align: left; line-height: 1;">{{ strtoupper($alumno->adscripcion ?? ($alumno->perfil_data['adscripcion'] ?? '')) }}</td>
+                <td class="attendance-col"> @if($alumno->asistencia_l) • @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_m) • @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_mi) • @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_j) • @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_v) • @endif </td>
+                <td class="grade-col" style="background-color: #f9f9f9;">{{ number_format((float)$alumno->nota_diagnostica, 1) }}</td>
+                <td class="grade-col">{{ number_format((float)$alumno->nota_final, 1) }}</td>
             </tr>
             @endforeach
+            
+            {{-- Filas vacías si hay pocos alumnos para completar la página visualmente --}}
+            @for($i = count($alumnos); $i < 47; $i++)
+            <tr style="height: 12px;">
+                <td>{{ $i + 1 }}</td>
+                <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+            @break($i >= 15 && count($alumnos) < 15) {{-- No llenar demasiado si hay pocos, solo un poco para estructura --}}
+            @endfor
         </tbody>
     </table>
 
-    <div class="footer-signatures">
-        <div class="signature-box">
-            <div class="signature-line"></div>
-            <div class="signature-text">
-                DR. GONZALO HERNÁNDEZ DURAZO<br>
-                RECTOR DE LA UNIVERSIDAD MEXIQUENSE DE SEGURIDAD
+    <div class="footer-container">
+        <div class="signature-section">
+            <div class="logo-block">
+                <img src="{{ public_path('img/Logo-UMS-1.png') }}" class="ums-logo" alt="UMS Logo">
+                <div class="ums-info">
+                   UNIVERSIDAD MEXIQUENSE DE SEGURIDAD<br>
+                   DIRECCIÓN GENERAL
+                </div>
             </div>
-        </div>
-
-        <div class="signature-box">
-            <div class="seal-box">
-                <span class="diagonal-text">SELLO INSTITUCIONAL</span>
+            
+            <div class="sig-block">
+                <div class="label-vertical">NOMBRE Y CARGO</div>
+                <div class="sig-line"></div>
+                <div class="sig-title">
+                    DR. GONZALO HERNÁNDEZ DURAZO<br>
+                    RECTOR DE LA UNIVERSIDAD MEXIQUENSE DE SEGURIDAD
+                </div>
             </div>
-        </div>
 
-        <div class="signature-box">
-            <div class="signature-line"></div>
-            <div class="signature-text">
-                LCDO. CHRISTIAN M. JIMÉNEZ MORALES<br>
-                DIRECTOR DE CAPACITACIÓN, PROFESIONALIZACIÓN Y ESPECIALIZACIÓN
+            <div class="sig-block" style="padding-left: 20px;">
+                <div class="label-vertical">FIRMA</div>
+                <div class="sig-line"></div>
+                <div class="sig-title">
+                    LCDO. CHRISTIAN M. JIMÉNEZ MORALES<br>
+                    DIRECTOR DE CAPACITACIÓN, PROFESIONALIZACIÓN Y ESPECIALIZACIÓN
+                </div>
             </div>
         </div>
     </div>
 
-    <div style="margin-top: 20px; text-align: center; border-top: 1px solid #000; padding-top: 10px; font-weight: bold; width: 50%; margin-left: 25%;">
+    <div style="margin-top: 15px; text-align: center; border-top: 1px dotted #000; padding-top: 5px; font-weight: bold; width: 40%; margin-left: 30%;">
         {{ $docente['nombre'] ?? $docente['name'] ?? '---' }}<br>
-        DOCENTE INSTRUCTOR
+        <span style="font-size: 7px;">DOCENTE INSTRUCTOR</span>
     </div>
 </body>
 </html>

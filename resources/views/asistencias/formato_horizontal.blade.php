@@ -2,189 +2,259 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Lista Mensual de Asistencia - {{ $grupo->curso->nombre }}</title>
+    <title>Lista Mensual de Asistencia - {{ $grupo->nombre }}</title>
     <style>
+        @page {
+            size: letter landscape;
+            margin: 0.5cm 1cm;
+        }
         body {
-            font-family: 'Gotham', sans-serif;
-            font-size: 10px;
-            margin: 20px 30px;
-            color: #333;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 7px;
+            color: #000;
+            line-height: 1.1;
+            margin: 0;
+            padding: 0;
         }
-
-        .encabezado {
+        .top-slogan {
+            text-align: right;
+            font-size: 8px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .course-banner {
+            background-color: #000;
+            color: #fff;
             text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .encabezado img {
-            display: block;
-            margin: 0 auto;
-            max-width: 600px;
-            height: auto;
-        }
-
-        .encabezado h1 {
+            font-weight: bold;
             font-size: 14px;
+            padding: 8px 5px;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .header-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 10px;
+            margin: 5px 0;
+            text-transform: uppercase;
+        }
+        .metadata-line {
+            width: 100%;
+            text-align: center;
+            font-size: 7.5px;
             font-weight: bold;
             margin: 5px 0;
+            text-transform: uppercase;
+            background-color: #f8f8f8;
+            padding: 4px 0;
+            border-top: 0.5px solid #eee;
+            border-bottom: 0.5px solid #eee;
         }
-
-        .datos {
-            margin-top: 10px;
-            font-size: 10px;
-            padding: 6px;
-            background-color: #f9f9f9;
-            border: 1px solid #ccc;
+        .metadata-line span {
+            display: inline-block;
+            margin: 0 4px;
         }
-
-        table {
+        .mes-titulo {
+            text-align: center;
+            font-weight: black;
+            font-size: 11px;
+            margin: 3px 0;
+            color: #1a1a1a;
+        }
+        .main-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 8.5px; /* más compacto */
+            margin-bottom: 10px;
         }
-
-        th, td {
-            border: 1px solid #444;
-            padding: 2px 3px;
+        .main-table th, .main-table td {
+            border: 1px solid #000;
+            padding: 3px 1px;
             text-align: center;
+            vertical-align: middle;
         }
-
-        th {
-            background-color: #f2f2f2;
+        .main-table th {
             font-weight: bold;
+            font-size: 6.5px;
+            text-transform: uppercase;
+            background-color: #f2f2f2;
         }
-
-        .firma-docente, .sello {
-            margin-top: 30px;
-            text-align: center;
+        .name-cell {
+            text-align: left !important;
+            padding-left: 4px !important;
+            font-size: 7.5px;
+            font-weight: bold;
+            white-space: nowrap;
         }
-
-        .footer {
-            margin-top: 20px;
-            font-size: 9px;
-            text-align: right;
-            color: #666;
+        .attendance-col {
+            width: 15px;
+            font-size: 6px;
         }
-        .signature-table {
+        .curp-col {
+            width: 90px;
+            font-size: 7px;
+            font-family: monospace;
+        }
+        .footer-container {
             width: 100%;
-            margin-top: 50px;
-            border: none !important;
+            margin-top: 10px;
         }
-        .signature-table td {
-            border: none !important;
-            padding: 10px;
-            vertical-align: bottom;
+        .signature-section {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .sig-block {
+            display: table-cell;
+            width: 35%;
             text-align: center;
+            vertical-align: top;
+            padding-top: 20px;
         }
-        .signature-box {
+        .sig-line {
             border-top: 1px solid #000;
             width: 80%;
-            margin: 0 auto;
-            padding-top: 5px;
+            margin: 0 auto 5px auto;
         }
-        .seal-box {
-            border: 1px solid #999;
-            width: 110px;
-            height: 110px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .sig-title {
+            font-size: 6.5px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .logo-block {
+            display: table-cell;
+            width: 30%;
+            text-align: left;
+            vertical-align: bottom;
+        }
+        .ums-logo {
+            width: 80px;
+            margin-bottom: 3px;
+        }
+        .ums-info {
+            font-size: 5.5px;
+            font-weight: bold;
+            color: #444;
+            line-height: 1.1;
+        }
+        .label-vertical {
+            font-size: 6px;
+            font-weight: bold;
+            margin-bottom: 2px;
+            color: #666;
+        }
+        .empty-row {
+            height: 15px;
         }
     </style>
 </head>
 <body>
-    <div class="encabezado">
-        {{-- Pleca institucional centrada --}}
-        <img src="{{ public_path('img/pleca.png') }}" alt="Pleca Institucional">
-
-        {{-- Nombre del plantel arriba a la derecha --}}
-        <div style="text-align:right; font-size:12px; font-weight:bold; margin-top:5px;">
-            {{ strtoupper($grupo->plantel->name ?? $grupo->plantel->nombre ?? '---') }}
-        </div>
-
-        {{-- Nombre del curso con fondo institucional --}}
-        <div style="background-color:#9f1239; color:#fff; text-align:center;
-                    font-size:16px; font-weight:bold; padding:6px; margin-top:8px;">
-            {{ strtoupper($grupo->curso->nombre) }}
-        </div>
-
-        <p style="text-align:center; margin:4px 0; font-size:11px;">
-            <strong>Lista Mensual de Asistencia</strong>
-        </p>
+    <div class="top-slogan">
+        "2026. Bicentenario de la vida municipal en el Estado de México"
     </div>
 
-    <div class="datos">
-        <p style="margin:4px 0; text-align:center; font-weight:bold; font-size:11px;">
-            {{ strtoupper($mes) }}
-        </p>
-        <p style="margin:4px 0; text-align:center;">
-            <strong>Fecha de Inicio:</strong> {{ $grupo->fecha_inicio?->format('d/m/Y') ?? '---' }} |
-            <strong>Fecha de Término:</strong> {{ $grupo->fecha_fin?->format('d/m/Y') ?? '---' }} |
-            <strong>Hora de Inicio:</strong> {{ $grupo->hora_inicio ?? '09:00' }} |
-            <strong>Hora de Término:</strong> {{ $grupo->hora_fin ?? '18:00' }} |
-            <strong>Total de Horas:</strong> {{ $grupo->total_horas ?? '---' }} |
-            <strong>Grupo:</strong> {{ $grupo->nombre ?? '---' }}
-        </p>
+    <div class="header-title">
+        LISTA MENSUAL DE ASISTENCIA
     </div>
 
-    <table>
+    <div class="course-banner">
+        {{ $grupo->curso->nombre }}
+    </div>
+
+    <div class="mes-titulo">
+        {{ strtoupper($mes) }}
+    </div>
+
+    <div class="metadata-line">
+        <span>| <strong>DOCENTE:</strong> {{ $docente['nombre'] ?? $docente['name'] ?? 'POR ASIGNAR' }} |</span>
+        <span>| <strong>FECHA DE INICIO:</strong> {{ $grupo->fecha_inicio?->format('d/m/Y') }} |</span>
+        <span>| <strong>FECHA DE TÉRMINO:</strong> {{ $grupo->fecha_fin?->format('d/m/Y') }} |</span> 
+        <span>| <strong>HORA DE INICIO:</strong> {{ \Carbon\Carbon::parse($grupo->hora_inicio)->format('H:i') }} |</span>
+        <span>| <strong>HORA DE TÉRMINO:</strong> {{ \Carbon\Carbon::parse($grupo->hora_fin)->format('H:i') }} |</span>
+        <span>| <strong>TOTAL DE HORAS:</strong> {{ $grupo->total_horas }} |</span>
+        <span>| <strong>GRUPO:</strong> {{ $grupo->nombre }} |</span>
+    </div>
+
+    <table class="main-table">
         <thead>
             <tr>
-                <th>No.</th>
-                <th>Nombre Completo</th>
-                <th>CURP</th>
-                <th>Adscripción</th>
-                <th width="150px">FIRMA DEL ALUMNO</th>
+                <th style="width: 15px;">No.</th>
+                <th style="width: 250px;">
+                    NOMBRE COMPLETO <br>
+                    <span class="sub-caption">| Apellido Paterno | Apellido Materno | Nombre(s) |</span>
+                </th>
+                <th class="curp-col">CURP</th>
+                <th style="width: 100px;">ADSCRIPCIÓN</th>
+                <th style="width: 100px;">FIRMA DEL ALUMNO</th>
                 @foreach($diasDelMes as $dia)
-                    <th>
-                        {{ $dia['abreviado'] }} {{ $dia['fecha']->format('d') }}<br>
-                        <span style="font-size:8px">{{ $dia['hora_inicio'] }}-{{ $dia['hora_fin'] }}</span>
+                    <th class="attendance-col">
+                        {{ $dia['abreviado'] }}<br>{{ $dia['fecha']->format('d') }}
                     </th>
                 @endforeach
             </tr>
         </thead>
         <tbody>
             @foreach($alumnos as $index => $alumno)
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ strtoupper($alumno->paterno) }} {{ strtoupper($alumno->materno) }} {{ strtoupper($alumno->nombre) }}</td>
-                    <td>{{ $alumno->curp }}</td>
-                    <td style="text-align:left; font-size:7px;">{{ $alumno->adscripcion }}</td>
-                    <td style="height: 35px;"></td>
-                    @foreach($diasDelMes as $dia)
-                        <td></td>
-                    @endforeach
-                </tr>
+            <tr>
+                <td style="font-weight: bold;">{{ $index + 1 }}</td>
+                <td class="name-cell">
+                    {{ strtoupper($alumno->paterno) }} {{ strtoupper($alumno->materno) }} {{ strtoupper($alumno->nombre) }}
+                </td>
+                <td class="curp-col">{{ $alumno->curp }}</td>
+                <td style="font-size: 6px; text-align: left; line-height: 1;">{{ strtoupper($alumno->adscripcion) }}</td>
+                <td style="min-height: 25px;"></td>
+                @foreach($diasDelMes as $dia)
+                    <td class="attendance-col"></td>
+                @endforeach
+            </tr>
             @endforeach
+
+            @if(count($alumnos) < 15)
+                @for($i = count($alumnos); $i < 15; $i++)
+                    <tr class="empty-row">
+                        <td>{{ $i + 1 }}</td>
+                        <td></td><td></td><td></td><td></td>
+                        @foreach($diasDelMes as $dia) <td></td> @endforeach
+                    </tr>
+                @endfor
+            @endif
         </tbody>
     </table>
 
-    <table class="signature-table">
-        <tr>
-            <td>
-                <div class="signature-box">
-                    <p style="margin: 0; font-size: 8px;"><strong>NOMBRE Y FIRMA</strong></p>
-                    <p style="margin: 0; font-size: 8px;">DOCENTE INSTRUCTOR</p>
+    <div class="footer-container">
+        <div class="signature-section">
+            <div class="logo-block">
+                <img src="{{ public_path('img/Logo-UMS-1.png') }}" class="ums-logo" alt="UMS Logo">
+                <div class="ums-info">
+                   UNIVERSIDAD MEXIQUENSE DE SEGURIDAD<br>
+                   DIRECCIÓN GENERAL
                 </div>
-            </td>
-            <td>
-                <div class="seal-box">
-                    <p style="margin: 0; color: #999; font-size: 7px; padding-top: 45px;">SELLO INSTITUCIONAL</p>
+            </div>
+            
+            <div class="sig-block">
+                <div class="label-vertical">VALIDACIÓN DOCENTE</div>
+                <div class="sig-line"></div>
+                <div class="sig-title">
+                    {{ $docente['nombre'] ?? $docente['name'] ?? 'DOCENTE INSTRUCTOR' }}<br>
+                    DOCENTE INSTRUCTOR
                 </div>
-            </td>
-            <td>
-                <div class="signature-box">
-                    <p style="margin: 0; font-size: 8px;"><strong>NOMBRE Y FIRMA</strong></p>
-                    <p style="margin: 0; font-size: 8px;">COORDINADOR DE PLANTEL</p>
-                </div>
-            </td>
-        </tr>
-    </table>
+            </div>
 
-    <div class="footer">
-        Generado el {{ \Carbon\Carbon::now()->format('d/m/Y') }}
+            <div class="sig-block" style="padding-left: 20px;">
+                <div class="label-vertical">VALIDACIÓN INSTITUCIONAL</div>
+                <div class="sig-line"></div>
+                <div class="sig-title">
+                    LCDO. CHRISTIAN M. JIMÉNEZ MORALES<br>
+                    DIRECTOR DE CAPACITACIÓN, PROFESIONALIZACIÓN Y ESPECIALIZACIÓN
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 10px; text-align: right; font-size: 6px; color: #777;">
+        Este listado es un registro oficial de asistencia académica. Generado el {{ now()->format('d/m/Y H:i') }}
     </div>
 </body>
 </html>
