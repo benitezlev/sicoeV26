@@ -47,6 +47,12 @@ $grupos = computed(function () {
 $planteles = computed(fn() => Plantel::orderBy('name')->get());
 $cursos = computed(fn() => Curso::orderBy('nombre')->get());
 
+updated(['total_horas' => function ($value) {
+    if (intval($value) <= 40) {
+        $this->formato_especial = true;
+    }
+}]);
+
 $abrirModalCrear = function () {
     $this->resetErrorBag();
     $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas', 'formato_especial']);
@@ -307,7 +313,7 @@ $eliminar = function ($id) {
                                 <flux:label class="font-black text-blue-700 dark:text-blue-400 text-xs text-wrap">FORMATO DE CALIFICACIÓN ESPECIAL</flux:label>
                                 <p class="text-[10px] text-zinc-500 font-medium italic">Activar para usar modalidad "Diagnóstica y Final" (Tipo 40 hrs).</p>
                             </div>
-                            <flux:switch wire:model="formato_especial" color="blue" />
+                            <flux:switch wire:model.live="formato_especial" color="blue" />
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
@@ -361,7 +367,7 @@ $eliminar = function ($id) {
                             </flux:field>
                             <flux:field>
                                 <flux:label>Total</flux:label>
-                                <flux:input type="number" wire:model="total_horas" min="1" icon="clock" placeholder="Hrs" wire:key="g-thor-{{ $grupoId ?? 'new' }}" />
+                                <flux:input type="number" wire:model.live="total_horas" min="1" icon="clock" placeholder="Hrs" wire:key="g-thor-{{ $grupoId ?? 'new' }}" />
                                 <flux:error name="total_horas" />
                             </flux:field>
                         </div>

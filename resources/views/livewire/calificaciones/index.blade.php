@@ -59,9 +59,9 @@ $alumnos = computed(function() {
 updated(['grupo_id', 'materia_id', 'unidad'], function($value, $key) {
     if ($key === 'grupo_id') {
         $grupo = Grupo::find($value);
-        $this->esCursoCorto = $grupo && ($grupo->formato_especial || $grupo->total_horas <= 40);
+        $this->esCursoCorto = $grupo && (bool)$grupo->formato_especial;
         
-        // Si cambia a curso especial/corto, resetear unidad de ser necesario
+        // Si cambia a curso especial, resetear unidad de ser necesario
         if ($this->esCursoCorto) {
             $this->unidad = 'diagnostica';
         } else {
