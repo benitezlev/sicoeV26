@@ -141,6 +141,11 @@ class User extends Authenticatable implements HasMedia
         return trim("{$this->nombre} {$this->paterno} {$this->materno}");
     }
 
+    public function getNameAttribute(): string
+    {
+        return $this->nombre_completo ?: ($this->nombre ?? '');
+    }
+
     public function scopePorPerfil($query, $perfil)
     {
         if (!empty($perfil)) {

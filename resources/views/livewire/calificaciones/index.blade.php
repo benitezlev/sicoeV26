@@ -49,7 +49,9 @@ $alumnos = computed(function() {
     if (!$this->grupo_id) return [];
     return User::whereHas('roles', fn($q) => $q->where('name', 'alumno'))
         ->whereHas('grupos', fn($q) => $q->where('grupos.id', $this->grupo_id))
-        ->orderBy('name')
+        ->orderBy('paterno')
+        ->orderBy('materno')
+        ->orderBy('nombre')
         ->get();
 });
 
@@ -226,10 +228,10 @@ $guardar = function() {
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-4">
                                         <div class="size-10 rounded-xl bg-gradient-to-tr from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 font-black text-sm shadow-inner border border-zinc-300 dark:border-zinc-600 uppercase">
-                                            {{ substr($alumno->name ?? 'A', 0, 1) }}
+                                            {{ substr($alumno->nombre ?? 'A', 0, 1) }}
                                         </div>
                                         <div class="flex flex-col min-w-48 text-wrap leading-tight">
-                                            <span class="font-black text-zinc-800 dark:text-white uppercase tracking-tight text-sm">{{ $alumno->name }}</span>
+                                            <span class="font-black text-zinc-800 dark:text-white uppercase tracking-tight text-sm">{{ $alumno->nombre_completo }}</span>
                                             <span class="text-[10px] text-zinc-500 italic mt-0.5 tracking-wider font-mono">{{ $alumno->curp ?? 'SIN CURP' }}</span>
                                         </div>
                                     </div>

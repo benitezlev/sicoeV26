@@ -70,6 +70,9 @@ $listadoAlumnos = computed(function() {
     return User::whereHas('roles', fn($q) => $q->where('name', 'alumno'))
         ->whereHas('grupos', fn($q) => $q->where('grupos.id', $this->grupoId))
         ->with(['grupos' => fn($q) => $q->where('grupos.id', $this->grupoId)])
+        ->orderBy('paterno')
+        ->orderBy('materno')
+        ->orderBy('nombre')
         ->get()
         ->map(function($user) {
             $user->estado_en_grupo = $user->grupos->first()->pivot->estado ?? 'activo';
@@ -164,10 +167,10 @@ $listadoAlumnos = computed(function() {
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
                                         <div class="size-10 rounded-xl bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 font-black text-sm shadow-inner border border-zinc-300 dark:border-zinc-600">
-                                            {{ substr($alumno->name ?? $alumno->nombre, 0, 1) }}
+                                            {{ substr($alumno->nombre ?? 'A', 0, 1) }}
                                         </div>
                                         <div class="flex flex-col">
-                                            <span class="font-bold text-zinc-900 dark:text-white uppercase text-sm leading-tight">{{ $alumno->name ?? $alumno->nombre }}</span>
+                                            <span class="font-bold text-zinc-900 dark:text-white uppercase text-sm leading-tight">{{ $alumno->nombre_completo }}</span>
                                             <span class="text-[10px] text-zinc-500 font-mono mt-0.5 tracking-wider">{{ $alumno->curp ?? 'SIN CURP' }}</span>
                                         </div>
                                     </div>
