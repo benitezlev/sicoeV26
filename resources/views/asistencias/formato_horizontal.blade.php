@@ -152,7 +152,7 @@
     </div>
 
     <div class="mes-titulo">
-        {{ strtoupper($mes) }}
+        {{ $docente['nombre'] ?? $docente['name'] ?? strtoupper($mes) }}
     </div>
 
     <div class="metadata-line">
@@ -191,7 +191,7 @@
                     {{ strtoupper($alumno->paterno) }} {{ strtoupper($alumno->materno) }} {{ strtoupper($alumno->nombre) }}
                 </td>
                 <td class="curp-col">{{ $alumno->curp }}</td>
-                <td style="font-size: 6px; text-align: left; line-height: 1;">{{ strtoupper($alumno->adscripcion) }}</td>
+                <td style="font-size: 6px; text-align: left; line-height: 1;">{{ strtoupper($alumno->nivel) }}</td>
                 <td style="min-height: 25px;"></td>
                 @foreach($diasDelMes as $dia)
                     <td class="attendance-col"></td>
