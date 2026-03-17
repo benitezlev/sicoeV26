@@ -49,6 +49,7 @@ $cursos = computed(fn() => Curso::orderBy('nombre')->get());
 $abrirModalCrear = function () {
     $this->resetErrorBag();
     $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas']);
+    $this->estado = 'activo';
     $this->dias_clase = [1, 2, 3, 4, 5];
     $this->dispatch('modal-show', name: 'modal-grupo');
 };
@@ -79,6 +80,7 @@ $guardar = function () {
         'plantel_id' => 'required|exists:planteles,id',
         'curso_id' => 'required|exists:cursos,id',
         'periodo' => 'required|string|max:20',
+        'estado' => 'required|in:activo,concluido,cancelado',
         'fecha_inicio' => 'required|date',
         'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
         'hora_inicio' => 'required',
@@ -87,21 +89,7 @@ $guardar = function () {
         'dias_clase' => 'required|array|min:1',
     ];
 
-    $this->validate($rules);
-
-    $datos = [
-        'nombre' => $this->nombre,
-        'plantel_id' => $this->plantel_id,
-        'curso_id' => $this->curso_id,
-        'periodo' => $this->periodo,
-        'estado' => $this->estado,
-        'fecha_inicio' => $this->fecha_inicio,
-        'fecha_fin' => $this->fecha_fin,
-        'hora_inicio' => $this->hora_inicio,
-        'hora_fin' => $this->hora_fin,
-        'total_horas' => $this->total_horas,
-        'dias_clase' => json_encode($this->dias_clase), // Guardar como JSON o el tipo que requiera la DB
-    ];
+    $datos = $this->validate($rules);
 
     if ($this->grupoId) {
         Grupo::find($this->grupoId)->update($datos);
