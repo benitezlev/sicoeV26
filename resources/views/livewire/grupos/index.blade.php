@@ -77,7 +77,7 @@ $editar = function (Grupo $grupo) {
         'hora_fin' => $grupo->hora_fin,
         'total_horas' => $grupo->total_horas,
         'dias_clase' => is_array($grupo->dias_clase) ? $grupo->dias_clase : json_decode($grupo->dias_clase, true) ?? [1, 2, 3, 4, 5],
-        'formato_especial' => (bool)$grupo->formato_especial,
+        'formato_especial' => $grupo->formato_especial ? true : (intval($grupo->total_horas) <= 40),
     ]);
     
     $this->dispatch('modal-show', name: 'modal-grupo');
@@ -203,7 +203,12 @@ $eliminar = function ($id) {
                             <td class="px-6 py-4 text-center">
                                 <div class="text-[10px] text-zinc-500 flex flex-col items-center leading-tight">
                                     <span class="font-bold text-zinc-700 dark:text-zinc-300">{{ $grupo->fecha_inicio?->format('d/m/Y') }} <span class="opacity-50 font-normal mx-1">al</span> {{ $grupo->fecha_fin?->format('d/m/Y') }}</span>
-                                    <span class="mt-1 opacity-70">{{ \Carbon\Carbon::parse($grupo->hora_inicio)->format('H:i') }} - {{ \Carbon\Carbon::parse($grupo->hora_fin)->format('H:i') }}</span>
+                                    <div class="flex items-center gap-2 mt-1 shrink-0">
+                                        <span class="opacity-70">{{ \Carbon\Carbon::parse($grupo->hora_inicio)->format('H:i') }} - {{ \Carbon\Carbon::parse($grupo->hora_fin)->format('H:i') }}</span>
+                                        @if($grupo->formato_especial)
+                                            <span class="px-1.5 py-0.5 bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 text-[8px] font-black uppercase rounded border border-blue-200 dark:border-blue-900/30">Formato Especial</span>
+                                        @endif
+                                    </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-center">
