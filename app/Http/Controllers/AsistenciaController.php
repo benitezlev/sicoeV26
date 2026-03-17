@@ -27,8 +27,8 @@ class AsistenciaController extends Controller
             },
         ])->findOrFail($grupoId);
 
-        // Si es curso corto (<= 40 hrs), usar formato especial
-        if ($grupo->total_horas <= 40) {
+        // Si es curso con formato especial (marcado manual) o corto (<= 40 hrs)
+        if ($grupo->formato_especial || $grupo->total_horas <= 40) {
             return $this->generarLista40Horas($grupo);
         }
 

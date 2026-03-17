@@ -28,6 +28,7 @@ state([
     'hora_fin' => '14:00',
     'total_horas' => '',
     'dias_clase' => [1, 2, 3, 4, 5],
+    'formato_especial' => false,
 ]);
 
 $grupos = computed(function () {
@@ -48,9 +49,10 @@ $cursos = computed(fn() => Curso::orderBy('nombre')->get());
 
 $abrirModalCrear = function () {
     $this->resetErrorBag();
-    $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas']);
+    $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas', 'formato_especial']);
     $this->estado = 'activo';
     $this->dias_clase = [1, 2, 3, 4, 5];
+    $this->formato_especial = false;
     $this->dispatch('modal-show', name: 'modal-grupo');
 };
 
@@ -69,6 +71,7 @@ $editar = function (Grupo $grupo) {
         'hora_fin' => $grupo->hora_fin,
         'total_horas' => $grupo->total_horas,
         'dias_clase' => is_array($grupo->dias_clase) ? $grupo->dias_clase : json_decode($grupo->dias_clase, true) ?? [1, 2, 3, 4, 5],
+        'formato_especial' => (bool)$grupo->formato_especial,
     ]);
     
     $this->dispatch('modal-show', name: 'modal-grupo');
@@ -87,6 +90,7 @@ $guardar = function () {
         'hora_fin' => 'required',
         'total_horas' => 'required|integer|min:1',
         'dias_clase' => 'required|array|min:1',
+        'formato_especial' => 'boolean',
     ];
 
     $datos = $this->validate($rules);
@@ -297,6 +301,14 @@ $eliminar = function ($id) {
                             </flux:select>
                             <flux:error name="plantel_id" />
                         </flux:field>
+
+                        <div class="p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl flex items-center justify-between">
+                            <div class="space-y-0.5">
+                                <flux:label class="font-black text-blue-700 dark:text-blue-400 text-xs text-wrap">FORMATO DE CALIFICACIÓN ESPECIAL</flux:label>
+                                <p class="text-[10px] text-zinc-500 font-medium italic">Activar para usar modalidad "Diagnóstica y Final" (Tipo 40 hrs).</p>
+                            </div>
+                            <flux:switch wire:model="formato_especial" color="blue" />
+                        </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <flux:field>
