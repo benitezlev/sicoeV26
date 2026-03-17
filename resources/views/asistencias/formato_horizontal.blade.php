@@ -97,53 +97,40 @@
             font-size: 7px;
             font-family: monospace;
         }
-        .footer-container {
+        .signature-table {
             width: 100%;
-            margin-top: 10px;
-        }
-        .signature-section {
-            display: table;
-            width: 100%;
+            border: 1px solid #000;
             border-collapse: collapse;
+            margin-top: 15px;
         }
-        .sig-block {
-            display: table-cell;
-            width: 35%;
+        .sig-bar-black {
+            background-color: #000;
+            color: #fff;
+            width: 20px;
+            text-align: center;
+            vertical-align: middle;
+            font-weight: bold;
+            font-size: 7px;
+            padding: 5px 0;
+        }
+        .sig-bar-black span {
+            display: inline-block;
+            transform: rotate(-90deg);
+            white-space: nowrap;
+        }
+        .sig-identity {
+            padding: 15px 0 50px 0;
             text-align: center;
             vertical-align: top;
-            padding-top: 20px;
-        }
-        .sig-line {
-            border-top: 1px solid #000;
-            width: 80%;
-            margin: 0 auto 5px auto;
-        }
-        .sig-title {
-            font-size: 6.5px;
+            font-size: 8px;
             font-weight: bold;
-            text-transform: uppercase;
+            width: 40%;
         }
-        .logo-block {
-            display: table-cell;
-            width: 30%;
-            text-align: left;
+        .sig-logo-box {
+            width: 18%;
+            text-align: center;
             vertical-align: bottom;
-        }
-        .ums-logo {
-            width: 80px;
-            margin-bottom: 3px;
-        }
-        .ums-info {
-            font-size: 5.5px;
-            font-weight: bold;
-            color: #444;
-            line-height: 1.1;
-        }
-        .label-vertical {
-            font-size: 6px;
-            font-weight: bold;
-            margin-bottom: 2px;
-            color: #666;
+            padding-bottom: 5px;
         }
         .empty-row {
             height: 15px;
@@ -155,9 +142,6 @@
         <img src="{{ public_path('img/pleca.png') }}" style="width: 100%; height: auto;" alt="Institucional">
     </div>
 
-    <div class="top-slogan">
-        "2026. Bicentenario de la vida municipal en el Estado de México"
-    </div>
 
     <div class="header-title">
         LISTA MENSUAL DE ASISTENCIA
@@ -227,38 +211,28 @@
         </tbody>
     </table>
 
-    <div class="footer-container">
-        <div class="signature-section">
-            <div class="logo-block">
-                <img src="{{ public_path('img/Logo-UMS-1.png') }}" class="ums-logo" alt="UMS Logo">
-                <div class="ums-info">
-                   UNIVERSIDAD MEXIQUENSE DE SEGURIDAD<br>
-                   DIRECCIÓN GENERAL
-                </div>
-            </div>
-            
-            <div class="sig-block">
-                <div class="label-vertical">VALIDACIÓN DOCENTE</div>
-                <div class="sig-line"></div>
-                <div class="sig-title">
-                    {{ $docente['nombre'] ?? $docente['name'] ?? 'DOCENTE INSTRUCTOR' }}<br>
-                    DOCENTE INSTRUCTOR
-                </div>
-            </div>
+    <table class="signature-table">
+        <tr>
+            <td class="sig-bar-black"><span>NOMBRE Y CARGO</span></td>
+            <td class="sig-logo-box">
+                <img src="{{ public_path('img/Logo-UMS-1.png') }}" style="width: 70px;" alt="UMS"><br>
+                <div style="font-size: 5px; font-weight: bold;">UNIVERSIDAD MEXIQUENSE DE SEGURIDAD<br>DIRECCIÓN GENERAL</div>
+            </td>
+            <td class="sig-identity">
+                DR. GONZALO HERNÁNDEZ DURAZO<br>
+                RECTOR DE LA UNIVERSIDAD MEXIQUENSE DE SEGURIDAD
+            </td>
+            <td class="sig-identity">
+                LCDO. CHRISTIAN M. JIMÉNEZ MORALES<br>
+                DIRECTOR DE CAPACITACIÓN, PROFESIONALIZACIÓN Y ESPECIALIZACIÓN
+            </td>
+            <td class="sig-bar-black"><span>FIRMA</span></td>
+        </tr>
+    </table>
 
-            <div class="sig-block" style="padding-left: 20px;">
-                <div class="label-vertical">VALIDACIÓN INSTITUCIONAL</div>
-                <div class="sig-line"></div>
-                <div class="sig-title">
-                    LCDO. CHRISTIAN M. JIMÉNEZ MORALES<br>
-                    DIRECTOR DE CAPACITACIÓN, PROFESIONALIZACIÓN Y ESPECIALIZACIÓN
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div style="margin-top: 10px; text-align: right; font-size: 6px; color: #777;">
-        Este listado es un registro oficial de asistencia académica. Generado el {{ now()->format('d/m/Y H:i') }}
+    <div style="margin-top: 10px; text-align: center; border-top: 1px dotted #000; padding-top: 5px; font-weight: bold; width: 40%; margin-left: 30%;">
+        {{ $docente['nombre'] ?? $docente['name'] ?? '---' }}<br>
+        <span style="font-size: 7px;">DOCENTE INSTRUCTOR</span>
     </div>
 </body>
 </html>
