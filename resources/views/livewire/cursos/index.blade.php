@@ -13,6 +13,7 @@ state([
     'identificador' => '',
     'nombre' => '',
     'tipo' => '',
+    'categoria' => '',
     'num_horas' => '',
     'descripcion' => '',
 ]);
@@ -29,7 +30,7 @@ $cursos = computed(function () {
 
 $abrirModalCrear = function () {
     $this->resetErrorBag();
-    $this->reset(['cursoId', 'identificador', 'nombre', 'tipo', 'num_horas', 'descripcion']);
+    $this->reset(['cursoId', 'identificador', 'nombre', 'tipo', 'categoria', 'num_horas', 'descripcion']);
     $this->dispatch('modal-show', name: 'modal-curso');
 };
 
@@ -40,6 +41,7 @@ $editar = function (Curso $curso) {
         'identificador' => $curso->identificador,
         'nombre' => $curso->nombre,
         'tipo' => $curso->tipo,
+        'categoria' => $curso->categoria,
         'num_horas' => $curso->num_horas,
         'descripcion' => $curso->descripcion ?? '',
     ]);
@@ -52,6 +54,7 @@ $guardar = function () {
         'identificador' => 'required|unique:cursos,identificador,' . ($this->cursoId ?? 'NULL'),
         'nombre' => 'required|string|max:255',
         'tipo' => 'required|string|max:50',
+        'categoria' => 'required|string|max:100',
         'num_horas' => 'required|integer|min:1',
     ];
 
@@ -61,6 +64,7 @@ $guardar = function () {
         'identificador' => $this->identificador,
         'nombre' => $this->nombre,
         'tipo' => $this->tipo,
+        'categoria' => $this->categoria,
         'num_horas' => $this->num_horas,
         'descripcion' => $this->descripcion,
     ];
@@ -122,6 +126,7 @@ $exportarPDF = function () {
                     <tr class="border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50">
                         <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500">ID / Clave</th>
                         <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500">Curso / Oferta Académica</th>
+                        <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Categoría</th>
                         <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Tipo</th>
                         <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Total Horas</th>
                         <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Acciones</th>
@@ -138,6 +143,9 @@ $exportarPDF = function () {
                                     <span class="font-black text-zinc-800 dark:text-white uppercase tracking-tight text-sm">{{ $curso->nombre }}</span>
                                     <span class="text-[10px] text-zinc-500 italic mt-0.5">{{ $curso->descripcion ?: 'Sin descripción adicional' }}</span>
                                 </div>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="text-[10px] font-bold text-zinc-500 uppercase">{{ $curso->categoria }}</span>
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <span class="px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[9px] font-black uppercase border border-blue-100 dark:border-blue-800/30">
@@ -229,6 +237,18 @@ $exportarPDF = function () {
                         <flux:label>Tipo de Programa</flux:label>
                         <flux:input wire:model="tipo" placeholder="Ej: Licenciatura, Diplomado, Curso..." wire:key="curso-tipo-{{ $cursoId ?? 'new' }}" />
                         <flux:error name="tipo" />
+                    </flux:field>
+
+                    <flux:field>
+                        <flux:label>Categoría del Curso</flux:label>
+                        <flux:select wire:model="categoria" placeholder="Selecciona categoría..." wire:key="curso-cat-{{ $cursoId ?? 'new' }}">
+                            <flux:select.option value="Seguridad Pública">Seguridad Pública</flux:select.option>
+                            <flux:select.option value="Formación Inicial">Formación Inicial</flux:select.option>
+                            <flux:select.option value="Competencias Básicas">Competencias Básicas</flux:select.option>
+                            <flux:select.option value="Especialización">Especialización</flux:select.option>
+                            <flux:select.option value="Mandos superiores">Mandos superiores</flux:select.option>
+                        </flux:select>
+                        <flux:error name="categoria" />
                     </flux:field>
 
                     <flux:field>
