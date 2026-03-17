@@ -2,10 +2,10 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-03-17 17:30)
-1.  **Estandarización Visual de Reportes [PREMIUM]:** Se unificó el diseño de todos los listados de asistencia (Horizontal y Especial) bajo la nueva identidad institucional: banner negro de alto impacto, línea de metadatos delimitada por tuberías y firmas formalizadas con logotipos de la UMS.
-2.  **Flexibilidad de Formatos [UPGRADE]:** Implementación de un interruptor manual en la configuración de grupos para conmutar entre la modalidad "Unidades" y "Diagnóstica/Final".
-3.  **Correcciones de Reactividad:** Se resolvió un error crítico de importación en Livewire Volt y se optimizó la sincronización en tiempo real del formulario de grupos.
+## 🕒 Últimos Cambios Importantes (2026-03-17 18:00)
+1.  **Identidad Institucional Completa [REPORTES]:** Se integró la pleca oficial en los encabezados y se rediseñó el pie de firmas con barras negras verticales y textos rotados ("NOMBRE Y CARGO" / "FIRMA"), calcando el formato físico institucional.
+2.  **Sincronización de Datos [FIX]:** Se corrigió un error crítico de acceso al objeto docente en el reporte mensual y se ajustaron las columnas de alumnos para mostrar el `nivel` académico solicitado.
+3.  **Optimización de Estructuras:** Limpieza de código CSS redundante y estandarización total entre el reporte de 40 horas y el listado mensual.
 2.  **Catálogo de Cursos [FIX]:** Corrección de error `Not null violation` en la columna `categoria`. Se integró el campo al componente Livewire, validaciones y formulario de alta/edición.
 3.  **Importación Masiva de Alumnos (v2) [COMPLETADO]:** Procesamiento exitoso de toda la matrícula. Se resolvieron conflictos de unicidad en Postgres, sanitización de UTF-8 y manejo de BOM en encabezados.
 3.  **Optimización de Calificaciones y Asistencias:** Corrección de errores SQL de ordenamiento dinámico. Estandarización de nombres en la interfaz usando el campo persistido `nombre_completo`.
