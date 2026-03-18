@@ -104,21 +104,18 @@
     </style>
 </head>
 <body>
-    <table style="width: 100%; margin-bottom: 5px; border-collapse: collapse;">
+    <table style="width: 100%; border-collapse: collapse;">
         <tr>
-            <td style="width: 50%; text-align: left; vertical-align: middle; font-size: 8px; font-weight: bold; text-transform: uppercase; padding-top: 10px;">
-                {{ $grupo->plantel->nombre }}
-            </td>
-            <td style="width: 50%; text-align: right; vertical-align: top;">
+            <td style="width: 50%; text-align: left; vertical-align: top;">
                 <img src="{{ public_path('img/pleca.png') }}" style="height: 35px; width: auto;" alt="Institucional">
+            </td>
+            <td style="width: 50%; text-align: right; vertical-align: middle; font-size: 8px; font-weight: bold; text-transform: uppercase;">
+                {{ $grupo->plantel->nombre }}
             </td>
         </tr>
     </table>
 
     <div style="text-align: center; border-top: 0.5px solid #000; margin-top: 5px; padding-top: 2px;">
-        <div class="top-slogan" style="margin-bottom: 2px;">
-            "2026. Bicentenario de la vida municipal en el Estado de México"
-        </div>
         <div style="font-weight: bold; font-size: 8px; text-transform: uppercase;">
             LISTA DE ASISTENCIA
         </div>
