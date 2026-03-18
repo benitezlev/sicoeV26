@@ -41,21 +41,20 @@
             margin: 5px 0;
             text-transform: uppercase;
         }
-        .metadata-line {
+        .metadata-container {
             width: 100%;
+            margin: 10px 0;
             text-align: center;
-            font-size: 7.5px;
+            font-size: 8px;
             font-weight: bold;
-            margin: 5px 0;
             text-transform: uppercase;
-            background-color: #f8f8f8;
-            padding: 4px 0;
-            border-top: 0.5px solid #eee;
-            border-bottom: 0.5px solid #eee;
         }
-        .metadata-line span {
+        .meta-row {
+            margin-bottom: 2px;
+        }
+        .meta-row span {
             display: inline-block;
-            margin: 0 4px;
+            margin: 0 5px;
         }
         .mes-titulo {
             text-align: center;
@@ -137,14 +136,20 @@
         {{ $docente['nombre'] ?? $docente['name'] ?? strtoupper($mes) }}
     </div>
 
-    <div class="metadata-line">
-        <span>| <strong>DOCENTE:</strong> {{ $docente['data']['name'] ?? $docente['nombre'] ?? $docente['name'] ?? 'POR ASIGNAR' }} |</span>
-        <span>| <strong>FECHA DE INICIO:</strong> {{ $grupo->fecha_inicio?->format('d/m/Y') }} |</span>
-        <span>| <strong>FECHA DE TÉRMINO:</strong> {{ $grupo->fecha_fin?->format('d/m/Y') }} |</span> 
-        <span>| <strong>HORA DE INICIO:</strong> {{ \Carbon\Carbon::parse($grupo->hora_inicio)->format('H:i') }} |</span>
-        <span>| <strong>HORA DE TÉRMINO:</strong> {{ \Carbon\Carbon::parse($grupo->hora_fin)->format('H:i') }} |</span>
-        <span>| <strong>TOTAL DE HORAS:</strong> {{ $grupo->total_horas }} |</span>
-        <span>| <strong>GRUPO:</strong> {{ $grupo->nombre }} |</span>
+    <div class="metadata-container">
+        <div class="meta-row">
+            <strong>DOCENTE:</strong> {{ $docente['data']['name'] ?? $docente['nombre'] ?? $docente['name'] ?? 'POR ASIGNAR' }}
+        </div>
+        <div class="meta-row">
+            | <span><strong>FECHA DE INICIO:</strong> {{ $grupo->fecha_inicio?->format('d/m/Y') }}</span>
+            | <span><strong>FECHA DE TÉRMINO:</strong> {{ $grupo->fecha_fin?->format('d/m/Y') }}</span>
+            | <span><strong>HORA DE INICIO:</strong> {{ \Carbon\Carbon::parse($grupo->hora_inicio)->format('H:i') }}</span>
+            | <span><strong>HORA DE TÉRMINO:</strong> {{ \Carbon\Carbon::parse($grupo->hora_fin)->format('H:i') }}</span> |
+        </div>
+        <div class="meta-row">
+            | <span><strong>TOTAL DE HORAS:</strong> {{ $grupo->total_horas }}</span>
+            | <span><strong>GRUPO:</strong> {{ $grupo->nombre }}</span> |
+        </div>
     </div>
 
     <table class="main-table">
