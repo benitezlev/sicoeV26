@@ -110,7 +110,7 @@
                 <img src="{{ public_path('img/pleca.png') }}" style="height: 120px; width: auto;" alt="Institucional">
             </td>
             <td style="width: 30%; text-align: right; vertical-align: top; font-size: 10px; font-weight: bold; text-transform: uppercase; padding-top: 45px;">
-                {{ $grupo->plantel->nombre }}
+                {{ $grupo->plantel->name }}
             </td>
         </tr>
     </table>
