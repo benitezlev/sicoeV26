@@ -49,8 +49,10 @@ $cursos = computed(fn() => Curso::orderBy('nombre')->get());
 
 updated(['total_horas' => function ($value) {
     $horasEspeciales = [40, 60, 80, 100, 120];
-    if (in_array(intval($value), $horasEspeciales)) {
+    if (in_array((int)$value, $horasEspeciales)) {
         $this->formato_especial = true;
+    } else {
+        $this->formato_especial = false;
     }
 }]);
 
@@ -78,7 +80,7 @@ $editar = function (Grupo $grupo) {
         'hora_fin' => $grupo->hora_fin,
         'total_horas' => $grupo->total_horas,
         'dias_clase' => is_array($grupo->dias_clase) ? $grupo->dias_clase : json_decode($grupo->dias_clase, true) ?? [1, 2, 3, 4, 5],
-        'formato_especial' => $grupo->formato_especial ? true : (intval($grupo->total_horas) <= 40),
+        'formato_especial' => $grupo->formato_especial ? true : (in_array((int)$grupo->total_horas, [40, 60, 80, 100, 120])),
     ]);
     
     $this->dispatch('modal-show', name: 'modal-grupo');
