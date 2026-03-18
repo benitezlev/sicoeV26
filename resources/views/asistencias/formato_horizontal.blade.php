@@ -89,13 +89,13 @@
             white-space: nowrap;
         }
         .attendance-col {
-            width: 15px;
-            font-size: 6px;
+            width: 18px;
+            font-size: 8px;
         }
-        .curp-col {
-            width: 90px;
-            font-size: 7px;
-            font-family: monospace;
+        .grade-col {
+            width: 50px;
+            font-weight: bold;
+            font-size: 9px;
         }
         .sig-header-black {
             background-color: #000;
@@ -150,46 +150,52 @@
     <table class="main-table">
         <thead>
             <tr>
-                <th style="width: 15px;">No.</th>
-                <th style="width: 250px;">
+                <th rowspan="2" style="width: 20px;">No.</th>
+                <th rowspan="2" style="width: 250px;">
                     NOMBRE COMPLETO <br>
-                    <span class="sub-caption">| Apellido Paterno | Apellido Materno | Nombre(s) |</span>
+                    <span class="sub-caption">| APELLIDO PATERNO | APELLIDO MATERNO | NOMBRE(S) |</span>
                 </th>
-                <th class="curp-col">CURP</th>
-                <th style="width: 100px;">ADSCRIPCIÓN</th>
-                <th style="width: 100px;">FIRMA DEL ALUMNO</th>
-                @foreach($diasDelMes as $dia)
-                    <th class="attendance-col">
-                        {{ $dia['abreviado'] }}<br>{{ $dia['fecha']->format('d') }}
-                    </th>
-                @endforeach
+                <th rowspan="2" style="width: 120px;">CUIP</th>
+                <th rowspan="2" style="width: 100px;">PERFIL</th>
+                <th rowspan="2" style="width: 150px;">ADSCRIPCIÓN</th>
+                <th colspan="5">ASISTENCIA</th>
+                <th rowspan="2">CALIFICACIÓN<br>DIAGNÓSTICA</th>
+                <th rowspan="2">CALIFICACIÓN FINAL</th>
+            </tr>
+            <tr>
+                <th class="attendance-col">L</th>
+                <th class="attendance-col">M</th>
+                <th class="attendance-col">M</th>
+                <th class="attendance-col">J</th>
+                <th class="attendance-col">V</th>
             </tr>
         </thead>
         <tbody>
             @foreach($alumnos as $index => $alumno)
             <tr>
-                <td style="font-weight: bold;">{{ $index + 1 }}</td>
+                <td style="font-size: 9px; font-weight: bold;">{{ $index + 1 }}</td>
                 <td class="name-cell">
                     {{ strtoupper($alumno->paterno) }} {{ strtoupper($alumno->materno) }} {{ strtoupper($alumno->nombre) }}
                 </td>
-                <td class="curp-col">{{ $alumno->curp }}</td>
-                <td style="font-size: 6px; text-align: left; line-height: 1;">{{ strtoupper($alumno->nivel) }}</td>
-                <td style="min-height: 25px;"></td>
-                @foreach($diasDelMes as $dia)
-                    <td class="attendance-col"></td>
-                @endforeach
+                <td style="font-size: 8px; font-family: monospace;">{{ $alumno->cuip }}</td>
+                <td style="font-size: 7px;">{{ strtoupper($alumno->perfil ?? ($alumno->perfil_data['perfil'] ?? '')) }}</td>
+                <td style="font-size: 6px; text-align: left; line-height: 1;">{{ strtoupper($alumno->adscripcion ?? ($alumno->perfil_data['adscripcion'] ?? '')) }}</td>
+                <td class="attendance-col"> @if($alumno->asistencia_l) • @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_m) • @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_mi) • @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_j) • @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_v) • @endif </td>
+                <td class="grade-col" style="background-color: #f9f9f9;">{{ number_format((float)$alumno->nota_diagnostica, 1) }}</td>
+                <td class="grade-col">{{ number_format((float)$alumno->nota_final, 1) }}</td>
             </tr>
             @endforeach
-
-            @if(count($alumnos) < 15)
-                @for($i = count($alumnos); $i < 15; $i++)
-                    <tr class="empty-row">
-                        <td>{{ $i + 1 }}</td>
-                        <td></td><td></td><td></td><td></td>
-                        @foreach($diasDelMes as $dia) <td></td> @endforeach
-                    </tr>
-                @endfor
-            @endif
+            
+            @for($i = count($alumnos); $i < 15; $i++)
+            <tr style="height: 12px;">
+                <td>{{ $i + 1 }}</td>
+                <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+            @endfor
         </tbody>
     </table>
 
@@ -217,10 +223,5 @@
             </tr>
         </tbody>
     </table>
-
-    <div style="margin-top: 10px; text-align: center; border-top: 1px dotted #000; padding-top: 5px; font-weight: bold; width: 40%; margin-left: 30%;">
-        {{ $docente['nombre'] ?? $docente['name'] ?? '---' }}<br>
-        <span style="font-size: 7px;">DOCENTE INSTRUCTOR</span>
-    </div>
 </body>
 </html>

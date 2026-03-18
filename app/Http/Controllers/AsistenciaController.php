@@ -48,11 +48,39 @@ class AsistenciaController extends Controller
         // Etiqueta institucional del mes
         $mes = $inicioMes->translatedFormat('F Y');
 
+        $alumnos = $grupo->alumnos;
+        foreach ($alumnos as $alumno) {
+            $alumno->nota_diagnostica = \App\Models\Calificacion::where('grupo_id', $grupo->id)
+                ->where('user_id', $alumno->id)
+                ->where('unidad', 'diagnostica')
+                ->value('calificacion') ?? '';
+            
+            $alumno->nota_final = \App\Models\Calificacion::where('grupo_id', $grupo->id)
+                ->where('user_id', $alumno->id)
+                ->where('unidad', 'final')
+                ->value('calificacion') ?? '';
+            
+            $diasFull = $grupo->diasHabilesEntreFechas();
+            $diasMap = ['LU' => 'asistencia_l', 'MA' => 'asistencia_m', 'MI' => 'asistencia_mi', 'JU' => 'asistencia_j', 'VI' => 'asistencia_v'];
+            
+            foreach ($diasMap as $abbr => $prop) {
+                $alumno->$prop = false;
+                $diaData = collect($diasFull)->firstWhere('abreviado', $abbr);
+                if ($diaData) {
+                    $alumno->$prop = \App\Models\AsistenciaIndividual::where('grupo_id', $grupo->id)
+                        ->where('user_id', $alumno->id)
+                        ->whereDate('fecha', $diaData['fecha']->format('Y-m-d'))
+                        ->where('estatus', 'presente')
+                        ->exists();
+                }
+            }
+        }
+
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('asistencias.formato_horizontal', [
                 'grupo'      => $grupo,
                 'mes'        => $mes,
                 'diasDelMes' => $diasDelMes,
-                'alumnos'    => $grupo->alumnos,
+                'alumnos'    => $alumnos,
                 'docente'    => $grupo->docente(),
                 'sinDias'    => empty($diasDelMes) ? "Sin clases programadas en este mes dentro del periodo del grupo." : null,
             ])
