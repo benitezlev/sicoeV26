@@ -199,6 +199,14 @@
         </tbody>
     </table>
 
+    <table style="width: 100%; font-size: 8px; font-weight: bold; margin-bottom: 5px; border-collapse: collapse;">
+        <tr>
+            <td style="text-align: left; padding: 2px; border: 0.5px solid #000; width: 33%;">HOMBRES: {{ $estadisticas['hombres'] }}</td>
+            <td style="text-align: center; padding: 2px; border: 0.5px solid #000; width: 33%;">MUJERES: {{ $estadisticas['mujeres'] }}</td>
+            <td style="text-align: right; padding: 2px; border: 0.5px solid #000; width: 33%;">TOTAL DE ALUMNOS: {{ $estadisticas['total'] }}</td>
+        </tr>
+    </table>
+
     <table class="signature-table" style="width: 100%; border-collapse: collapse; margin-top: 15px;">
         <thead>
             <tr>

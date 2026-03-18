@@ -82,6 +82,11 @@ class AsistenciaController extends Controller
                 'diasDelMes' => $diasDelMes,
                 'alumnos'    => $alumnos,
                 'docente'    => $grupo->docente(),
+                'estadisticas' => [
+                    'hombres' => $alumnos->where('sexo', 'M')->count(),
+                    'mujeres' => $alumnos->where('sexo', 'F')->count(),
+                    'total' => $alumnos->count(),
+                ],
                 'sinDias'    => empty($diasDelMes) ? "Sin clases programadas en este mes dentro del periodo del grupo." : null,
             ])
             ->setPaper([0, 0, 612, 1008], 'landscape')
@@ -133,6 +138,11 @@ class AsistenciaController extends Controller
                 'grupo'   => $grupo,
                 'alumnos' => $alumnos,
                 'docente' => $grupo->docente(),
+                'estadisticas' => [
+                    'hombres' => $alumnos->where('sexo', 'M')->count(),
+                    'mujeres' => $alumnos->where('sexo', 'F')->count(),
+                    'total' => $alumnos->count(),
+                ],
             ])
             ->setPaper('letter', 'landscape')
             ->download("asistencia_40hrs_{$grupo->id}.pdf");
