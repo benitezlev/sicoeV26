@@ -22,11 +22,23 @@ state([
     'docentesAPI' => [],
     'searchDocente' => '',
     'escaneoAsistencia' => null,
+    'stats' => [],
 ]);
+
+$cargarStats = function() {
+    $grupo = Grupo::with('alumnos')->find($this->grupoId);
+    $alumnos = $grupo->alumnos;
+    $this->stats = [
+        'hombres' => $alumnos->where('sexo', 'M')->count(),
+        'mujeres' => $alumnos->where('sexo', 'F')->count(),
+        'total' => $alumnos->count(),
+    ];
+};
 
 mount(function ($grupo) {
     $this->grupoId = is_numeric($grupo) ? $grupo : $grupo->id;
     $this->cargarDocente();
+    $this->cargarStats();
 });
 
 $grupo = computed(function () {
@@ -216,6 +228,30 @@ $subirAsistencia = function () {
     Flux::toast(heading: 'Asistencia Enviada', text: 'La lista está lista para validación de coordinación (Límite 3 hrs).', variant: 'success');
 };
 
+$guardarCalificacion = function ($alumnoId, $unidad, $valor) {
+    if ($valor === '' || $valor === null) return;
+    
+    $calificacion = (float) $valor;
+    if ($calificacion < 0 || $calificacion > 10) {
+        Flux::toast(heading: 'Error', text: 'La calificación debe estar entre 0 y 10.', variant: 'danger');
+        return;
+    }
+
+    \App\Models\Calificacion::updateOrCreate(
+        [
+            'user_id' => $alumnoId,
+            'grupo_id' => $this->grupoId,
+            'unidad' => $unidad,
+        ],
+        [
+            'calificacion' => $calificacion,
+            'registrado_por' => auth()->id(),
+        ]
+    );
+
+    Flux::toast(heading: 'Nota Guardada', text: 'Se ha registrado la calificación correctamente.', variant: 'success');
+};
+
 ?>
 
 <div class="p-6 max-w-[1600px] mx-auto space-y-8">
@@ -322,6 +358,11 @@ $subirAsistencia = function () {
                         <h2 class="text-xl font-black text-zinc-900 dark:text-white uppercase tracking-tight">Matrícula del Grupo</h2>
                         <p class="text-xs text-zinc-500 font-medium">Hay <strong class="text-blue-600 dark:text-blue-400">{{ $this->grupo->alumnos->count() }} alumnos</strong> inscritos activamente.</p>
                     </div>
+                    @if($this->grupo->formato_especial)
+                        <div class="flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl text-amber-700 dark:text-amber-400 font-black text-[9px] uppercase tracking-widest animate-pulse">
+                            <flux:icon name="pencil" variant="mini" /> Captura Especial Habilitada
+                        </div>
+                    @endif
                     <button x-data x-on:click="$dispatch('modal-show', { name: 'modal-asignar-alumnos' })" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all hover:bg-zinc-800 dark:hover:bg-zinc-100 shadow-lg shadow-zinc-900/10">
                         <flux:icon name="user-plus" variant="mini" /> Inscribir Alumnos
                     </button>
@@ -333,6 +374,10 @@ $subirAsistencia = function () {
                             <tr class="border-b border-zinc-200 dark:border-zinc-700">
                                 <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500">Perfil del Alumno</th>
                                 <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500">Identificación (CURP)</th>
+                                @if($this->grupo->formato_especial)
+                                    <th class="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Diagnóstica</th>
+                                    <th class="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Final</th>
+                                @endif
                                 <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Alta en Grupo</th>
                                 <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-right">Administrar</th>
                             </tr>
@@ -354,6 +399,24 @@ $subirAsistencia = function () {
                                     <td class="px-6 py-3">
                                         <span class="px-2 py-1 bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 font-mono text-xs font-bold rounded border border-zinc-200 dark:border-zinc-700">{{ $alumno->curp }}</span>
                                     </td>
+                                    @if($this->grupo->formato_especial)
+                                        @php
+                                            $notaD = \App\Models\Calificacion::where('grupo_id', $this->grupoId)->where('user_id', $alumno->id)->where('unidad', 'diagnostica')->value('calificacion');
+                                            $notaF = \App\Models\Calificacion::where('grupo_id', $this->grupoId)->where('user_id', $alumno->id)->where('unidad', 'final')->value('calificacion');
+                                        @endphp
+                                        <td class="px-4 py-3">
+                                            <input type="number" step="0.1" min="0" max="10" 
+                                                value="{{ $notaD }}"
+                                                wire:blur="guardarCalificacion({{ $alumno->id }}, 'diagnostica', $event.target.value)"
+                                                class="w-16 mx-auto bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-center h-8 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="number" step="0.1" min="0" max="10" 
+                                                value="{{ $notaF }}"
+                                                wire:blur="guardarCalificacion({{ $alumno->id }}, 'final', $event.target.value)"
+                                                class="w-16 mx-auto bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-900/30 rounded-lg text-xs font-bold text-center h-8 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                        </td>
+                                    @endif
                                     <td class="px-6 py-3 text-center text-xs font-medium text-zinc-600 dark:text-zinc-400">
                                         {{ \Carbon\Carbon::parse($alumno->pivot->fecha_asignacion)->format('d/m/Y') }}
                                     </td>
@@ -482,6 +545,52 @@ $subirAsistencia = function () {
                             <span class="text-[10px] text-zinc-400 mt-1">Añade planeaciones o reportes asociados al grupo.</span>
                         </div>
                     @endforelse
+                </div>
+             </div>
+
+             <!-- ANALÍTICA DEL GRUPO -->
+             <div class="bg-gradient-to-br from-zinc-800 to-zinc-900 dark:from-zinc-900 dark:to-black rounded-3xl border border-zinc-700/50 shadow-xl overflow-hidden">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                    <h2 class="text-sm font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
+                        <flux:icon name="chart-pie" variant="mini" class="text-emerald-400" /> Analítica de Grupo
+                    </h2>
+                </div>
+                <div class="p-8 space-y-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white/5 border border-white/5 rounded-2xl p-4 text-center">
+                            <span class="block text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-1">Hombres</span>
+                            <div class="flex items-center justify-center gap-2">
+                                <flux:icon name="user" variant="mini" class="text-blue-400" />
+                                <span class="text-2xl font-black text-white">{{ $stats['hombres'] ?? 0 }}</span>
+                            </div>
+                        </div>
+                        <div class="bg-white/5 border border-white/5 rounded-2xl p-4 text-center">
+                            <span class="block text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-1">Mujeres</span>
+                            <div class="flex items-center justify-center gap-2">
+                                <flux:icon name="user" variant="mini" class="text-pink-400" />
+                                <span class="text-2xl font-black text-white">{{ $stats['mujeres'] ?? 0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="relative pt-2">
+                        <div class="flex justify-between text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-2">
+                            <span>Distribución de Género</span>
+                            @php 
+                                $pctH = $stats['total'] > 0 ? ($stats['hombres'] / $stats['total']) * 100 : 50; 
+                            @endphp
+                            <span>{{ round($pctH) }}% MASCULINO</span>
+                        </div>
+                        <div class="h-2 w-full bg-zinc-800 rounded-full overflow-hidden flex shadow-inner">
+                            <div class="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]" style="width: {{ $pctH }}%"></div>
+                            <div class="h-full bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.5)] flex-1"></div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-white/5 flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-zinc-400 uppercase italic">Población total matriculada</span>
+                        <span class="text-lg font-black text-white underline decoration-emerald-500 decoration-2 underline-offset-4">{{ $stats['total'] ?? 0 }} Alumnos</span>
+                    </div>
                 </div>
              </div>
         </div>
