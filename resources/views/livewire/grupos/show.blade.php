@@ -401,8 +401,11 @@ $guardarCalificacion = function ($alumnoId, $unidad, $valor) {
                                     </td>
                                     @if($this->grupo->formato_especial)
                                         @php
-                                            $notaD = \App\Models\Calificacion::where('grupo_id', $this->grupoId)->where('user_id', $alumno->id)->where('unidad', 'diagnostica')->value('calificacion');
-                                            $notaF = \App\Models\Calificacion::where('grupo_id', $this->grupoId)->where('user_id', $alumno->id)->where('unidad', 'final')->value('calificacion');
+                                            $notaD_raw = \App\Models\Calificacion::where('grupo_id', $this->grupoId)->where('user_id', $alumno->id)->where('unidad', 'diagnostica')->value('calificacion');
+                                            $notaF_raw = \App\Models\Calificacion::where('grupo_id', $this->grupoId)->where('user_id', $alumno->id)->where('unidad', 'final')->value('calificacion');
+                                            
+                                            $notaD = $notaD_raw == 10 ? 10 : ($notaD_raw ? number_format($notaD_raw, 1) : null);
+                                            $notaF = $notaF_raw == 10 ? 10 : ($notaF_raw ? number_format($notaF_raw, 1) : null);
                                         @endphp
                                         <td class="px-4 py-3">
                                             <input type="number" step="0.1" min="0" max="10" 
