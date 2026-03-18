@@ -107,9 +107,9 @@
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
         <tr>
             <td style="width: 70%; text-align: left; vertical-align: top;">
-                <img src="{{ public_path('img/pleca.png') }}" style="height: 100px; width: auto;" alt="Institucional">
+                <img src="{{ public_path('img/pleca.png') }}" style="height: 120px; width: auto;" alt="Institucional">
             </td>
-            <td style="width: 30%; text-align: right; vertical-align: middle; font-size: 8px; font-weight: bold; text-transform: uppercase;">
+            <td style="width: 30%; text-align: right; vertical-align: top; font-size: 10px; font-weight: bold; text-transform: uppercase; padding-top: 45px;">
                 {{ $grupo->plantel->nombre }}
             </td>
         </tr>
