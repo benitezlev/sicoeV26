@@ -196,8 +196,8 @@
     <table class="signature-table" style="width: 100%; border-collapse: collapse; margin-top: 15px;">
         <thead>
             <tr>
-                <th class="sig-header-black" style="width: 50%;">NOMBRE Y CARGO</th>
-                <th class="sig-header-black">FIRMA</th>
+                <th class="sig-header-black" style="width: 70%;">NOMBRE Y CARGO</th>
+                <th class="sig-header-black" style="width: 30%;">FIRMA</th>
             </tr>
         </thead>
         <tbody>
