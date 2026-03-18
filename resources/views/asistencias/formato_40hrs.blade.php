@@ -178,11 +178,11 @@
                 <td style="font-size: 8px; font-family: monospace;">{{ $alumno->cuip }}</td>
                 <td style="font-size: 7px;">{{ strtoupper($alumno->perfil ?? ($alumno->perfil_data['perfil'] ?? '')) }}</td>
                 <td style="font-size: 6px; text-align: left; line-height: 1;">{{ strtoupper($alumno->adscripcion ?? ($alumno->perfil_data['adscripcion'] ?? '')) }}</td>
-                <td class="attendance-col"> @if($alumno->asistencia_l) • @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_m) • @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_mi) • @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_j) • @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_v) • @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_l) &bull; @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_m) &bull; @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_mi) &bull; @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_j) &bull; @endif </td>
+                <td class="attendance-col"> @if($alumno->asistencia_v) &bull; @endif </td>
                 <td class="grade-col" style="background-color: #f9f9f9;">{{ number_format((float)$alumno->nota_diagnostica, 1) }}</td>
                 <td class="grade-col">{{ number_format((float)$alumno->nota_final, 1) }}</td>
             </tr>

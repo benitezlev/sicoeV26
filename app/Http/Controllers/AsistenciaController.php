@@ -110,14 +110,22 @@ class AsistenciaController extends Controller
             
             foreach ($diasMap as $abbr => $prop) {
                 $alumno->$prop = false;
-                $diaData = collect($diasFull)->firstWhere('abreviado', $abbr);
-                if ($diaData) {
-                    $alumno->$prop = \App\Models\AsistenciaIndividual::where('grupo_id', $grupo->id)
-                        ->where('user_id', $alumno->id)
-                        ->whereDate('fecha', $diaData['fecha']->format('Y-m-d'))
-                        ->where('estatus', 'presente')
-                        ->exists();
-                }
+                $asistenciaDia = \App\Models\AsistenciaIndividual::where('grupo_id', $grupo->id)
+                    ->where('user_id', $alumno->id)
+                    ->where(function($q) use ($abbr, $diasFull) {
+                        // Buscar CUALQUIER día que coincida con la abreviatura (L, M, M, etc)
+                        $fechasCoincidentes = collect($diasFull)->where('abreviado', $abbr)->pluck('fecha');
+                        foreach($fechasCoincidentes as $f) {
+                            $q->orWhereDate('fecha', $f->format('Y-m-d'));
+                        }
+                    })
+                    ->where(function($q) {
+                        $q->where('estatus', 'presente')
+                          ->orWhere('estatus', 'PRESENTE');
+                    })
+                    ->exists();
+                
+                $alumno->$prop = $asistenciaDia;
             }
         }
 
