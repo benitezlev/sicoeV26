@@ -48,7 +48,8 @@ $planteles = computed(fn() => Plantel::orderBy('name')->get());
 $cursos = computed(fn() => Curso::orderBy('nombre')->get());
 
 updated(['total_horas' => function ($value) {
-    if (intval($value) <= 40) {
+    $horasEspeciales = [40, 60, 80, 100, 120];
+    if (in_array(intval($value), $horasEspeciales)) {
         $this->formato_especial = true;
     }
 }]);
