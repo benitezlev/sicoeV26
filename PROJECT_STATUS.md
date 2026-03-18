@@ -2,27 +2,37 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-03-18 09:40)
-1.  **Diseño Final de Firmas [REPORTES]:** Se transformó la sección de firmas a una tabla académica con encabezados negros (`thead`) para "NOMBRE Y CARGO" y "FIRMA", manteniendo la disposición de una fila por titular.
-2.  **Identidad Institucional Consolidada:** Eliminación total de barras laterales rotadas en favor del nuevo formato tabular más legible y formal.
-2.  **Catálogo de Cursos [FIX]:** Corrección de error `Not null violation` en la columna `categoria`. Se integró el campo al componente Livewire, validaciones y formulario de alta/edición.
-3.  **Importación Masiva de Alumnos (v2) [COMPLETADO]:** Procesamiento exitoso de toda la matrícula. Se resolvieron conflictos de unicidad en Postgres, sanitización de UTF-8 y manejo de BOM en encabezados.
-3.  **Optimización de Calificaciones y Asistencias:** Corrección de errores SQL de ordenamiento dinámico. Estandarización de nombres en la interfaz usando el campo persistido `nombre_completo`.
-4.  **Robustecimiento de Lógica de Negocio (Grupos):** Solución al error de tipo en `diasHabilesEntreFechas` activando validaciones defensivas para la decodificación de JSON mixtos en la base de datos.
+## 🕒 Últimos Cambios Importantes (2026-03-18 13:20)
+
+### 📈 Reportes e Identidad Institucional [FINALIZADO]
+1.  **Ingeniería de Encabezados (v3):** Se consolidó el uso de tablas estructurales para los logotipos (140px) y nombre del plantel, garantizando estabilidad absoluta en DomPDF.
+2.  **Estandarización de Impresión:** Configuración de márgenes uniformes (1cm) y tamaño `letter landscape`. Se habilitó la repetición automática de encabezados (`thead`) para reportes de varias páginas.
+3.  **Optimización de Espacio:** Ajuste dinámico de filas de relleno (máximo 12) para asegurar que grupos pequeños queden contenidos en una sola hoja sin desplazar firmas.
+
+### 🎓 Evaluaciones y Grupos Especiales [COMPLETADO]
+1.  **Módulo de Calificación Integral (40-120 hrs):** Implementación de la captura para "Diagnóstica" y "Final" con guardado automático (*blur*).
+2.  **Soporte de Base de Datos:** Se hizo nullable el campo `materia_id` en la tabla `calificaciones` para permitir registros de cursos basados en temarios/syllabus sin materias segmentadas.
+3.  **Inteligencia de Interfaz:** Activación automática del formato especial al detectar cargas horarias de 40, 60, 80, 100 o 120 horas.
+4.  **Formateo de Notas:** Homologación visual de calificaciones ("9.5" para parciales, "10" entero para perfectas) tanto en interfaz web como en PDF.
+
+### 🏛️ Estructura Administrativa [COMPLETADO]
+1.  **Tipificación de Grupos:** Inclusión del campo `tipo_grupo` (Municipal, Estatal y Fiscalía) en el ciclo de apertura y edición de cursos.
+2.  **Analítica Demográfica:** Integración de estadísticas automáticas de género (Hombres/Mujeres) en la vista de detalle del grupo.
 
 ## 🛠️ Stack y Decisiones Técnicas
 - **Estándar:** `Laravel 12` + `Livewire 3 (Volt)` + `Blade` + `Tailwind CSS`.
-- **UI Architecture:** Uso de `Flux Free` para elementos básicos y componentes personalizados. Se adoptó el **API Funcional de Volt** en lugar de clases anónimas para mayor estabilidad en el entorno de producción.
-- **Identidad:** Centralización de la identidad UMS para estampado dinámico en reportes.
+- **Database:** PostgreSQL (Manejo de integridades nullable para reportes holísticos).
+- **Formatos:** DomPDF con soporte para `table-header-group` y `page-break-inside`.
 
-## 🚀 Pendientes y Próximos Pasos (Priorizados)
+## 🚀 Pendientes y Próximos Pasos (Retroalimentación Martes 24/Mar)
 
 ### 🔴 Prioridad Alta
-1.  **Firma Electrónica Simple:** Implementar estampado de Hash de validación y Código QR en actas de calificación para autenticidad.
-2.  **Captura de Calificaciones:** Añadir validación de periodos de captura (fechas límite por coordinación).
+1.  **Retro de Áreas (Planteles):** Validar la visualización de los nuevos reportes de 40 y 80 horas impresos físicamente.
+2.  **Firma Electrónica Simple:** Implementar estampado de Hash de validación y Código QR en actas de calificación.
+3.  **Formato Fiscalía:** Desarrollar el reporte específico una vez que se entreguen las reglas de negocio de dicha adscripción.
 
 ### 🟡 Prioridad Media
-3.  **Refactorización UI:** Continuar con el rediseño de reportes históricos de alumnos.
+4.  **Encuesta de Término:** Implementar el módulo de carga de resultados de encuestas de satisfacción física (para llenado por control escolar).
 
 ---
-*Última actualización: 2026-03-17 13:45:00*
+*Última actualización: 2026-03-18 13:20:00*
