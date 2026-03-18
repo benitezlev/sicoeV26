@@ -119,22 +119,31 @@
     </style>
 </head>
 <body>
-    <div style="width: 100%; margin-bottom: 10px;">
-        <img src="{{ public_path('img/pleca.png') }}" style="width: 100%; height: auto;" alt="Institucional">
-    </div>
+    <table style="width: 100%; margin-bottom: 5px; border-collapse: collapse;">
+        <tr>
+            <td style="width: 50%; text-align: left; vertical-align: middle; font-size: 8px; font-weight: bold; text-transform: uppercase; padding-top: 10px;">
+                {{ $grupo->plantel->nombre }}
+            </td>
+            <td style="width: 50%; text-align: right; vertical-align: top;">
+                <img src="{{ public_path('img/pleca.png') }}" style="height: 35px; width: auto;" alt="Institucional">
+            </td>
+        </tr>
+    </table>
 
-
-    <div class="header-title">
-        LISTA MENSUAL DE ASISTENCIA
+    <div style="text-align: center; border-top: 0.5px solid #000; margin-top: 5px; padding-top: 2px;">
+        <div class="top-slogan" style="margin-bottom: 2px;">
+            "2026. Bicentenario de la vida municipal en el Estado de México"
+        </div>
+        <div style="font-weight: bold; font-size: 8px; text-transform: uppercase;">
+            LISTA DE ASISTENCIA
+        </div>
     </div>
 
     <div class="course-banner">
         {{ $grupo->curso->nombre }}
     </div>
 
-    <div class="mes-titulo">
-        {{ $docente['nombre'] ?? $docente['name'] ?? strtoupper($mes) }}
-    </div>
+
 
     <div class="metadata-container">
         <div class="meta-row">
