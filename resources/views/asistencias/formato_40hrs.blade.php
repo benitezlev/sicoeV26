@@ -6,7 +6,7 @@
     <style>
         @page {
             size: letter landscape;
-            margin: 0.5cm 1cm;
+            margin: 1cm;
         }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
@@ -106,17 +106,17 @@
 <body>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
         <tr>
-            <td style="width: 70%; text-align: left; vertical-align: top;">
-                <img src="{{ public_path('img/pleca.png') }}" style="height: 120px; width: auto; max-width: 100%;" alt="Institucional">
+            <td style="width: 80%; text-align: left; vertical-align: top;">
+                <img src="{{ public_path('img/pleca.png') }}" style="height: 140px; width: auto; max-width: 100%;" alt="Institucional">
             </td>
-            <td style="width: 30%; text-align: right; vertical-align: top; font-size: 10px; font-weight: bold; text-transform: uppercase; padding-top: 45px;">
+            <td style="width: 20%; text-align: right; vertical-align: top; font-size: 10px; font-weight: bold; text-transform: uppercase; padding-top: 45px;">
                 {{ $grupo->plantel->name }}
             </td>
         </tr>
     </table>
 
-    <div style="text-align: center; border-top: 1px solid #000; margin-top: 2px; padding-top: 2px; margin-bottom: 5px;">
-        <div style="font-weight: bold; font-size: 9px; text-transform: uppercase;">
+    <div style="text-align: center; margin-top: 2px; padding-top: 2px; margin-bottom: 5px;">
+        <div style="font-weight: bold; font-size: 12px; text-transform: uppercase;  margin-bottom: 10px;">
             LISTA DE ASISTENCIA
         </div>
     </div>

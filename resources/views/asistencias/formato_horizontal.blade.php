@@ -4,11 +4,14 @@
     <meta charset="utf-8">
     <title>Reporte de Asistencia</title>
     <style>
-        @page { margin: 20px; }
+        @page {
+            size: letter landscape;
+            margin: 1cm;
+        }
         body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 9px; margin: 0; padding: 0; }
         .header-title { text-align: center; font-weight: bold; font-size: 11px; margin-bottom: 5px; text-transform: uppercase; }
         .top-slogan { text-align: center; font-size: 8px; font-style: italic; margin-bottom: 5px; }
-        .course-banner { background-color: #2c3e50; color: #ffffff; padding: 5px; text-align: center; font-weight: bold; font-size: 10px; text-transform: uppercase; margin-bottom: 5px; }
+        .course-banner { background-color: #000; color: #ffffff; padding: 5px; text-align: center; font-weight: bold; font-size: 10px; text-transform: uppercase; margin-bottom: 5px; }
         .main-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
         .main-table th { background-color: #f2f2f2; border: 0.5px solid #000; padding: 3px; font-size: 8px; text-transform: uppercase; }
         .main-table td { border: 0.5px solid #000; padding: 2px; text-align: center; font-size: 8px; }
@@ -27,17 +30,17 @@
 <body>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
         <tr>
-            <td style="width: 70%; text-align: left; vertical-align: top;">
-                <img src="{{ public_path('img/pleca.png') }}" style="height: 120px; width: auto; max-width: 100%;" alt="Institucional">
+            <td style="width: 80%; text-align: left; vertical-align: top;">
+                <img src="{{ public_path('img/pleca.png') }}" style="height: 140px; width: auto; max-width: 100%;" alt="Institucional">
             </td>
-            <td style="width: 30%; text-align: right; vertical-align: top; font-size: 10px; font-weight: bold; text-transform: uppercase; padding-top: 45px;">
+            <td style="width: 20%; text-align: right; vertical-align: top; font-size: 10px; font-weight: bold; text-transform: uppercase; padding-top: 45px;">
                 {{ $grupo->plantel->name }}
             </td>
         </tr>
     </table>
 
-    <div style="clear: both; text-align: center; border-top: 0.8px solid #000; margin-top: 2px; padding-top: 2px;">
-        <div style="font-weight: bold; font-size: 8px; text-transform: uppercase;">
+    <div style="clear: both; text-align: center; margin-top: 2px; padding-top: 2px;">
+        <div style="font-weight: bold; font-size: 12px; text-transform: uppercase;  margin-bottom: 10px;">
             LISTA DE ASISTENCIA
         </div>
     </div>

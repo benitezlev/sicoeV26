@@ -29,8 +29,8 @@ $cargarStats = function() {
     $grupo = Grupo::with('alumnos')->find($this->grupoId);
     $alumnos = $grupo->alumnos;
     $this->stats = [
-        'hombres' => $alumnos->where('sexo', 'M')->count(),
-        'mujeres' => $alumnos->where('sexo', 'F')->count(),
+        'hombres' => $alumnos->where('sexo', 'H')->count(),
+        'mujeres' => $alumnos->where('sexo', 'M')->count(),
         'total' => $alumnos->count(),
     ];
 };
