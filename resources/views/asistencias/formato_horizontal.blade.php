@@ -119,18 +119,16 @@
     </style>
 </head>
 <body>
-    <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-            <td style="width: 50%; text-align: left; vertical-align: top;">
-                <img src="{{ public_path('img/pleca.png') }}" style="height: 35px; width: auto;" alt="Institucional">
-            </td>
-            <td style="width: 50%; text-align: right; vertical-align: middle; font-size: 8px; font-weight: bold; text-transform: uppercase;">
-                {{ $grupo->plantel->nombre }}
-            </td>
-        </tr>
-    </table>
+    <div style="width: 100%; overflow: hidden; margin-bottom: 5px;">
+        <div style="float: left; width: 70%;">
+            <img src="{{ public_path('img/pleca.png') }}" style="height: 40px; width: auto;" alt="Institucional">
+        </div>
+        <div style="float: right; width: 28%; text-align: right; vertical-align: middle; font-size: 8.5px; font-weight: bold; text-transform: uppercase; padding-top: 12px;">
+            {{ $grupo->plantel->nombre }}
+        </div>
+    </div>
 
-    <div style="text-align: center; border-top: 0.5px solid #000; margin-top: 5px; padding-top: 2px;">
+    <div style="clear: both; text-align: center; border-top: 0.5px solid #000; padding-top: 2px;">
         <div style="font-weight: bold; font-size: 8px; text-transform: uppercase;">
             LISTA DE ASISTENCIA
         </div>
