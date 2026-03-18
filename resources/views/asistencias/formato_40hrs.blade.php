@@ -81,34 +81,22 @@
             font-weight: bold;
             font-size: 9px;
         }
-        .signature-table {
-            width: 100%;
-            border: 1px solid #000;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        .sig-bar-black {
+        .sig-header-black {
             background-color: #000;
             color: #fff;
-            width: 20px;
             text-align: center;
-            vertical-align: middle;
             font-weight: bold;
-            font-size: 7px;
-            padding: 5px 0;
-        }
-        .sig-bar-black span {
-            display: inline-block;
-            transform: rotate(-90deg);
-            white-space: nowrap;
+            font-size: 8px;
+            padding: 5px;
+            border: 1px solid #000;
         }
         .sig-identity {
-            padding: 10px 5px;
+            padding: 15px 10px;
             text-align: center;
             vertical-align: middle;
             font-size: 8px;
             font-weight: bold;
-            width: auto;
+            border: 1px solid #000;
         }
     </style>
 </head>
@@ -193,21 +181,29 @@
         </tbody>
     </table>
 
-    <table class="signature-table">
-        <tr>
-            <td rowspan="2" class="sig-bar-black"><span>NOMBRE Y CARGO</span></td>
-            <td class="sig-identity" style="height: 50px;">
-                DR. GONZALO HERNÁNDEZ DURAZO<br>
-                RECTOR DE LA UNIVERSIDAD MEXIQUENSE DE SEGURIDAD
-            </td>
-            <td rowspan="2" class="sig-bar-black"><span>FIRMA</span></td>
-        </tr>
-        <tr>
-            <td class="sig-identity" style="border-top: 1px solid #000; height: 50px;">
-                LCDO. CHRISTIAN M. JIMÉNEZ MORALES<br>
-                DIRECTOR DE CAPACITACIÓN, PROFESIONALIZACIÓN Y ESPECIALIZACIÓN
-            </td>
-        </tr>
+    <table class="signature-table" style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+        <thead>
+            <tr>
+                <th class="sig-header-black" style="width: 50%;">NOMBRE Y CARGO</th>
+                <th class="sig-header-black">FIRMA</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="sig-identity">
+                    DR. GONZALO HERNÁNDEZ DURAZO<br>
+                    RECTOR DE LA UNIVERSIDAD MEXIQUENSE DE SEGURIDAD
+                </td>
+                <td style="border: 1px solid #000;"></td>
+            </tr>
+            <tr>
+                <td class="sig-identity">
+                    LCDO. CHRISTIAN M. JIMÉNEZ MORALES<br>
+                    DIRECTOR DE CAPACITACIÓN, PROFESIONALIZACIÓN Y ESPECIALIZACIÓN
+                </td>
+                <td style="border: 1px solid #000;"></td>
+            </tr>
+        </tbody>
     </table>
 
     <div style="margin-top: 15px; text-align: center; border-top: 1px dotted #000; padding-top: 5px; font-weight: bold; width: 40%; margin-left: 30%;">

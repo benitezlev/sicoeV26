@@ -2,9 +2,9 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-03-18 09:30)
-1.  **Refinamiento de Firmas [REPORTES]:** Se eliminó el logotipo final de la sección de firmas y se reorganizó la disposición a una sola columna central (una fila por titular) para mejorar la claridad de los listados de asistencia.
-2.  **Identidad Institucional Completa:** Implementación de barras laterales negras y pleca oficial en todos los formatos.
+## 🕒 Últimos Cambios Importantes (2026-03-18 09:40)
+1.  **Diseño Final de Firmas [REPORTES]:** Se transformó la sección de firmas a una tabla académica con encabezados negros (`thead`) para "NOMBRE Y CARGO" y "FIRMA", manteniendo la disposición de una fila por titular.
+2.  **Identidad Institucional Consolidada:** Eliminación total de barras laterales rotadas en favor del nuevo formato tabular más legible y formal.
 2.  **Catálogo de Cursos [FIX]:** Corrección de error `Not null violation` en la columna `categoria`. Se integró el campo al componente Livewire, validaciones y formulario de alta/edición.
 3.  **Importación Masiva de Alumnos (v2) [COMPLETADO]:** Procesamiento exitoso de toda la matrícula. Se resolvieron conflictos de unicidad en Postgres, sanitización de UTF-8 y manejo de BOM en encabezados.
 3.  **Optimización de Calificaciones y Asistencias:** Corrección de errores SQL de ordenamiento dinámico. Estandarización de nombres en la interfaz usando el campo persistido `nombre_completo`.
