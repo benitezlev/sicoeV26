@@ -179,8 +179,8 @@
                 <td class="attendance-col"> @if($alumno->asistencia_mi) &bull; @endif </td>
                 <td class="attendance-col"> @if($alumno->asistencia_j) &bull; @endif </td>
                 <td class="attendance-col"> @if($alumno->asistencia_v) &bull; @endif </td>
-                <td class="grade-col" style="background-color: #f9f9f9;">{{ number_format((float)$alumno->nota_diagnostica, 1) }}</td>
-                <td class="grade-col">{{ number_format((float)$alumno->nota_final, 1) }}</td>
+                <td class="grade-col" style="background-color: #f9f9f9;">{{ $alumno->nota_diagnostica == 10 ? '10' : ($alumno->nota_diagnostica ? number_format((float)$alumno->nota_diagnostica, 1) : '') }}</td>
+                <td class="grade-col">{{ $alumno->nota_final == 10 ? '10' : ($alumno->nota_final ? number_format((float)$alumno->nota_final, 1) : '') }}</td>
             </tr>
             @endforeach
             
