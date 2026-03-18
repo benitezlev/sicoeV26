@@ -184,13 +184,13 @@
             </tr>
             @endforeach
             
-            {{-- Filas vacías si hay pocos alumnos para completar la página visualmente --}}
-            @for($i = count($alumnos); $i < 47; $i++)
+            {{-- Filas vacías optimizadas para evitar saltos de página --}}
+            @php $maxRows = 25; @endphp
+            @for($i = count($alumnos); $i < $maxRows; $i++)
             <tr style="height: 12px;">
                 <td>{{ $i + 1 }}</td>
                 <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
             </tr>
-            @break($i >= 15 && count($alumnos) < 15) {{-- No llenar demasiado si hay pocos, solo un poco para estructura --}}
             @endfor
         </tbody>
     </table>
@@ -220,9 +220,5 @@
         </tbody>
     </table>
 
-    <div style="margin-top: 15px; text-align: center; border-top: 1px dotted #000; padding-top: 5px; font-weight: bold; width: 40%; margin-left: 30%;">
-        {{ $docente['nombre'] ?? $docente['name'] ?? '---' }}<br>
-        <span style="font-size: 7px;">DOCENTE INSTRUCTOR</span>
-    </div>
 </body>
 </html>
