@@ -115,14 +115,10 @@
         </tr>
     </table>
 
-    <div style="text-align: center; border-top: 0.8px solid #000; margin-top: 2px; padding-top: 2px;">
-        <div style="font-weight: bold; font-size: 8px; text-transform: uppercase;">
+    <div style="text-align: center; border-top: 1px solid #000; margin-top: 2px; padding-top: 2px; margin-bottom: 5px;">
+        <div style="font-weight: bold; font-size: 9px; text-transform: uppercase;">
             LISTA DE ASISTENCIA
         </div>
-    </div>
-
-    <div style="text-align: center; font-weight: bold; font-size: 10px; margin-bottom: 5px;">
-        LISTA DE ASISTENCIA
     </div>
 
     <div class="course-banner">

@@ -25,14 +25,16 @@
     </style>
 </head>
 <body>
-    <div style="width: 100%; overflow: hidden; margin-bottom: 5px;">
-        <div style="float: left; width: 70%;">
-            <img src="{{ public_path('img/pleca.png') }}" style="height: 120px; width: auto;" alt="Institucional">
-        </div>
-        <div style="float: right; width: 30%; text-align: right; vertical-align: top; font-size: 10px; font-weight: bold; text-transform: uppercase; padding-top: 45px;">
-            {{ $grupo->plantel->name }}
-        </div>
-    </div>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
+        <tr>
+            <td style="width: 70%; text-align: left; vertical-align: top;">
+                <img src="{{ public_path('img/pleca.png') }}" style="height: 120px; width: auto;" alt="Institucional">
+            </td>
+            <td style="width: 30%; text-align: right; vertical-align: top; font-size: 10px; font-weight: bold; text-transform: uppercase; padding-top: 45px;">
+                {{ $grupo->plantel->name }}
+            </td>
+        </tr>
+    </table>
 
     <div style="clear: both; text-align: center; border-top: 0.8px solid #000; margin-top: 2px; padding-top: 2px;">
         <div style="font-weight: bold; font-size: 8px; text-transform: uppercase;">
