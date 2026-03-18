@@ -65,6 +65,8 @@
             font-size: 7px;
             text-transform: uppercase;
         }
+        thead { display: table-header-group; }
+        tr { page-break-inside: avoid; }
         .sub-caption {
             font-size: 5px;
             font-weight: normal;
@@ -185,7 +187,7 @@
             @endforeach
             
             {{-- Filas vacías optimizadas para evitar saltos de página --}}
-            @php $maxRows = 25; @endphp
+            @php $maxRows = 12; @endphp
             @for($i = count($alumnos); $i < $maxRows; $i++)
             <tr style="height: 12px;">
                 <td>{{ $i + 1 }}</td>

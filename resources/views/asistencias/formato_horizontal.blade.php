@@ -25,6 +25,7 @@
         .metadata-container { width: 100%; margin: 10px 0; text-align: center; font-size: 8px; font-weight: bold; text-transform: uppercase; }
         .meta-row { margin-bottom: 2px; }
         .meta-row span { display: inline-block; margin: 0 5px; }
+        thead { display: table-header-group; }
     </style>
 </head>
 <body>
