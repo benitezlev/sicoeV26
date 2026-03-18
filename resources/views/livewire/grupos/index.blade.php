@@ -29,6 +29,7 @@ state([
     'total_horas' => '',
     'dias_clase' => [1, 2, 3, 4, 5],
     'formato_especial' => false,
+    'tipo_grupo' => 'estatal',
 ]);
 
 $grupos = computed(function () {
@@ -58,7 +59,7 @@ updated(['total_horas' => function ($value) {
 
 $abrirModalCrear = function () {
     $this->resetErrorBag();
-    $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas', 'formato_especial']);
+    $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas', 'formato_especial', 'tipo_grupo']);
     $this->estado = 'activo';
     $this->dias_clase = [1, 2, 3, 4, 5];
     $this->formato_especial = false;
@@ -81,6 +82,7 @@ $editar = function (Grupo $grupo) {
         'total_horas' => $grupo->total_horas,
         'dias_clase' => is_array($grupo->dias_clase) ? $grupo->dias_clase : json_decode($grupo->dias_clase, true) ?? [1, 2, 3, 4, 5],
         'formato_especial' => $grupo->formato_especial ? true : (in_array((int)$grupo->total_horas, [40, 60, 80, 100, 120])),
+        'tipo_grupo' => $grupo->tipo_grupo ?? 'estatal',
     ]);
     
     $this->dispatch('modal-show', name: 'modal-grupo');
@@ -100,6 +102,7 @@ $guardar = function () {
         'total_horas' => 'required|integer|min:1',
         'dias_clase' => 'required|array|min:1',
         'formato_especial' => 'boolean',
+        'tipo_grupo' => 'required|in:municipal,estatal,fiscalia',
     ];
 
     $datos = $this->validate($rules);
@@ -341,6 +344,16 @@ $eliminar = function ($id) {
                                 <flux:error name="estado" />
                             </flux:field>
                         </div>
+
+                        <flux:field>
+                            <flux:label>Adscripción / Tipo de Grupo</flux:label>
+                            <flux:select wire:model="tipo_grupo" wire:key="g-tip-{{ $grupoId ?? 'new' }}">
+                                <flux:select.option value="estatal">🏙️ Grupo Estatal (UMS)</flux:select.option>
+                                <flux:select.option value="municipal">🏘️ Grupo Municipal (Convenio)</flux:select.option>
+                                <flux:select.option value="fiscalia">⚖️ Grupo Fiscalía (FGJEM)</flux:select.option>
+                            </flux:select>
+                            <flux:error name="tipo_grupo" />
+                        </flux:field>
                     </div>
 
                     <!-- Sección Derecha: Vigencia y Horarios -->

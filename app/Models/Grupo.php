@@ -14,7 +14,7 @@ class Grupo extends Model
      protected $fillable = [
         'nombre','plantel_id','curso_id','docente_id','periodo','estado',
         'fecha_inicio','fecha_fin','hora_inicio','hora_fin','total_horas',
-        'dias_clase', 'formato_especial'
+        'dias_clase', 'formato_especial', 'tipo_grupo'
     ];
 
     protected $casts = [
