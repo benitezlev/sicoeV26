@@ -4,6 +4,7 @@ use function Livewire\Volt\{state, computed, layout, mount, usesFileUploads};
 use App\Models\Grupo;
 use App\Models\User;
 use App\Models\GrupoExpediente;
+use App\Models\AsistenciaIndividual;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Flux\Flux;
@@ -23,15 +24,23 @@ state([
     'searchDocente' => '',
     'escaneoAsistencia' => null,
     'stats' => [],
+    'alumnoParaBaja' => null,
+    'motivoBaja' => 'Deserción',
 ]);
 
 $cargarStats = function() {
-    $grupo = Grupo::with('alumnos')->find($this->grupoId);
-    $alumnos = $grupo->alumnos;
+    $grupo = Grupo::find($this->grupoId);
+    if (!$grupo) return;
+    
+    // Solo contamos alumnos ACTIVOS para las estadísticas operativas principales
+    $activos = $grupo->alumnos()->wherePivot('estado', 'activo')->get();
+    $bajas = $grupo->alumnos()->wherePivot('estado', 'baja')->count();
+    
     $this->stats = [
-        'hombres' => $alumnos->where('sexo', 'H')->count(),
-        'mujeres' => $alumnos->where('sexo', 'M')->count(),
-        'total' => $alumnos->count(),
+        'hombres' => $activos->where('sexo', 'H')->count(),
+        'mujeres' => $activos->where('sexo', 'M')->count(),
+        'total' => $activos->count(),
+        'total_bajas' => $bajas,
     ];
 };
 
@@ -122,9 +131,39 @@ $asignarAlumnos = function () {
     }
 };
 
-$desvincularAlumno = function ($alumnoId) {
-    $this->grupo->alumnos()->detach($alumnoId);
-    Flux::toast(heading: 'Baja Académica', text: 'El alumno fue removido del grupo actual.', variant: 'warning');
+$abrirModalBaja = function ($alumnoId) {
+    $this->alumnoParaBaja = User::find($alumnoId);
+    $this->dispatch('modal-show', name: 'modal-confirmar-baja');
+};
+
+$desvincularAlumnoConfirmado = function () {
+    if (!$this->grupo || !$this->alumnoParaBaja) return;
+    
+    $this->grupo->alumnos()->updateExistingPivot($this->alumnoParaBaja->id, [
+        'estado' => 'baja',
+        'fecha_baja' => now(),
+        'motivo_baja' => $this->motivoBaja,
+        'baja_registrada_por' => auth()->id()
+    ]);
+
+    $this->cargarStats();
+    $this->dispatch('modal-hide', name: 'modal-confirmar-baja');
+    $this->reset(['alumnoParaBaja', 'motivoBaja']);
+    Flux::toast(heading: 'Baja Académica', text: 'El alumno ha sido dado de baja del grupo con éxito.', variant: 'warning');
+};
+
+$reactivarAlumno = function ($alumnoId) {
+    if (!$this->grupo) return;
+
+    $this->grupo->alumnos()->updateExistingPivot($alumnoId, [
+        'estado' => 'activo',
+        'fecha_baja' => null,
+        'baja_registrada_por' => null,
+        'motivo_baja' => null
+    ]);
+
+    $this->cargarStats();
+    Flux::toast(heading: 'Reincorporación', text: 'El alumno ha sido re-activado en el grupo.', variant: 'success');
 };
 
 $buscarDocentesAPI = function () {
@@ -252,6 +291,42 @@ $guardarCalificacion = function ($alumnoId, $unidad, $valor) {
     Flux::toast(heading: 'Nota Guardada', text: 'Se ha registrado la calificación correctamente.', variant: 'success');
 };
 
+$toggleAsistencia = function ($alumnoId, $abbr) {
+    $dias = $this->grupo->diasHabilesEntreFechas();
+    $diaData = collect($dias)->firstWhere('abreviado', $abbr);
+    
+    if (!$diaData) {
+        Flux::toast(heading: 'Error', text: "El día '$abbr' no está programado para este grupo.", variant: 'danger');
+        return;
+    }
+    
+    $fecha = $diaData['fecha']->format('Y-m-d');
+    
+    $asistencia = AsistenciaIndividual::where([
+        'grupo_id' => $this->grupoId,
+        'user_id' => $alumnoId,
+        'fecha' => $fecha
+    ])->first();
+    
+    if ($asistencia) {
+        $asistencia->delete();
+    } else {
+        AsistenciaIndividual::create([
+            'grupo_id' => $this->grupoId,
+            'user_id' => $alumnoId,
+            'fecha' => $fecha,
+            'estatus' => 'presente'
+        ]);
+    }
+};
+
+$asistenciasMap = computed(function() {
+    return AsistenciaIndividual::where('grupo_id', $this->grupoId)
+        ->get()
+        ->groupBy('user_id')
+        ->map(fn($items) => $items->pluck('fecha')->map(fn($f) => $f->format('Y-m-d'))->toArray());
+});
+
 ?>
 
 <div class="p-6 max-w-[1600px] mx-auto space-y-8">
@@ -356,7 +431,13 @@ $guardarCalificacion = function ($alumnoId, $unidad, $valor) {
                 <div class="p-6 border-b border-zinc-200 dark:border-zinc-700 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-zinc-50/50 dark:bg-zinc-900/50">
                     <div>
                         <h2 class="text-xl font-black text-zinc-900 dark:text-white uppercase tracking-tight">Matrícula del Grupo</h2>
-                        <p class="text-xs text-zinc-500 font-medium">Hay <strong class="text-blue-600 dark:text-blue-400">{{ $this->grupo->alumnos->count() }} alumnos</strong> inscritos activamente.</p>
+                        <p class="text-xs text-zinc-500 font-medium">
+                            Hay <strong class="text-blue-600 dark:text-blue-400">{{ $this->stats['total'] }} alumnos</strong> activos 
+                            @if(($this->stats['total_bajas'] ?? 0) > 0)
+                                y <strong class="text-red-500">{{ $this->stats['total_bajas'] }} bajas</strong>
+                            @endif
+                            en la matrícula.
+                        </p>
                     </div>
                     @if($this->grupo->formato_especial)
                         <div class="flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl text-amber-700 dark:text-amber-400 font-black text-[9px] uppercase tracking-widest animate-pulse">
@@ -375,7 +456,12 @@ $guardarCalificacion = function ($alumnoId, $unidad, $valor) {
                                 <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500">Perfil del Alumno</th>
                                 <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500">Identificación (CURP)</th>
                                 @if($this->grupo->formato_especial)
-                                    <th class="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Diagnóstica</th>
+                                    <th class="px-1 py-4 text-[9px] font-black uppercase tracking-wider text-zinc-500 text-center">L</th>
+                                    <th class="px-1 py-4 text-[9px] font-black uppercase tracking-wider text-zinc-500 text-center">M</th>
+                                    <th class="px-1 py-4 text-[9px] font-black uppercase tracking-wider text-zinc-500 text-center">M</th>
+                                    <th class="px-1 py-4 text-[9px] font-black uppercase tracking-wider text-zinc-500 text-center">J</th>
+                                    <th class="px-1 py-4 text-[9px] font-black uppercase tracking-wider text-zinc-500 text-center">V</th>
+                                    <th class="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Diag</th>
                                     <th class="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Final</th>
                                 @endif
                                 <th class="px-6 py-4 text-[10px] font-black uppercase tracking-wider text-zinc-500 text-center">Alta en Grupo</th>
@@ -384,7 +470,9 @@ $guardarCalificacion = function ($alumnoId, $unidad, $valor) {
                         </thead>
                         <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
                             @forelse($this->grupo->alumnos as $alumno)
-                                <tr wire:key="alumno-grp-{{ $alumno->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                                @php $isBaja = $alumno->pivot->estado === 'baja'; @endphp
+                                <tr wire:key="alumno-grp-{{ $alumno->id }}" 
+                                    class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors {{ $isBaja ? 'opacity-60 bg-red-50/20 dark:bg-red-900/5' : '' }}">
                                     <td class="px-6 py-3">
                                         <div class="flex items-center gap-4">
                                             <div class="size-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-sm">
@@ -406,8 +494,27 @@ $guardarCalificacion = function ($alumnoId, $unidad, $valor) {
                                             
                                             $notaD = $notaD_raw == 10 ? 10 : ($notaD_raw ? number_format($notaD_raw, 1) : null);
                                             $notaF = $notaF_raw == 10 ? 10 : ($notaF_raw ? number_format($notaF_raw, 1) : null);
+
+                                            $diasAbbr = ['LU', 'MA', 'MI', 'JU', 'VI'];
+                                            $asistenciasAlumno = $this->asistenciasMap[$alumno->id] ?? [];
                                         @endphp
-                                        <td class="px-4 py-3">
+
+                                        @foreach($diasAbbr as $abbr)
+                                            <td class="px-0.5 py-3 text-center">
+                                                @php
+                                                    $diaG = collect($this->grupo->diasHabilesEntreFechas())->firstWhere('abreviado', $abbr);
+                                                    $presente = $diaG && in_array($diaG['fecha']->format('Y-m-d'), $asistenciasAlumno);
+                                                @endphp
+                                                <input type="checkbox" 
+                                                    {{ $presente ? 'checked' : '' }}
+                                                    {{ !$diaG ? 'disabled' : '' }}
+                                                    wire:click="toggleAsistencia({{ $alumno->id }}, '{{ $abbr }}')"
+                                                    wire:loading.attr="disabled"
+                                                    class="size-3.5 rounded border-zinc-300 text-blue-600 shadow-sm focus:ring-blue-500 cursor-pointer disabled:opacity-10 hover:scale-110 transition-transform">
+                                            </td>
+                                        @endforeach
+
+                                        <td class="px-2 py-3">
                                             <input type="number" step="0.1" min="0" max="10" 
                                                 value="{{ $notaD }}"
                                                 wire:blur="guardarCalificacion({{ $alumno->id }}, 'diagnostica', $event.target.value)"
@@ -424,18 +531,16 @@ $guardarCalificacion = function ($alumnoId, $unidad, $valor) {
                                         {{ \Carbon\Carbon::parse($alumno->pivot->fecha_asignacion)->format('d/m/Y') }}
                                     </td>
                                     <td class="px-6 py-3 text-right">
-                                         <div x-data="{ openConfirm: false }" class="inline-block relative">
-                                            <flux:button variant="ghost" size="sm" color="red" icon="user-minus" x-on:click="openConfirm = true" />
-                                            
-                                            <!-- Mini Delete Modal -->
-                                            <div x-show="openConfirm" x-cloak class="absolute right-0 top-full mt-2 z-20 w-64 p-4 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-900/30 rounded-xl shadow-xl flex flex-col gap-3 items-end ring-1 ring-black/5 dark:ring-white/10">
-                                                <p class="text-[11px] text-left font-bold text-zinc-800 dark:text-white leading-tight break-words whitespace-normal w-full">¿Dar de baja a <b>{{ $alumno->name }}</b> de este grupo?</p>
-                                                <div class="flex gap-2 w-full justify-between mt-1">
-                                                    <flux:button variant="ghost" size="sm" x-on:click="openConfirm = false" class="text-[10px]">Conservar</flux:button>
-                                                    <flux:button variant="danger" size="sm" wire:click="desvincularAlumno({{ $alumno->id }})" x-on:click="openConfirm = false" class="text-[10px]">Expulsar</flux:button>
-                                                </div>
+                                        @if($isBaja)
+                                            <div class="flex items-center justify-end gap-2 text-[10px] font-black uppercase text-red-600 dark:text-red-400">
+                                                <span class="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 rounded" title="Causal: {{ $alumno->pivot->motivo_baja }}">
+                                                    {{ $alumno->pivot->motivo_baja }}: {{ \Carbon\Carbon::parse($alumno->pivot->fecha_baja)->format('d/m/y') }}
+                                                </span>
+                                                <flux:button variant="ghost" size="sm" color="indigo" icon="arrow-path" wire:click="reactivarAlumno({{ $alumno->id }})" title="Reincorporar Alumno" />
                                             </div>
-                                        </div>
+                                        @else
+                                            <flux:button variant="ghost" size="sm" color="red" icon="user-minus" wire:click="abrirModalBaja({{ $alumno->id }})" title="Dar de Baja" />
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
@@ -811,6 +916,49 @@ $guardarCalificacion = function ($alumnoId, $unidad, $valor) {
                 <div class="flex flex-col gap-2 pt-2">
                     <flux:button type="submit" variant="primary" class="w-full font-black uppercase tracking-widest text-[10px]">Certificar Envío</flux:button>
                     <flux:button variant="ghost" x-on:click="open = false" class="w-full">Abortar Trámite</flux:button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Modal: Confirmar Baja con Motivo -->
+    <div x-data="{ open: false }" 
+         x-on:modal-show.window="if ($event.detail.name === 'modal-confirmar-baja') open = true" 
+         x-on:modal-hide.window="if ($event.detail.name === 'modal-confirmar-baja') open = false" 
+         x-show="open" x-cloak 
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-zinc-800 w-full max-w-md rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-700 p-8 space-y-6 text-left" x-on:click.away="open = false">
+            <form wire:submit="desvincularAlumnoConfirmado" class="space-y-6">
+                <div class="space-y-1">
+                    <h2 class="text-2xl font-black text-red-600 dark:text-red-500 tracking-tight uppercase">Confirmar Baja</h2>
+                    <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-tighter italic">Se registrará la desincorporación oficial del alumno.</p>
+                </div>
+
+                @if($this->alumnoParaBaja)
+                    <div class="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-700 flex items-center gap-4">
+                        <div class="size-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 font-black text-xl">
+                            {{ substr($this->alumnoParaBaja->name, 0, 1) }}
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-black text-zinc-900 dark:text-white uppercase leading-tight">{{ $this->alumnoParaBaja->name }}</span>
+                            <span class="text-[10px] text-zinc-500 font-mono">{{ $this->alumnoParaBaja->curp }}</span>
+                        </div>
+                    </div>
+                @endif
+
+                <flux:field>
+                    <flux:label>Causal de la Baja</flux:label>
+                    <flux:select wire:model="motivoBaja">
+                        <flux:select.option value="Deserción">Deserción Voluntaria</flux:select.option>
+                        <flux:select.option value="Indisciplina">Indisciplina / Faltas Graves</flux:select.option>
+                        <flux:select.option value="Cambio de Plantel">Cambio de Adscripción/Plantel</flux:select.option>
+                        <flux:select.option value="Reprobación">Reprobación Académica</flux:select.option>
+                        <flux:select.option value="Otro">Otro Motivo Administrativo</flux:select.option>
+                    </flux:select>
+                </flux:field>
+
+                <div class="flex gap-3 justify-end pt-2">
+                    <flux:button variant="ghost" x-on:click="open = false">Cancelar</flux:button>
+                    <flux:button type="submit" variant="danger" class="font-black uppercase tracking-widest text-[10px]">Efectuar Baja Académica</flux:button>
                 </div>
             </form>
         </div>

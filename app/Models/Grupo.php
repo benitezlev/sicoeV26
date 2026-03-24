@@ -40,7 +40,7 @@ class Grupo extends Model
     {
         return $this->belongsToMany(User::class, 'grupo_user')
             ->where('tipo', 'alumno')
-            ->withPivot('fecha_asignacion', 'estado')
+            ->withPivot('fecha_asignacion', 'estado', 'fecha_baja', 'motivo_baja', 'baja_registrada_por')
             ->withTimestamps();
     }
 

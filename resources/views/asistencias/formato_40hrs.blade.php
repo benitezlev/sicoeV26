@@ -173,9 +173,9 @@
                 <td class="name-cell">
                     {{ strtoupper($alumno->paterno) }} {{ strtoupper($alumno->materno) }} {{ strtoupper($alumno->nombre) }}
                 </td>
-                <td style="font-size: 8px; font-family: monospace;">{{ $alumno->cuip }}</td>
-                <td style="font-size: 7px;">{{ strtoupper($alumno->perfil ?? ($alumno->perfil_data['perfil'] ?? '')) }}</td>
-                <td style="font-size: 6px; text-align: left; line-height: 1;">{{ strtoupper($alumno->adscripcion ?? ($alumno->perfil_data['adscripcion'] ?? '')) }}</td>
+                <td style="font-size: 8px; font-weight: bold;">{{ $alumno->cuip }}</td>
+                <td style="font-size: 8px; font-weight: bold;">{{ strtoupper($alumno->perfil ?? ($alumno->perfil_data['perfil'] ?? '')) }}</td>
+                <td style="font-size: 8px; font-weight: bold; text-align: left; line-height: 1;">{{ strtoupper($alumno->adscripcion ?? ($alumno->perfil_data['adscripcion'] ?? '')) }}</td>
                 <td class="attendance-col"> @if($alumno->asistencia_l) &bull; @endif </td>
                 <td class="attendance-col"> @if($alumno->asistencia_m) &bull; @endif </td>
                 <td class="attendance-col"> @if($alumno->asistencia_mi) &bull; @endif </td>

@@ -7,7 +7,10 @@ use App\Models\Calificacion;
 
 layout('layouts.app');
 
-state(['grupo' => null]);
+state([
+    'grupo' => null,
+    'minGrade' => 8.0
+]);
 
 mount(function (Grupo $grupo) {
     $this->grupo = $grupo->load(['curso', 'alumnos', 'expediente', 'plantel']);
@@ -18,6 +21,31 @@ $alumnosAlta = computed(fn() => $this->grupo?->alumnos()->wherePivot('estado', '
 $alumnosBaja = computed(fn() => $this->grupo?->alumnos()->wherePivot('estado', 'baja')->count() ?? 0);
 $documentos = computed(fn() => $this->grupo?->expediente->count() ?? 0);
 $evaluacionesEmitidas = computed(fn() => Calificacion::where('grupo_id', $this->grupo?->id)->count());
+
+$aprobados = computed(function() {
+    if (!$this->grupo) return 0;
+    return Calificacion::where('grupo_id', $this->grupo->id)
+        ->where('unidad', 'final')
+        ->where('calificacion', '>=', $this->minGrade)
+        ->count();
+});
+
+$reprobados = computed(function() {
+    if (!$this->grupo) return 0;
+    return Calificacion::where('grupo_id', $this->grupo->id)
+        ->where('unidad', 'final')
+        ->where('calificacion', '<', $this->minGrade)
+        ->count();
+});
+
+$pendientes = computed(function() {
+    if (!$this->grupo) return 0;
+    $inscritosActivos = $this->alumnosAlta;
+    $conCalificacion = Calificacion::where('grupo_id', $this->grupo->id)
+        ->where('unidad', 'final')
+        ->count();
+    return max(0, $inscritosActivos - $conCalificacion);
+});
 
 ?>
 
@@ -37,9 +65,18 @@ $evaluacionesEmitidas = computed(fn() => Calificacion::where('grupo_id', $this->
                 </div>
             </div>
             
-            <flux:button href="{{ route('grupos.show', $this->grupo->id) }}" variant="ghost" icon="arrow-left" class="text-[10px] uppercase font-black tracking-widest">
-                Retornar al Expediente
-            </flux:button>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+                    <span class="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Criterio Aprobatorio:</span>
+                    <input type="number" step="0.5" min="0" max="10" 
+                        wire:model.live="minGrade"
+                        class="w-16 bg-white dark:bg-zinc-900 border-none text-xs font-black text-blue-600 rounded-lg p-1 text-center focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <flux:button href="{{ route('grupos.show', $this->grupo->id) }}" variant="ghost" icon="arrow-left" class="text-[10px] uppercase font-black tracking-widest">
+                    Retornar al Expediente
+                </flux:button>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
@@ -133,6 +170,39 @@ $evaluacionesEmitidas = computed(fn() => Calificacion::where('grupo_id', $this->
                         <span class="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest mb-1">Volumen Documental</span>
                         <span class="text-3xl font-black text-zinc-700 dark:text-zinc-300 font-mono">{{ $this->documentos }}</span>
                         <span class="text-[9px] text-zinc-400 uppercase font-black tracking-widest mt-2">Archivos en Plataforma</span>
+                    </div>
+                </div>
+
+                <!-- Tarjetas de Rendimiento Académico -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-indigo-50 dark:bg-indigo-900/10 p-5 rounded-3xl border border-indigo-100 dark:border-indigo-900/30 flex flex-col relative overflow-hidden shadow-sm group hover:scale-[1.02] transition-transform">
+                        <div class="absolute -right-2 -bottom-2 bg-indigo-500/10 dark:bg-indigo-500/20 p-4 rounded-full">
+                            <flux:icon name="check-circle" class="size-6 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest mb-1">Aprobados (Final ≥ {{ $this->minGrade }})</span>
+                        <span class="text-3xl font-black text-indigo-700 dark:text-indigo-300 font-mono">{{ $this->aprobados }}</span>
+                        <div class="flex items-center gap-1 mt-2">
+                            <span class="text-[9px] text-indigo-500/70 uppercase font-black tracking-widest">Cadetes Aptos</span>
+                            <span class="text-[10px] font-bold text-indigo-600">{{ $this->alumnosAlta > 0 ? round(($this->aprobados / $this->alumnosAlta) * 100) : 0 }}%</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-orange-50 dark:bg-orange-900/10 p-5 rounded-3xl border border-orange-100 dark:border-orange-900/30 flex flex-col relative overflow-hidden shadow-sm group hover:scale-[1.02] transition-transform">
+                        <div class="absolute -right-2 -bottom-2 bg-orange-500/10 dark:bg-orange-500/20 p-4 rounded-full">
+                            <flux:icon name="x-circle" class="size-6 text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <span class="text-[10px] text-orange-600 dark:text-orange-400 font-bold uppercase tracking-widest mb-1">Reprobados (Final < {{ $this->minGrade }})</span>
+                        <span class="text-3xl font-black text-orange-700 dark:text-orange-300 font-mono">{{ $this->reprobados }}</span>
+                        <span class="text-[9px] text-orange-500/70 uppercase font-black tracking-widest mt-2">Personal No Apto</span>
+                    </div>
+
+                    <div class="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-3xl border border-amber-100 dark:border-amber-900/30 flex flex-col relative overflow-hidden shadow-sm group hover:scale-[1.02] transition-transform">
+                        <div class="absolute -right-2 -bottom-2 bg-amber-500/10 dark:bg-amber-500/20 p-4 rounded-full">
+                            <flux:icon name="clock" class="size-6 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <span class="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest mb-1">Pendientes de Captura</span>
+                        <span class="text-3xl font-black text-amber-700 dark:text-amber-300 font-mono">{{ $this->pendientes }}</span>
+                        <span class="text-[9px] text-amber-500/70 uppercase font-black tracking-widest mt-2">Sin Calificación Final</span>
                     </div>
                 </div>
 

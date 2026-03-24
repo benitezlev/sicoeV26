@@ -7,6 +7,7 @@ use App\Models\Plantel;
 use App\Models\Expediente;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Flux\Flux;
 
 usesPagination();
@@ -22,7 +23,6 @@ state([
     'email' => '',
     'curp' => '',
     'password' => '',
-    'selectedRoles' => [],
     'tipo' => 'alumno',
     'nivel' => 'estatal',
     'plantel_id' => '',
@@ -81,7 +81,6 @@ $edit = function ($id) {
     $this->adscripcion = $perfil['adscripcion'] ?? '';
     $this->area_especializada = $perfil['area_especializada'] ?? '';
 
-    $this->selectedRoles = $user->roles->pluck('name')->toArray();
     $this->password = '';
 
     $this->dispatch('modal-show', name: 'user-modal');
@@ -104,7 +103,6 @@ $create = function () {
     $this->adscripcion = '';
     $this->area_especializada = '';
     $this->sexo = 'H';
-    $this->selectedRoles = [];
 
     $this->dispatch('modal-show', name: 'user-modal');
 };
@@ -114,7 +112,7 @@ $save = function () {
         'nombre' => 'required|string|max:255',
         'paterno' => 'required|string|max:255',
         'materno' => 'nullable|string|max:255',
-        'email' => 'required|email|unique:users,email,' . $this->userId,
+        'email' => ['required', 'email', Rule::unique('users')->ignore($this->userId)],
         'curp' => 'nullable|string|size:18',
         'tipo' => 'required|string',
         'nivel' => 'required|string',
@@ -141,18 +139,22 @@ $save = function () {
         }
     } else {
         // Si es super admin, tomar el municipio_id del selector
-        $data['municipio_id'] = $this->municipio_id;
+        $data['municipio_id'] = $this->municipio_id ?: null;
     }
+
+    // Limpiar IDs para evitar errores de sintaxis en Postgres (bigint)
+    $data['plantel_id'] = ($data['plantel_id'] ?? null) ?: null;
+    $data['municipio_id'] = ($data['municipio_id'] ?? null) ?: null;
 
     if ($this->password) {
         $data['password'] = Hash::make($this->password);
     }
 
-    $data['username'] = $this->curp ?? $this->email;
+    $data['username'] = $this->curp ?: $this->email;
     
     // Empaquetar perfil_data
     $data['perfil_data'] = [
-        'municipio_id' => $this->municipio_id,
+        'municipio_id' => $this->municipio_id ?: null,
         'dependencia' => $this->dependencia,
         'adscripcion' => $this->adscripcion,
         'area_especializada' => $this->area_especializada,
@@ -201,12 +203,20 @@ $save = function () {
         ]);
     }
 
-    $user->syncRoles($this->selectedRoles);
+    // Sincronizar rol automáticamente según el tipo de usuario
+    $roleName = match($this->tipo) {
+        'admin' => 'admin_ti',
+        'docente' => 'docente',
+        'alumno' => 'alumno',
+        default => 'alumno'
+    };
+    $user->syncRoles([$roleName]);
 
     $this->dispatch('modal-hide', name: 'user-modal');
     
     Flux::toast(
-        heading: $this->userId ? 'Usuario actualizado' : 'Usuario creado',
+        text: $this->userId ? 'El usuario ha sido actualizado con éxito.' : 'El usuario ha sido registrado con éxito.',
+        heading: $this->userId ? 'Actualizado' : 'Registrado',
         variant: 'success',
     );
 };
@@ -423,12 +433,12 @@ $delete = function ($id) {
                     <flux:input wire:model="email" label="Correo Electrónico" placeholder="element@sicoe.gob.mx" />
                     <flux:input wire:model="password" type="password" label="Contraseña" :placeholder="$userId ? 'Dejar en blanco para no cambiar' : 'Mínimo 8 caracteres'" />
                     
-                    <flux:select wire:model="sexo" label="Sexo">
+                    <flux:select wire:model.live="sexo" label="Sexo" placeholder="Selecciona sexo...">
                         <flux:select.option value="H">Hombre</flux:select.option>
                         <flux:select.option value="M">Mujer</flux:select.option>
                     </flux:select>
 
-                    <flux:select wire:model="tipo" label="Tipo de Usuario">
+                    <flux:select wire:model.live="tipo" label="Tipo de Usuario" placeholder="Selecciona tipo...">
                         <flux:select.option value="alumno">Alumno</flux:select.option>
                         <flux:select.option value="docente">Docente</flux:select.option>
                         <flux:select.option value="admin">Administrador</flux:select.option>
@@ -442,7 +452,7 @@ $delete = function ($id) {
                             <flux:select.option value="administrativo">Administrativo / UMS</flux:select.option>
                         </flux:select>
                         
-                        <flux:select wire:model="plantel_id" label="Plantel Asignado">
+                        <flux:select wire:model.live="plantel_id" label="Plantel Asignado" placeholder="Sin plantel específico">
                             <flux:select.option value="">Sin plantel específico</flux:select.option>
                             @foreach($this->planteles as $plantel)
                                 <flux:select.option value="{{ $plantel->id }}">{{ $plantel->name }}</flux:select.option>
@@ -451,7 +461,7 @@ $delete = function ($id) {
                     @endif
 
                     @if($nivel === 'municipal')
-                        <flux:select wire:model="municipio_id" label="Municipio">
+                        <flux:select wire:model.live="municipio_id" label="Municipio" placeholder="Selecciona municipio...">
                             <flux:select.option value="">Selecciona municipio</flux:select.option>
                             @foreach($this->municipios as $mun)
                                 <flux:select.option value="{{ $mun->id }}">{{ $mun->nombre }}</flux:select.option>
@@ -466,16 +476,6 @@ $delete = function ($id) {
                     <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                         <flux:input wire:model="dependencia" label="Dependencia/Corporación" placeholder="Ej. Policía Estatal, DGSC..." />
                         <flux:input wire:model="adscripcion" label="Unidad de Adscripción" placeholder="Ej. Región I, Comandancia..." />
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <flux:fieldset label="Asignar Roles">
-                            <div class="flex flex-wrap gap-4 mt-2">
-                                @foreach($this->roles as $role)
-                                    <flux:checkbox wire:model="selectedRoles" :value="$role->name" :label="$role->name" />
-                                @endforeach
-                            </div>
-                        </flux:fieldset>
                     </div>
                 </div>
 

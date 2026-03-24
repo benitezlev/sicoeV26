@@ -83,8 +83,8 @@ class AsistenciaController extends Controller
                 'alumnos'    => $alumnos,
                 'docente'    => $grupo->docente(),
                 'estadisticas' => [
-                    'hombres' => $alumnos->where('sexo', 'M')->count(),
-                    'mujeres' => $alumnos->where('sexo', 'F')->count(),
+                    'hombres' => $alumnos->where('sexo', 'H')->count(),
+                    'mujeres' => $alumnos->where('sexo', 'M')->count(),
                     'total' => $alumnos->count(),
                 ],
                 'sinDias'    => empty($diasDelMes) ? "Sin clases programadas en este mes dentro del periodo del grupo." : null,
@@ -139,8 +139,8 @@ class AsistenciaController extends Controller
                 'alumnos' => $alumnos,
                 'docente' => $grupo->docente(),
                 'estadisticas' => [
-                    'hombres' => $alumnos->where('sexo', 'M')->count(),
-                    'mujeres' => $alumnos->where('sexo', 'F')->count(),
+                    'hombres' => $alumnos->where('sexo', 'H')->count(),
+                    'mujeres' => $alumnos->where('sexo', 'M')->count(),
                     'total' => $alumnos->count(),
                 ],
             ])

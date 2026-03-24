@@ -4,6 +4,7 @@ use function Livewire\Volt\{state, layout, rules, usesFileUploads};
 use App\Models\User;
 use App\Models\Expediente;
 use App\Models\Importacion;
+use App\Models\Grupo;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -59,7 +60,7 @@ $importar = function () {
     $encabezados = fgetcsv($csv, 0, $separador);
     Log::info('Encabezados detectados:', ['encabezados' => $encabezados, 'separador' => $separador, 'encoding' => $enc]);
     
-    $requeridos = ['curp', 'nombre', 'sexo'];
+    $requeridos = ['nombre', 'sexo', 'tipo_usuario'];
     
     // Limpiar BOM y espacios de encabezados
     if ($encabezados) {
@@ -98,24 +99,31 @@ $importar = function () {
         }
 
         $datos = array_combine($encabezados, $fila);
+        $tipoUsuario = strtolower(trim($datos['tipo_usuario'] ?? 'aspirante'));
         $curp = strtoupper(trim($datos['curp'] ?? ''));
+        $cuip = trim($datos['cuip'] ?? '');
         $nombre = trim($datos['nombre'] ?? '');
 
-        if (!$curp) {
-            $msg = "Fila $filaNum: El alumno '{$nombre}' no tiene CURP definido.";
+        // Lógica de Identificador Flexible (CUIP para Activos, CURP para Aspirantes)
+        $identificador = ($tipoUsuario === 'activo' && !empty($cuip)) ? $cuip : $curp;
+        $campoIdentificador = ($tipoUsuario === 'activo' && !empty($cuip)) ? 'cuip' : 'curp';
+
+        if (!$identificador) {
+            $msg = "Fila $filaNum: Identificador clave (CUIP o CURP) ausente para tipo '$tipoUsuario'.";
             Log::warning($msg);
             $this->errores[] = $msg;
             continue;
         }
 
-        // Validación de duplicados por CURP
-        if (User::where('curp', $curp)->exists()) {
-            $this->duplicados[] = [
-                'nombre' => $nombre . ' ' . ($datos['paterno'] ?? ''),
-                'curp' => $curp,
-                'motivo' => 'CURP ya registrado en el sistema'
-            ];
-            continue;
+        // Buscar usuario existente
+        $user = User::where($campoIdentificador, $identificador)->first();
+        
+        if ($user) {
+            // Si el usuario ya existe, lo consideramos "duplicado" para creación, 
+            // pero permitimos que continúe para la lógica de inscripción a grupo si aplica.
+            $yaRegistrado = true;
+        } else {
+            $yaRegistrado = false;
         }
 
         $sexoRaw = strtoupper(trim($datos['sexo'] ?? ''));
@@ -138,55 +146,80 @@ $importar = function () {
             $nivel = 'estatal';
         }
 
-        $email = $datos['email'] ?? strtolower($curp) . '@sicoe.mx';
-        $password = $datos['password'] ?? $curp;
+        if (!$yaRegistrado) {
+            try {
+                $user = User::create([
+                    'nombre' => $nombre,
+                    'paterno' => $datos['paterno'] ?? '',
+                    'materno' => $datos['materno'] ?? '',
+                    'username' => $datos['username'] ?? ($cuip ?: $curp),
+                    'email' => $datos['email'] ?? strtolower($identificador) . '@sicoe.mx',
+                    'password' => Hash::make($datos['password'] ?? $identificador),
+                    'curp' => $curp ?: null,
+                    'cuip' => $cuip ?: null,
+                    'cup' => !empty(trim($datos['cup'] ?? '')) ? trim($datos['cup']) : null,
+                    'sexo' => $sexo,
+                    'tipo' => 'alumno', // Rol fijo para este import
+                    'nivel' => $nivel,
+                    'perfil_data' => [
+                        'perfil' => $datos['perfil'] ?? null,
+                        'municipio_id' => $datos['municipio_id'] ?? null,
+                        'dependencia' => $datos['dependencia'] ?? null,
+                        'adscripcion' => $datos['adscripcion'] ?? null,
+                        'importado_el' => now()->toDateTimeString(),
+                        'tipo_captura' => $tipoUsuario,
+                    ],
+                ]);
 
-        try {
-            $user = User::create([
-                'nombre' => $nombre,
-                'paterno' => $datos['paterno'] ?? '',
-                'materno' => $datos['materno'] ?? '',
-                'username' => $datos['username'] ?? $curp,
-                'email' => $email,
-                'password' => Hash::make($password),
-                'curp' => $curp,
-                'cuip' => !empty(trim($datos['cuip'] ?? '')) ? trim($datos['cuip']) : null,
-                'cup' => !empty(trim($datos['cup'] ?? '')) ? trim($datos['cup']) : null,
-                'sexo' => $sexo,
-                'tipo' => strtolower($datos['tipo'] ?? 'alumno') === 'alumno' ? 'alumno' : ($datos['tipo'] ?? 'alumno'),
-                'nivel' => $nivel,
-                'plantel_id' => null, // Asignación dinámica posterior
-                'perfil_data' => [
-                    'perfil' => $datos['perfil'] ?? null,
-                    'municipio_id' => $datos['municipio_id'] ?? null,
-                    'dependencia' => $datos['dependencia'] ?? null,
-                    'adscripcion' => $datos['adscripcion'] ?? null,
-                    'area_especializada' => $datos['area_especializada'] ?? null,
-                    'importado_el' => now()->toDateTimeString(),
-                ],
-            ]);
+                $user->assignRole('alumno');
 
-            $user->assignRole('alumno');
+                $prefix = match($nivel) {
+                    'municipal' => 'MUN',
+                    'fiscalia' => 'FIS',
+                    default => 'EST'
+                };
 
-            // Folio de expediente basado en nivel
-            $prefix = match($nivel) {
-                'municipal' => 'MUN',
-                'fiscalia' => 'FIS',
-                default => 'EST'
-            };
+                Expediente::create([
+                    'user_id' => $user->id,
+                    'folio' => "{$prefix}-" . date('Y') . "-" . str_pad($user->id, 5, '0', STR_PAD_LEFT),
+                    'estatus' => 'incompleto',
+                    'fecha_apertura' => now(),
+                ]);
 
-            Expediente::create([
-                'user_id' => $user->id,
-                'folio' => "{$prefix}-" . date('Y') . "-" . str_pad($user->id, 5, '0', STR_PAD_LEFT),
-                'estatus' => 'incompleto',
-                'fecha_apertura' => now(),
-            ]);
+                $this->insertados++;
+            } catch (\Exception $e) {
+                $msg = "Error crítico procesando '{$nombre}' ({$identificador}): " . $e->getMessage();
+                Log::error($msg);
+                $this->errores[] = $msg;
+                continue;
+            }
+        }
 
-            $this->insertados++;
-        } catch (\Exception $e) {
-            $msg = "Error crítico procesando '{$nombre}' ({$curp}): " . $e->getMessage();
-            Log::error($msg);
-            $this->errores[] = $msg;
+        // Lógica de Auto-Inscripción a Grupo
+        $grupoNombre = trim($datos['grupo'] ?? '');
+        if ($grupoNombre && $user) {
+            $grupo = Grupo::where('nombre', $grupoNombre)->first();
+            if ($grupo) {
+                // Verificar si ya está inscrito
+                $estaInscrito = $user->grupos()->where('grupo_id', $grupo->id)->exists();
+                if (!$estaInscrito) {
+                    $user->grupos()->attach($grupo->id, [
+                        'estado' => 'activo',
+                        'fecha_asignacion' => now()
+                    ]);
+                    Log::info("Alumno {$user->id} inscrito automáticamente al grupo: {$grupoNombre}");
+                }
+            } else {
+                $this->errores[] = "Fila $filaNum: El grupo '$grupoNombre' no fue encontrado.";
+            }
+        }
+
+        if ($yaRegistrado && !$grupoNombre) {
+            $this->duplicados[] = [
+                'nombre' => $nombre . ' ' . ($datos['paterno'] ?? ''),
+                'curp' => $identificador,
+                'motivo' => 'Usuario ya existe y no se especificó grupo'
+            ];
         }
     }
 
@@ -235,15 +268,22 @@ $exportarErrores = function () {
 };
 
 $descargarPlantilla = function () {
-    $columnas = ['cuip', 'curp', 'cup', 'paterno', 'materno', 'nombre', 'dependencia', 'adscripcion', 'perfil', 'sexo', 'tipo', 'username', 'password'];
-    $ejemplo = ['CUIP999000', 'CURP123456HDFXYZ01', 'CUP001', 'ALVAREZ', 'DIAZ', 'IVÁN', 'SECRETARÍA DE SEGURIDAD', 'DIRECCIÓN GENERAL', 'POLICÍA PREVENTIVO ESTATAL', 'Hombre', 'ALUMNO', 'CURP123456HDFXYZ01', 'P@ssword'];
+    $columnas = ['curp', 'cuip', 'tipo_usuario', 'grupo', 'paterno', 'materno', 'nombre', 'sexo', 'dependencia', 'adscripcion', 'perfil', 'nivel'];
     
-    $contenido = implode(',', $columnas) . "\n" . implode(',', $ejemplo);
+    $ejemplos = [
+        ['CURP123456HDFXYZ01', 'CUIP999000', 'activo', 'GRUPO_POLICIA_ESTATAL_01', 'GOMEZ', 'PEREZ', 'JUAN', 'HOMBRE', 'SS', 'REGION I', 'POLICIA', 'estatal'],
+        ['CURP789012MDFXYZ02', '', 'aspirante', 'CURSO_CADETES_2024', 'LOPEZ', 'RUIZ', 'MARÍA', 'MUJER', 'UMS', 'PLANTEL TEPOTZOTLAN', 'CADETE', 'estatal'],
+    ];
+    
+    $contenido = implode(',', $columnas) . "\n";
+    foreach($ejemplos as $e) {
+        $contenido .= implode(',', $e) . "\n";
+    }
     
     return response()->streamDownload(function () use ($contenido) {
         echo "\xEF\xBB\xBF"; // UTF-8 BOM
         echo $contenido;
-    }, 'plantilla_importacion_alumnos.csv');
+    }, 'plantilla_sicoe_alumnos.csv');
 };
 
 $resetear = function () {
@@ -275,9 +315,10 @@ $resetear = function () {
                         Sube un archivo CSV o Excel con los datos de los alumnos. El sistema validará automáticamente que no existan CURPs duplicadas y generará sus expedientes institucionales.
                     </flux:subheading>
                     <div class="mt-4 flex gap-4">
-                        <flux:badge color="zinc" icon="check-circle">CURP (Obligatorio)</flux:badge>
-                        <flux:badge color="zinc" icon="check-circle">Nombre (Obligatorio)</flux:badge>
-                        <flux:badge color="zinc" icon="check-circle">Sexo (Obligatorio)</flux:badge>
+                        <flux:badge color="zinc" icon="check-circle">Tipo Usuario (Activo / Aspirante)</flux:badge>
+                        <flux:badge color="zinc" icon="check-circle">CUIP (Activos)</flux:badge>
+                        <flux:badge color="zinc" icon="check-circle">CURP (Aspirantes)</flux:badge>
+                        <flux:badge color="blue" icon="academic-cap">Grupo (Opcional)</flux:badge>
                     </div>
                 </div>
 
