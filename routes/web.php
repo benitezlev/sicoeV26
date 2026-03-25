@@ -23,7 +23,7 @@ Route::middleware([
     })->name('dashboard');
 });
 
-Route::middleware(['auth', 'role:admin_ti'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'role:superadmin|control_escolar'])->prefix('admin')->group(function () {
     Volt::route('config', 'configuracion-institucional')->name('config.index');
     Volt::route('plantel', 'planteles.index')->name('plantel.index');
     Volt::route('/usuarios', 'usuarios.index')->name('alumnos.index');
@@ -49,18 +49,18 @@ Route::middleware(['auth', 'role:admin_ti'])->prefix('admin')->group(function ()
     Route::get('/calificaciones/acta', [ExportacionesController::class, 'exportarActa'])->name('calificaciones.acta');
 });
 
- Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {
+ Route::middleware(['auth', 'role:superadmin|control_escolar'])->group(function () {
  Route::get('/importaciones', [ImportacionController::class, 'index'])->name('importaciones.index');
 
 
     });
 
 Route::get('/grupos/{id}/exportar', [ExportacionesController::class, 'exportarGrupo'])
-    ->middleware(['auth', 'role:admin_ti|coordinador'])
+    ->middleware(['auth', 'role:superadmin|control_escolar|operador'])
     ->name('grupos.exportar');
 
 
-Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {
+Route::middleware(['auth', 'role:superadmin|control_escolar'])->group(function () {
     // Cursos
     Volt::route('/cursos', 'cursos.index')->name('cursos.index');
     Route::get('/cursos/exportar/pdf', [CursoController::class, 'exportarPDF'])->name('cursos.exportar.pdf');
@@ -77,7 +77,7 @@ Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {
 
 
 // grupos
-Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {
+Route::middleware(['auth', 'role:superadmin|control_escolar|operador'])->group(function () {
     Volt::route('/grupos', 'grupos.index')->name('grupos.index');
     Volt::route('/grupos/{grupo}', 'grupos.show')->name('grupos.show');
     
@@ -87,7 +87,7 @@ Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {
 
 
 // Grupo de rutas para asistencias
-Route::middleware(['auth', 'role:admin_ti|coordinador'])->group(function () {
+Route::middleware(['auth', 'role:superadmin|control_escolar|operador'])->group(function () {
     Volt::route('/asistencias/dashboard', 'asistencias.index')->name('asistencias.index');
     Volt::route('/asistencias/pase-lista', 'asistencias.pase-lista')->name('asistencias.pase-lista');
 

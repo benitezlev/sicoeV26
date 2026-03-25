@@ -60,7 +60,7 @@ $importar = function () {
     $encabezados = fgetcsv($csv, 0, $separador);
     Log::info('Encabezados detectados:', ['encabezados' => $encabezados, 'separador' => $separador, 'encoding' => $enc]);
     
-    $requeridos = ['nombre', 'sexo', 'tipo_usuario'];
+    $requeridos = ['curp', 'nombre', 'sexo', 'tipo'];
     
     // Limpiar BOM y espacios de encabezados
     if ($encabezados) {
@@ -99,9 +99,10 @@ $importar = function () {
         }
 
         $datos = array_combine($encabezados, $fila);
-        $tipoUsuario = strtolower(trim($datos['tipo_usuario'] ?? 'aspirante'));
+        $tipoUsuario = strtolower(trim($datos['tipo'] ?? 'aspirante'));
         $curp = strtoupper(trim($datos['curp'] ?? ''));
         $cuip = trim($datos['cuip'] ?? '');
+        $cup = trim($datos['cup'] ?? '');
         $nombre = trim($datos['nombre'] ?? '');
 
         // Lógica de Identificador Flexible (CUIP para Activos, CURP para Aspirantes)
@@ -152,18 +153,17 @@ $importar = function () {
                     'nombre' => $nombre,
                     'paterno' => $datos['paterno'] ?? '',
                     'materno' => $datos['materno'] ?? '',
-                    'username' => $datos['username'] ?? ($cuip ?: $curp),
-                    'email' => $datos['email'] ?? strtolower($identificador) . '@sicoe.mx',
+                    'username' => $datos['username'] ?? $identificador,
+                    'email' => strtolower($identificador) . '@sicoe.mx',
                     'password' => Hash::make($datos['password'] ?? $identificador),
                     'curp' => $curp ?: null,
                     'cuip' => $cuip ?: null,
-                    'cup' => !empty(trim($datos['cup'] ?? '')) ? trim($datos['cup']) : null,
+                    'cup' => $cup ?: null,
                     'sexo' => $sexo,
-                    'tipo' => 'alumno', // Rol fijo para este import
+                    'tipo' => 'alumno', // Rol base
                     'nivel' => $nivel,
                     'perfil_data' => [
                         'perfil' => $datos['perfil'] ?? null,
-                        'municipio_id' => $datos['municipio_id'] ?? null,
                         'dependencia' => $datos['dependencia'] ?? null,
                         'adscripcion' => $datos['adscripcion'] ?? null,
                         'importado_el' => now()->toDateTimeString(),
@@ -268,11 +268,11 @@ $exportarErrores = function () {
 };
 
 $descargarPlantilla = function () {
-    $columnas = ['curp', 'cuip', 'tipo_usuario', 'grupo', 'paterno', 'materno', 'nombre', 'sexo', 'dependencia', 'adscripcion', 'perfil', 'nivel'];
+    $columnas = ['cuip', 'curp', 'cup', 'paterno', 'materno', 'nombre', 'dependencia', 'adscripcion', 'perfil', 'sexo', 'tipo', 'username', 'password', 'grupo'];
     
     $ejemplos = [
-        ['CURP123456HDFXYZ01', 'CUIP999000', 'activo', 'GRUPO_POLICIA_ESTATAL_01', 'GOMEZ', 'PEREZ', 'JUAN', 'HOMBRE', 'SS', 'REGION I', 'POLICIA', 'estatal'],
-        ['CURP789012MDFXYZ02', '', 'aspirante', 'CURSO_CADETES_2024', 'LOPEZ', 'RUIZ', 'MARÍA', 'MUJER', 'UMS', 'PLANTEL TEPOTZOTLAN', 'CADETE', 'estatal'],
+        ['CUIP999000', 'CURP123456HDFXYZ01', 'CUP-001', 'GOMEZ', 'PEREZ', 'JUAN', 'SECRETARIA DE SEGURIDAD', 'REGION NEZA', 'POLICIA', 'HOMBRE', 'activo', 'juan.gomez', 'P@ssword123', 'PFA-NEZ-GPO01'],
+        ['', 'CURP789012MDFXYZ02', '', 'LOPEZ', 'RUIZ', 'MARÍA', 'UMS', 'PLANTEL NEZA', 'CADETE', 'MUJER', 'aspirante', 'maria.lopez', 'Maria123', 'PFA-NEZ-GPO01'],
     ];
     
     $contenido = implode(',', $columnas) . "\n";
@@ -283,7 +283,7 @@ $descargarPlantilla = function () {
     return response()->streamDownload(function () use ($contenido) {
         echo "\xEF\xBB\xBF"; // UTF-8 BOM
         echo $contenido;
-    }, 'plantilla_sicoe_alumnos.csv');
+    }, 'plantilla_sicoe_completa.csv');
 };
 
 $resetear = function () {
@@ -312,7 +312,7 @@ $resetear = function () {
                 <div class="space-y-2">
                     <flux:heading>Instrucciones</flux:heading>
                     <flux:subheading>
-                        Sube un archivo CSV o Excel con los datos de los alumnos. El sistema validará automáticamente que no existan CURPs duplicadas y generará sus expedientes institucionales.
+                        Sube un archivo CSV con los datos de alumnos. Puedes incluir una columna <b>'grupo'</b> con el nombre exacto (ej: <code>PFA-NEZ-GPO01</code>) para inscribirlos automáticamente.
                     </flux:subheading>
                     <div class="mt-4 flex gap-4">
                         <flux:badge color="zinc" icon="check-circle">Tipo Usuario (Activo / Aspirante)</flux:badge>

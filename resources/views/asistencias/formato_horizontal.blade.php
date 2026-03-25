@@ -31,10 +31,31 @@
 <body>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
         <tr>
-            <td style="width: 80%; text-align: left; vertical-align: top;">
-                <img src="{{ public_path('img/pleca.png') }}" style="height: 140px; width: auto; max-width: 100%;" alt="Institucional">
+            <td style="width: 40%; text-align: left; vertical-align: middle;">
+                @php
+                    $config = \App\Models\ConfiguracionInstitucional::first();
+                    $r1_path = ($config && $config->pleca_recurso_1 && Storage::disk('public')->exists('plecas/' . $config->pleca_recurso_1)) 
+                                ? storage_path('app/public/plecas/' . $config->pleca_recurso_1) 
+                                : public_path('img/pleca.png');
+                @endphp
+                <img src="{{ $r1_path }}" style="height: 100px; width: auto; max-width: 100%;" alt="Recurso 1">
             </td>
-            <td style="width: 20%; text-align: right; vertical-align: top; font-size: 10px; font-weight: bold; text-transform: uppercase; padding-top: 45px;">
+            <td style="width: 20%; text-align: center; vertical-align: middle;">
+                 {{-- Espacio central --}}
+            </td>
+            <td style="width: 40%; text-align: right; vertical-align: middle;">
+                @php
+                    $r2_path = ($config && $config->pleca_recurso_2 && Storage::disk('public')->exists('plecas/' . $config->pleca_recurso_2)) 
+                                ? storage_path('app/public/plecas/' . $config->pleca_recurso_2) 
+                                : null;
+                @endphp
+                @if($r2_path)
+                    <img src="{{ $r2_path }}" style="height: 100px; width: auto; max-width: 100%;" alt="Recurso 2">
+                @endif
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3" style="text-align: right; font-size: 10px; font-weight: bold; text-transform: uppercase;">
                 {{ $grupo->plantel->name }}
             </td>
         </tr>

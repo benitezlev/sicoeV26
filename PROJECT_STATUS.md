@@ -2,29 +2,28 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-03-24 16:15)
+## 🕒 Últimos Cambios Importantes (2026-03-25 10:20)
 
-### 📥 Importación Masiva v2 [NUEVO]
-1.  **Identidad Dinámica:** El proceso de importación ahora distingue entre **Activo (CUIP)** y **Aspirante (CURP)** para la validación de duplicados.
-2.  **Auto-Inscripción:** Columna `grupo` integrada en el CSV para vincular automáticamente alumnos a grupos existentes durante la carga.
-3.  **Plantilla Inteligente:** Nueva plantilla descargable con ejemplos para ambos perfiles de usuario.
+### 🏫 Identidad Institucional y Branding [NUEVO]
+1.  **Doble Pleca Recurso:** Soporte para encabezados divididos (Recurso 1 y 2), permitiendo composiciones complejas de logos institucionales en documentos PDF.
+2.  **Persistencia de Configuración:** Corrección de errores de guardado en el módulo UMS; todos los campos (RFC, Titular, Siglas) ahora se sincronizan correctamente con PostgreSQL.
+3.  **Gestión de Activos:** Módulo de carga de PNGs con vista previa dinámica para Logos y Plecas.
 
-### 📄 Formatos de Reporte [REFINADO]
-1.  **Uniformidad Tipográfica:** Ajuste de fuentes en reportes PDF para alinear CUIP, Perfil y Adscripción con el estilo de nombres (8px Bold).
-
-### 📊 Analítica y Rendimiento Académico
-1.  **Dashboard de Aprobación:** Métricas de aprobados/reprobados con criterio dinámico ajustable.
-2.  **Corrección de Género:** Sincronización de códigos `H/M` en controladores de PDF para estadísticas precisas.
+### 📝 Gestión Académica de Grupos [REFINADO]
+1.  **Estabilización de Selectores:** Sustitución de componentes Flux Pro por selectores nativos estilizados, eliminando fallos de sincronización con Livewire en el modal de apertura.
+2.  **Carga Horaria Automática:** Motor de cálculo que deduce automáticamente la (-1hr de comida) basado en horarios de entrada/salida y días de cátedra.
+3.  **Pagination de Asistencias:** Los reportes de más de 40 horas ahora se generan por semanas académicas con detección automática de días inhábiles (Holidays).
 
 ### 🎓 Gestión de Matrícula y Trazabilidad
 1.  **Bajas con Trazabilidad:** Proceso no destructivo con registro de fecha, motivo y responsable.
 2.  **Reincorporación Directa:** Botón de reactivación que restaura el flujo académico sin pérdida de datos.
 
-### 🚀 Pendientes y Próximos Pasos (Retroalimentación Martes 24/Mar)
+## 🚀 Pendientes y Próximos Pasos (Retroalimentación Miércoles 25/Mar)
 
 ### 🔴 Prioridad Alta
 1.  **Firma Electrónica Simple:** Implementar estampado de Hash de validación y Código QR en actas de calificación.
-2.  **Reporte Fiscalía:** Desarrollar el reporte específico una vez que se entreguen las reglas de negocio.
+2.  **Reporte Fiscalía:** Desarrollar el reporte específico con reglas de negocio FGJEM.
+3.  **Hardening de Seguridad:** Revisar políticas de acceso para perfiles de Operador y Docente.
 
 ---
-*Última actualización: 2026-03-24 16:15:00*
+*Última actualización: 2026-03-25 10:20:00*

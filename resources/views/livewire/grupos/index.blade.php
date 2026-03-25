@@ -48,14 +48,42 @@ $grupos = computed(function () {
 $planteles = computed(fn() => Plantel::orderBy('name')->get());
 $cursos = computed(fn() => Curso::orderBy('nombre')->get());
 
-updated(['total_horas' => function ($value) {
-    $horasEspeciales = [40, 60, 80, 100, 120];
-    if (in_array((int)$value, $horasEspeciales)) {
-        $this->formato_especial = true;
-    } else {
-        $this->formato_especial = false;
+updated([
+    'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'dias_clase' => function () {
+        if (!$this->fecha_inicio || !$this->fecha_fin || !$this->hora_inicio || !$this->hora_fin || empty($this->dias_clase)) return;
+
+        $inicio = \Carbon\Carbon::parse($this->fecha_inicio);
+        $fin = \Carbon\Carbon::parse($this->fecha_fin);
+        $hIni = \Carbon\Carbon::parse($this->hora_inicio);
+        $hFin = \Carbon\Carbon::parse($this->hora_fin);
+
+        $horasDiarias = max(0, $hFin->diffInHours($hIni) - 1);
+        
+        $totalDiasPresenciales = 0;
+        for ($d = $inicio->copy(); $d->lte($fin); $d->addDay()) {
+            if (in_array((int)$d->dayOfWeekIso, array_map('intval', $this->dias_clase))) {
+                $totalDiasPresenciales++;
+            }
+        }
+
+        $this->total_horas = $horasDiarias * $totalDiasPresenciales;
+        
+        // Disparar detección automática de formato especial
+        if (in_array((int)$this->total_horas, [40, 60, 80, 100, 120])) {
+            $this->formato_especial = true;
+        }
+    },
+    'total_horas' => function ($value) {
+        if (in_array((int)$value, [40, 60, 80, 100, 120])) {
+            $this->formato_especial = true;
+        }
+    },
+    'formato_especial' => function ($value) {
+        if ($value && empty($this->total_horas)) {
+            $this->total_horas = 40;
+        }
     }
-}]);
+]);
 
 $abrirModalCrear = function () {
     $this->resetErrorBag();
@@ -301,28 +329,48 @@ $eliminar = function ($id) {
 
                         <flux:field>
                             <flux:label>Programa Curricular / Curso</flux:label>
-                            <flux:select wire:model="curso_id" placeholder="Seleccionar programa base..." searchable wire:key="g-cur-{{ $grupoId ?? 'new' }}">
-                                @foreach($this->cursos as $c)
-                                    <flux:select.option value="{{ $c->id }}">{{ $c->nombre }}</flux:select.option>
-                                @endforeach
-                            </flux:select>
+                            <div class="relative group">
+                                <select wire:model.live="curso_id" class="appearance-none block w-full px-4 py-3 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
+                                    <option value="">Seleccionar curso base...</option>
+                                    @foreach($this->cursos as $c)
+                                        <option value="{{ $c->id }}">{{ $c->nombre }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-zinc-400">
+                                    <flux:icon name="chevron-down" variant="mini" />
+                                </div>
+                            </div>
                             <flux:error name="curso_id" />
                         </flux:field>
 
                         <flux:field>
                             <flux:label>Sede Operativa (Plantel)</flux:label>
-                            <flux:select wire:model="plantel_id" placeholder="Seleccionar instalaciones..." searchable wire:key="g-pla-{{ $grupoId ?? 'new' }}">
-                                @foreach($this->planteles as $p)
-                                    <flux:select.option value="{{ $p->id }}">{{ $p->name }}</flux:select.option>
-                                @endforeach
-                            </flux:select>
+                            <div class="relative group">
+                                <select wire:model.live="plantel_id" class="appearance-none block w-full px-4 py-3 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
+                                    <option value="">Seleccionar ubicación...</option>
+                                    @foreach($this->planteles as $p)
+                                        <option value="{{ $p->id }}">{{ $p->name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-zinc-400">
+                                    <flux:icon name="chevron-down" variant="mini" />
+                                </div>
+                            </div>
                             <flux:error name="plantel_id" />
                         </flux:field>
 
-                        <div class="p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl flex items-center justify-between">
+                        <div class="p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl flex items-center justify-between relative overflow-hidden transition-all {{ $formato_especial ? 'ring-1 ring-blue-500/50' : '' }}">
+                            @if($formato_especial)
+                                <div class="absolute left-0 top-0 h-full w-1.5 bg-blue-600 animate-pulse"></div>
+                            @endif
                             <div class="space-y-0.5">
-                                <flux:label class="font-black text-blue-700 dark:text-blue-400 text-xs text-wrap">FORMATO DE CALIFICACIÓN ESPECIAL</flux:label>
-                                <p class="text-[10px] text-zinc-500 font-medium italic">Activar para usar modalidad "Diagnóstica y Final" (Tipo 40 hrs).</p>
+                                <div class="flex items-center gap-2">
+                                    <flux:label class="font-black text-blue-700 dark:text-blue-400 text-xs uppercase">Formato de Calificación Especial</flux:label>
+                                    @if($formato_especial)
+                                        <span class="px-1.5 py-0.5 bg-blue-600 text-white text-[8px] font-black rounded tracking-widest leading-none">ACTIVO</span>
+                                    @endif
+                                </div>
+                                <p class="text-[10px] text-zinc-500 font-medium italic">Habilita evaluación Diagnóstica y Final (Modelos de 40 a 120 hrs).</p>
                             </div>
                             <flux:switch wire:model.live="formato_especial" color="blue" />
                         </div>
@@ -336,22 +384,33 @@ $eliminar = function ($id) {
                             
                             <flux:field>
                                 <flux:label>Estatus</flux:label>
-                                <flux:select wire:model="estado" wire:key="g-est-{{ $grupoId ?? 'new' }}">
-                                    <flux:select.option value="activo">Aperturado / Activo</flux:select.option>
-                                    <flux:select.option value="concluido">Generación Graduada</flux:select.option>
-                                    <flux:select.option value="cancelado">Suspendido / Cancelado</flux:select.option>
-                                </flux:select>
+                                <div class="relative group">
+                                    <select wire:model.live="estado" class="appearance-none block w-full px-4 py-3 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
+                                        <option value="activo">Aperturado / Activo</option>
+                                        <option value="concluido">Generación Graduada</option>
+                                        <option value="cancelado">Suspendido / Cancelado</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-zinc-400">
+                                        <flux:icon name="chevron-down" variant="mini" />
+                                    </div>
+                                </div>
                                 <flux:error name="estado" />
                             </flux:field>
                         </div>
 
                         <flux:field>
                             <flux:label>Adscripción / Tipo de Grupo</flux:label>
-                            <flux:select wire:model="tipo_grupo" wire:key="g-tip-{{ $grupoId ?? 'new' }}">
-                                <flux:select.option value="estatal">🏙️ Grupo Estatal (UMS)</flux:select.option>
-                                <flux:select.option value="municipal">🏘️ Grupo Municipal (Convenio)</flux:select.option>
-                                <flux:select.option value="fiscalia">⚖️ Grupo Fiscalía (FGJEM)</flux:select.option>
-                            </flux:select>
+                            <div class="relative group">
+                                <select wire:model.live="tipo_grupo" class="appearance-none block w-full px-4 py-3 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
+                                    <option value="">Seleccionar tipo...</option>
+                                    <option value="estatal">🏙️ Grupo Estatal (UMS)</option>
+                                    <option value="municipal">🏘️ Grupo Municipal (Convenio)</option>
+                                    <option value="fiscalia">⚖️ Grupo Fiscalía (FGJEM)</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-zinc-400">
+                                    <flux:icon name="chevron-down" variant="mini" />
+                                </div>
+                            </div>
                             <flux:error name="tipo_grupo" />
                         </flux:field>
                     </div>
@@ -387,7 +446,7 @@ $eliminar = function ($id) {
                                 <flux:error name="hora_fin" />
                             </flux:field>
                             <flux:field>
-                                <flux:label>Total</flux:label>
+                                <flux:label>Total <span class="text-[9px] text-zinc-400 font-normal italic ml-1">(-1 hr comida)</span></flux:label>
                                 <flux:input type="number" wire:model.live="total_horas" min="1" icon="clock" placeholder="Hrs" wire:key="g-thor-{{ $grupoId ?? 'new' }}" />
                                 <flux:error name="total_horas" />
                             </flux:field>
@@ -397,9 +456,13 @@ $eliminar = function ($id) {
                             <flux:label class="mb-3 font-bold">Días Hábiles de Cátedra</flux:label>
                             <div class="grid grid-cols-4 gap-3 p-4 bg-zinc-50 dark:bg-zinc-900/40 rounded-2xl border border-zinc-200 dark:border-zinc-800" wire:key="g-dias-container-{{ $grupoId ?? 'new' }}">
                                 @foreach([1=>'Lun', 2=>'Mar', 3=>'Mié', 4=>'Jue', 5=>'Vie', 6=>'Sáb', 7=>'Dom'] as $val => $label)
-                                    <label class="flex items-center justify-center p-2 rounded-xl cursor-pointer transition-all border {{ in_array($val, is_array($dias_clase) ? $dias_clase : []) ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700' }}">
+                                    @php 
+                                        $diasActuales = is_array($dias_clase) ? $dias_clase : [];
+                                        $activo = in_array((string)$val, array_map('strval', $diasActuales)) || in_array((int)$val, array_map('intval', $diasActuales));
+                                    @endphp
+                                    <label class="flex items-center justify-center p-2 rounded-xl cursor-pointer transition-all border shadow-sm {{ $activo ? 'bg-blue-600 border-blue-700 shadow-blue-200 text-white' : 'bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-500' }}">
                                         <input type="checkbox" wire:model="dias_clase" value="{{ $val }}" class="hidden">
-                                        <span class="text-[10px] font-black uppercase {{ in_array($val, is_array($dias_clase) ? $dias_clase : []) ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-500' }}">{{ $label }}</span>
+                                        <span class="text-[10px] font-black uppercase tracking-wider">{{ $label }}</span>
                                     </label>
                                 @endforeach
                             </div>

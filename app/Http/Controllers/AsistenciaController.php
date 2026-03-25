@@ -96,8 +96,29 @@ class AsistenciaController extends Controller
     private function generarLista40Horas($grupo)
     {
         $alumnos = $grupo->alumnos;
+        $diasFull = $grupo->diasHabilesEntreFechas();
         
-        // Obtener calificaciones para diagnóstica y final
+        // Días Inhábiles (Feriados Mexicanos 2026 o configurables)
+        // Podríamos mover esto a la base de datos después, por ahora hardcode para agilidad
+        $feriados = [
+            '2026-01-01', '2026-02-02', '2026-03-16', '2026-05-01', 
+            '2026-09-16', '2026-11-16', '2026-12-25'
+        ];
+
+        // Agrupar días por semana académica
+        $semanas = collect($diasFull)->groupBy(function($dia) {
+            return $dia['fecha']->format('o-W'); // Año-Semana ISO
+        })->map(function($dias, $key) use ($feriados) {
+            return [
+                'identificador' => $key,
+                'dias' => $dias->sortBy('fecha')->values(),
+                'es_feriado' => function($fecha) use ($feriados) {
+                    return in_array($fecha->format('Y-m-d'), $feriados);
+                }
+            ];
+        })->values();
+
+        // Si es más de 40 horas o más de una semana, preparamos la paginación por semana
         foreach ($alumnos as $alumno) {
             $alumno->nota_diagnostica = \App\Models\Calificacion::where('grupo_id', $grupo->id)
                 ->where('user_id', $alumno->id)
@@ -108,35 +129,19 @@ class AsistenciaController extends Controller
                 ->where('user_id', $alumno->id)
                 ->where('unidad', 'final')
                 ->value('calificacion') ?? '';
-            
-            // Detección de asistencia para los 5 días de la semana (L-V)
-            $diasFull = $grupo->diasHabilesEntreFechas();
-            $diasMap = ['LU' => 'asistencia_l', 'MA' => 'asistencia_m', 'MI' => 'asistencia_mi', 'JU' => 'asistencia_j', 'VI' => 'asistencia_v'];
-            
-            foreach ($diasMap as $abbr => $prop) {
-                $alumno->$prop = false;
-                $asistenciaDia = \App\Models\AsistenciaIndividual::where('grupo_id', $grupo->id)
-                    ->where('user_id', $alumno->id)
-                    ->where(function($q) use ($abbr, $diasFull) {
-                        // Buscar CUALQUIER día que coincida con la abreviatura (L, M, M, etc)
-                        $fechasCoincidentes = collect($diasFull)->where('abreviado', $abbr)->pluck('fecha');
-                        foreach($fechasCoincidentes as $f) {
-                            $q->orWhereDate('fecha', $f->format('Y-m-d'));
-                        }
-                    })
-                    ->where(function($q) {
-                        $q->where('estatus', 'presente')
-                          ->orWhere('estatus', 'PRESENTE');
-                    })
-                    ->exists();
-                
-                $alumno->$prop = $asistenciaDia;
-            }
+
+            // Mapeo de asistencia por fecha real para cada alumno
+            $alumno->asistencias_registradas = \App\Models\AsistenciaIndividual::where('grupo_id', $grupo->id)
+                ->where('user_id', $alumno->id)
+                ->pluck('fecha')
+                ->map(fn($f) => $f->format('Y-m-d'))
+                ->toArray();
         }
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('asistencias.formato_40hrs', [
                 'grupo'   => $grupo,
                 'alumnos' => $alumnos,
+                'semanas' => $semanas,
                 'docente' => $grupo->docente(),
                 'estadisticas' => [
                     'hombres' => $alumnos->where('sexo', 'H')->count(),
@@ -145,7 +150,7 @@ class AsistenciaController extends Controller
                 ],
             ])
             ->setPaper('letter', 'landscape')
-            ->download("asistencia_40hrs_{$grupo->id}.pdf");
+            ->download("asistencia_extendida_{$grupo->id}.pdf");
     }
 
     // Subir lista escaneada

@@ -106,121 +106,138 @@
     </style>
 </head>
 <body>
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
-        <tr>
-            <td style="width: 80%; text-align: left; vertical-align: top;">
-                <img src="{{ public_path('img/pleca.png') }}" style="height: 140px; width: auto; max-width: 100%;" alt="Institucional">
-            </td>
-            <td style="width: 20%; text-align: right; vertical-align: top; font-size: 10px; font-weight: bold; text-transform: uppercase; padding-top: 45px;">
-                {{ $grupo->plantel->name }}
-            </td>
-        </tr>
-    </table>
-
-    <div style="text-align: center; margin-top: 2px; padding-top: 2px; margin-bottom: 5px;">
-        <div style="font-weight: bold; font-size: 12px; text-transform: uppercase;  margin-bottom: 10px;">
-            LISTA DE ASISTENCIA
-        </div>
-    </div>
-
-    <div class="course-banner">
-        {{ $grupo->curso->nombre }}
-    </div>
-
-    <div class="metadata-container">
-        <div class="meta-row">
-            <strong>DOCENTE:</strong> {{ $docente['data']['name'] ?? $docente['nombre'] ?? $docente['name'] ?? 'POR ASIGNAR' }}
-        </div>
-        <div class="meta-row">
-            | <span><strong>FECHA DE INICIO:</strong> {{ $grupo->fecha_inicio?->format('d/m/Y') }}</span>
-            | <span><strong>FECHA DE TÉRMINO:</strong> {{ $grupo->fecha_fin?->format('d/m/Y') }}</span>
-            | <span><strong>HORA DE INICIO:</strong> {{ \Carbon\Carbon::parse($grupo->hora_inicio)->format('H:i') }}</span>
-            | <span><strong>HORA DE TÉRMINO:</strong> {{ \Carbon\Carbon::parse($grupo->hora_fin)->format('H:i') }}</span> |
-        </div>
-        <div class="meta-row">
-            | <span><strong>TOTAL DE HORAS:</strong> {{ $grupo->total_horas }}</span>
-            | <span><strong>GRUPO:</strong> {{ $grupo->nombre }}</span> |
-        </div>
-    </div>
-
-    <table class="main-table">
-        <thead>
+@foreach($semanas as $semanaIndex => $semana)
+    <div style="{{ $semanaIndex > 0 ? 'page-break-before: always;' : '' }}">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
             <tr>
-                <th rowspan="2" style="width: 20px;">No.</th>
-                <th rowspan="2" style="width: 250px;">
-                    NOMBRE COMPLETO <br>
-                    <span class="sub-caption">| Apellido Paterno | Apellido Materno | Nombre(s) |</span>
-                </th>
-                <th rowspan="2" style="width: 120px;">CUIP</th>
-                <th rowspan="2" style="width: 100px;">PERFIL</th>
-                <th rowspan="2" style="width: 150px;">ADSCRIPCIÓN</th>
-                <th colspan="5">ASISTENCIA</th>
-                <th rowspan="2">CALIFICACIÓN<br>DIAGNÓSTICA</th>
-                <th rowspan="2">CALIFICACIÓN FINAL</th>
-            </tr>
-            <tr>
-                <th class="attendance-col">L</th>
-                <th class="attendance-col">M</th>
-                <th class="attendance-col">M</th>
-                <th class="attendance-col">J</th>
-                <th class="attendance-col">V</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($alumnos as $index => $alumno)
-            <tr>
-                <td style="font-size: 9px; font-weight: bold;">{{ $index + 1 }}</td>
-                <td class="name-cell">
-                    {{ strtoupper($alumno->paterno) }} {{ strtoupper($alumno->materno) }} {{ strtoupper($alumno->nombre) }}
+                <td style="width: 40%; text-align: left; vertical-align: middle;">
+                    @php
+                        $config = \App\Models\ConfiguracionInstitucional::first();
+                        $r1_path = ($config && $config->pleca_recurso_1 && Storage::disk('public')->exists('plecas/' . $config->pleca_recurso_1)) 
+                                    ? storage_path('app/public/plecas/' . $config->pleca_recurso_1) 
+                                    : public_path('img/pleca.png');
+                    @endphp
+                    <img src="{{ $r1_path }}" style="height: 100px; width: auto; max-width: 100%;" alt="Recurso 1">
                 </td>
-                <td style="font-size: 8px; font-weight: bold;">{{ $alumno->cuip }}</td>
-                <td style="font-size: 8px; font-weight: bold;">{{ strtoupper($alumno->perfil ?? ($alumno->perfil_data['perfil'] ?? '')) }}</td>
-                <td style="font-size: 8px; font-weight: bold; text-align: left; line-height: 1;">{{ strtoupper($alumno->adscripcion ?? ($alumno->perfil_data['adscripcion'] ?? '')) }}</td>
-                <td class="attendance-col"> @if($alumno->asistencia_l) &bull; @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_m) &bull; @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_mi) &bull; @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_j) &bull; @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_v) &bull; @endif </td>
-                <td class="grade-col" style="background-color: #f9f9f9;">{{ $alumno->nota_diagnostica == 10 ? '10' : ($alumno->nota_diagnostica ? number_format((float)$alumno->nota_diagnostica, 1) : '') }}</td>
-                <td class="grade-col">{{ $alumno->nota_final == 10 ? '10' : ($alumno->nota_final ? number_format((float)$alumno->nota_final, 1) : '') }}</td>
+                <td style="width: 20%; text-align: center; vertical-align: middle;">
+                     {{-- Espacio central opcional o logo secundario --}}
+                </td>
+                <td style="width: 40%; text-align: right; vertical-align: middle;">
+                    @php
+                        $r2_path = ($config && $config->pleca_recurso_2 && Storage::disk('public')->exists('plecas/' . $config->pleca_recurso_2)) 
+                                    ? storage_path('app/public/plecas/' . $config->pleca_recurso_2) 
+                                    : null;
+                    @endphp
+                    @if($r2_path)
+                        <img src="{{ $r2_path }}" style="height: 100px; width: auto; max-width: 100%;" alt="Recurso 2">
+                    @endif
+                </td>
             </tr>
-            @endforeach
-            
-            {{-- Filas vacías optimizadas para evitar saltos de página --}}
-            @php $maxRows = 12; @endphp
-            @for($i = count($alumnos); $i < $maxRows; $i++)
-            <tr style="height: 12px;">
-                <td>{{ $i + 1 }}</td>
-                <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            <tr>
+                <td colspan="3" style="text-align: right; font-size: 10px; font-weight: bold; text-transform: uppercase;">
+                    {{ $grupo->plantel->name }}
+                </td>
             </tr>
-            @endfor
-        </tbody>
-    </table>
+        </table>
 
-    <table class="signature-table" style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-        <thead>
+        <div style="text-align: center; margin-top: 2px;">
+            <div style="font-weight: bold; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">
+                LISTA DE ASISTENCIA - SEMANA {{ $semanaIndex + 1 }}
+                <br>
+                <span style="font-size: 9px; color: #666;">
+                    PERIODO: {{ $semana['dias']->first()['fecha']->format('d/m/Y') }} AL {{ $semana['dias']->last()['fecha']->format('d/m/Y') }}
+                </span>
+            </div>
+        </div>
+
+        <div class="course-banner" style="font-size: 14px; padding: 6px;">
+            {{ $grupo->curso->nombre }}
+        </div>
+
+        <div class="metadata-container" style="margin: 5px 0;">
+            <div class="meta-row">
+                <strong>DOCENTE:</strong> {{ $docente['data']['name'] ?? $docente['nombre'] ?? $docente['name'] ?? 'POR ASIGNAR' }}
+                | <strong>GRUPO:</strong> {{ $grupo->nombre }}
+                | <strong>TOTAL HORAS:</strong> {{ $grupo->total_horas }}
+            </div>
+        </div>
+
+        <table class="main-table">
+            <thead>
+                <tr>
+                    <th rowspan="2" style="width: 20px;">No.</th>
+                    <th rowspan="2">
+                        NOMBRE COMPLETO <br>
+                        <span class="sub-caption">| PATERNO | MATERNO | NOMBRE |</span>
+                    </th>
+                    <th rowspan="2" style="width: 110px;">CUIP</th>
+                    <th rowspan="2" style="width: 80px;">PERFIL</th>
+                    <th rowspan="2" style="width: 130px;">ADSCRIPCIÓN</th>
+                    <th colspan="{{ count($semana['dias']) }}">ASISTENCIA SEMANAL</th>
+                    <th rowspan="2">DIAG.</th>
+                    <th rowspan="2">FINAL</th>
+                </tr>
+                <tr>
+                    @foreach($semana['dias'] as $dia)
+                        <th class="attendance-col">
+                            {{ $dia['abreviado'] }}<br>
+                            <span style="font-size: 5px;">{{ $dia['fecha']->format('d/m') }}</span>
+                        </th>
+                    @endforeach
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($alumnos as $index => $alumno)
+                <tr>
+                    <td style="font-size: 8px;">{{ $index + 1 }}</td>
+                    <td class="name-cell" style="font-size: 7px;">
+                        {{ strtoupper($alumno->paterno) }} {{ strtoupper($alumno->materno) }} {{ strtoupper($alumno->nombre) }}
+                    </td>
+                    <td style="font-size: 7px;">{{ $alumno->cuip }}</td>
+                    <td style="font-size: 7px;">{{ strtoupper($alumno->perfil) }}</td>
+                    <td style="font-size: 7px; text-align: left;">{{ strtoupper($alumno->adscripcion) }}</td>
+                    
+                    @foreach($semana['dias'] as $dia)
+                        @php 
+                            $esInhabil = ($semana['es_feriado'])($dia['fecha']);
+                            $presente = in_array($dia['fecha']->format('Y-m-d'), $alumno->asistencias_registradas);
+                        @endphp
+                        <td class="attendance-col" {!! $esInhabil ? 'style="background-color: #eee; font-size: 5px; color: #777;"' : '' !!}>
+                            @if($esInhabil)
+                                INHÁBIL
+                            @elseif($presente)
+                                &bull;
+                            @endif
+                        </td>
+                    @endforeach
+
+                    <td class="grade-col" style="background-color: #f9f9f9; width: 30px;">{{ $alumno->nota_diagnostica }}</td>
+                    <td class="grade-col" style="width: 30px;">{{ $alumno->nota_final }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 5px;">
             <tr>
-                <th class="sig-header-black" style="width: 70%;">NOMBRE Y CARGO</th>
-                <th class="sig-header-black" style="width: 30%;">FIRMA</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="sig-identity">
-                    DR. GONZALO HERNÁNDEZ DURAZO<br>
-                    RECTOR DE LA UNIVERSIDAD MEXIQUENSE DE SEGURIDAD
+                <td style="width: 50%; padding-right: 5px;">
+                    <div class="sig-header-black">RECTORÍA UMS</div>
+                    <div class="sig-identity" style="height: 30px;">
+                        DR. GONZALO HERNÁNDEZ DURAZO<br>
+                        RECTOR DE LA UMS
+                    </div>
                 </td>
-                <td style="border: 1px solid #000;"></td>
-            </tr>
-            <tr>
-                <td class="sig-identity">
-                    LCDO. CHRISTIAN M. JIMÉNEZ MORALES<br>
-                    DIRECTOR DE CAPACITACIÓN, PROFESIONALIZACIÓN Y ESPECIALIZACIÓN
+                <td style="width: 50%;">
+                    <div class="sig-header-black">CAPACITACIÓN Y PROFESIONALIZACIÓN</div>
+                    <div class="sig-identity" style="height: 30px;">
+                        LCDO. CHRISTIAN M. JIMÉNEZ MORALES<br>
+                        DIRECTOR DE CAPACITACIÓN
+                    </div>
                 </td>
-                <td style="border: 1px solid #000;"></td>
             </tr>
-        </tbody>
-    </table>
+        </table>
+    </div>
+@endforeach
 
 </body>
 </html>

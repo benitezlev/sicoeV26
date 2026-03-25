@@ -16,9 +16,9 @@
         <form method="POST" action="{{ route('login') }}">
             @csrf
 
-            {{-- CURP como identificador --}}
+            {{-- Usuario o Email como identificador --}}
             <div>
-                <x-label for="username" value="{{ __('CURP') }}" />
+                <x-label for="username" value="{{ __('Usuario o Email') }}" />
                 <x-input id="username" class="block mt-1 w-full" type="text" name="username" :value="old('username')" required autofocus/>
             </div>
 
