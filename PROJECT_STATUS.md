@@ -2,12 +2,15 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-03-25 10:20)
+## 🕒 Últimos Cambios Importantes (2026-04-15 16:20)
 
-### 🏫 Identidad Institucional y Branding [NUEVO]
+### 👥 Gestión de Usuarios y Permisos [FIX]
+1.  **Rol Administrador TI:** Creación y vinculación del rol técnico `admin_ti` en el seeder y base de datos para corregir errores de edición de perfiles administrativos.
+2.  **Sincronización de Roles:** Ajuste en el componente Livewire para asegurar que la asignación de roles sea consistente con la estructura de Spatie Permission.
+
+### 🏫 Identidad Institucional y Branding
 1.  **Doble Pleca Recurso:** Soporte para encabezados divididos (Recurso 1 y 2), permitiendo composiciones complejas de logos institucionales en documentos PDF.
 2.  **Persistencia de Configuración:** Corrección de errores de guardado en el módulo UMS; todos los campos (RFC, Titular, Siglas) ahora se sincronizan correctamente con PostgreSQL.
-3.  **Gestión de Activos:** Módulo de carga de PNGs con vista previa dinámica para Logos y Plecas.
 
 ### 📝 Gestión Académica de Grupos [REFINADO]
 1.  **Estabilización de Selectores:** Sustitución de componentes Flux Pro por selectores nativos estilizados, eliminando fallos de sincronización con Livewire en el modal de apertura.

@@ -32,6 +32,7 @@ class DatabaseSetupSeeder extends Seeder
 
         // 3. Crear Roles
         $superAdmin = Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        $adminTi = Role::firstOrCreate(['name' => 'admin_ti', 'guard_name' => 'web']);
         $controlEscolar = Role::firstOrCreate(['name' => 'control_escolar', 'guard_name' => 'web']);
         $operador = Role::firstOrCreate(['name' => 'operador', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'docente', 'guard_name' => 'web']);
@@ -40,6 +41,7 @@ class DatabaseSetupSeeder extends Seeder
         // 4. Asignar Permisos a Roles
         // SuperAdmin & Control Escolar tienen TODO
         $superAdmin->syncPermissions(Permission::all());
+        $adminTi->syncPermissions(Permission::all());
         $controlEscolar->syncPermissions(Permission::all());
 
         // Operador tiene acceso limitado según lo pedido
