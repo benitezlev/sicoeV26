@@ -110,31 +110,30 @@
     <div style="{{ $semanaIndex > 0 ? 'page-break-before: always;' : '' }}">
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
             <tr>
-                <td style="width: 40%; text-align: left; vertical-align: middle;">
+                <td style="text-align: left; vertical-align: middle; padding-bottom: 5px;">
                     @php
                         $config = \App\Models\ConfiguracionInstitucional::first();
                         $r1_path = ($config && $config->pleca_recurso_1 && Storage::disk('public')->exists('plecas/' . $config->pleca_recurso_1)) 
                                     ? storage_path('app/public/plecas/' . $config->pleca_recurso_1) 
                                     : public_path('img/pleca.png');
                     @endphp
-                    <img src="{{ $r1_path }}" style="height: 100px; width: auto; max-width: 100%;" alt="Recurso 1">
-                </td>
-                <td style="width: 20%; text-align: center; vertical-align: middle;">
-                     {{-- Espacio central opcional o logo secundario --}}
-                </td>
-                <td style="width: 40%; text-align: right; vertical-align: middle;">
-                    @php
-                        $r2_path = ($config && $config->pleca_recurso_2 && Storage::disk('public')->exists('plecas/' . $config->pleca_recurso_2)) 
-                                    ? storage_path('app/public/plecas/' . $config->pleca_recurso_2) 
-                                    : null;
-                    @endphp
-                    @if($r2_path)
-                        <img src="{{ $r2_path }}" style="height: 100px; width: auto; max-width: 100%;" alt="Recurso 2">
-                    @endif
+                    <img src="{{ $r1_path }}" style="height: 35px; width: auto; max-width: 100%;" alt="Recurso 1">
                 </td>
             </tr>
+            @php
+                $r2_path = ($config && $config->pleca_recurso_2 && Storage::disk('public')->exists('plecas/' . $config->pleca_recurso_2)) 
+                            ? storage_path('app/public/plecas/' . $config->pleca_recurso_2) 
+                            : null;
+            @endphp
+            @if($r2_path)
             <tr>
-                <td colspan="3" style="text-align: right; font-size: 10px; font-weight: bold; text-transform: uppercase;">
+                <td style="text-align: center; vertical-align: middle; padding-bottom: 5px;">
+                    <img src="{{ $r2_path }}" style="height: 35px; width: auto; max-width: 100%;" alt="Recurso 2">
+                </td>
+            </tr>
+            @endif
+            <tr>
+                <td style="text-align: right; font-size: 10px; font-weight: bold; text-transform: uppercase;">
                     {{ $grupo->plantel->name }}
                 </td>
             </tr>
@@ -180,8 +179,7 @@
                 <tr>
                     @foreach($semana['dias'] as $dia)
                         <th class="attendance-col">
-                            {{ $dia['abreviado'] }}<br>
-                            <span style="font-size: 5px;">{{ $dia['fecha']->format('d/m') }}</span>
+                            {{ $dia['abreviado'] }}
                         </th>
                     @endforeach
                 </tr>
@@ -193,9 +191,9 @@
                     <td class="name-cell" style="font-size: 7px;">
                         {{ strtoupper($alumno->paterno) }} {{ strtoupper($alumno->materno) }} {{ strtoupper($alumno->nombre) }}
                     </td>
-                    <td style="font-size: 7px;">{{ $alumno->cuip }}</td>
-                    <td style="font-size: 7px;">{{ strtoupper($alumno->perfil) }}</td>
-                    <td style="font-size: 7px; text-align: left;">{{ strtoupper($alumno->adscripcion) }}</td>
+                    <td style="font-size: 7px;">{{ $alumno->cuip ?: ($alumno->curp ?: 'S/ID') }}</td>
+                    <td style="font-size: 7px;">{{ strtoupper($alumno->perfil ?? ($alumno->perfil_data['perfil'] ?? ($alumno->perfil_data['area_especializada'] ?? 'ALUMNO'))) }}</td>
+                    <td style="font-size: 7px; text-align: left;">{{ strtoupper($alumno->adscripcion ?? ($alumno->perfil_data['adscripcion'] ?? ($alumno->perfil_data['dependencia'] ?? 'S/A'))) }}</td>
                     
                     @foreach($semana['dias'] as $dia)
                         @php 
@@ -205,14 +203,36 @@
                         <td class="attendance-col" {!! $esInhabil ? 'style="background-color: #eee; font-size: 5px; color: #777;"' : '' !!}>
                             @if($esInhabil)
                                 INHÁBIL
-                            @elseif($presente)
-                                &bull;
+                            @else
+                                @php
+                                    $asistenciaIndividual = \App\Models\AsistenciaIndividual::where([
+                                        'grupo_id' => $grupo->id,
+                                        'user_id' => $alumno->id,
+                                        'fecha' => $dia['fecha']->format('Y-m-d')
+                                    ])->first();
+                                    $estatus = $asistenciaIndividual ? $asistenciaIndividual->estatus : 'falta';
+                                @endphp
+                                
+                                @if($estatus === 'presente')
+                                    &bull;
+                                @elseif($estatus === 'justificado')
+                                    J
+                                @else
+                                    F
+                                @endif
                             @endif
                         </td>
                     @endforeach
 
-                    <td class="grade-col" style="background-color: #f9f9f9; width: 30px;">{{ $alumno->nota_diagnostica }}</td>
-                    <td class="grade-col" style="width: 30px;">{{ $alumno->nota_final }}</td>
+                    @php
+                        $formatGrade = function($v) {
+                            if ($v === '' || $v === null) return '';
+                            $val = (float) $v;
+                            return $val == 10 ? '10' : number_format($val, 1);
+                        };
+                    @endphp
+                    <td class="grade-col" style="background-color: #f9f9f9; width: 30px;">{{ $formatGrade($alumno->nota_diagnostica) }}</td>
+                    <td class="grade-col" style="width: 30px;">{{ $formatGrade($alumno->nota_final) }}</td>
                 </tr>
                 @endforeach
             </tbody>

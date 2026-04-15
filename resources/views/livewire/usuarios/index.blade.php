@@ -31,6 +31,8 @@ state([
     'adscripcion' => '',
     'area_especializada' => '',
     'sexo' => 'H',
+    'perfil_academico' => 'aspirante', // aspirante | activo
+    'cuip' => '',
     'showUserModal' => false,
 ]);
 
@@ -74,6 +76,8 @@ $edit = function ($id) {
     $this->plantel_id = $user->plantel_id;
     $this->municipio_id = $user->municipio_id;
     $this->sexo = $user->sexo ?? 'H';
+    $this->cuip = $user->cuip ?? '';
+    $this->perfil_academico = $this->cuip ? 'activo' : 'aspirante';
     
     // Desglosar perfil_data
     $perfil = $user->perfil_data ?? [];
@@ -98,6 +102,8 @@ $create = function () {
     $this->tipo = 'alumno';
     $this->nivel = 'estatal';
     $this->plantel_id = '';
+    $this->perfil_academico = 'aspirante';
+    $this->cuip = '';
     $this->municipio_id = '';
     $this->dependencia = '';
     $this->adscripcion = '';
@@ -428,8 +434,27 @@ $delete = function ($id) {
                     <flux:input wire:model="nombre" label="Nombre(s)" placeholder="Ej. Juan" />
                     <flux:input wire:model="paterno" label="Apellido Paterno" placeholder="Ej. Pérez" />
                     <flux:input wire:model="materno" label="Apellido Materno" placeholder="Ej. López" />
-                    <flux:input wire:model="curp" label="CURP" placeholder="ABCD123456..." maxlength="18" />
-                    
+                    <div class="md:col-span-2 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row gap-6">
+                        <div class="flex-1">
+                            <flux:label>Estatus Académico</flux:label>
+                            <div class="flex gap-4 mt-2">
+                                <label class="flex items-center gap-2 cursor-pointer group">
+                                    <input type="radio" wire:model.live="perfil_academico" value="aspirante" class="size-4 text-blue-600 border-zinc-300 focus:ring-blue-500">
+                                    <span class="text-sm font-bold text-zinc-600 group-hover:text-zinc-900 tracking-tight uppercase">Aspirante</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer group">
+                                    <input type="radio" wire:model.live="perfil_academico" value="activo" class="size-4 text-blue-600 border-zinc-300 focus:ring-blue-500">
+                                    <span class="text-sm font-bold text-zinc-600 group-hover:text-zinc-900 tracking-tight uppercase">Elemento Activo</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flex-1 space-y-4">
+                            <flux:input wire:model="curp" label="CURP" placeholder="ABCD123456..." maxlength="18" />
+                            @if($perfil_academico === 'activo')
+                                <flux:input wire:model="cuip" label="CUIP (Solo Activos)" placeholder="Identificador policial..." />
+                            @endif
+                        </div>
+                    </div>
                     <flux:input wire:model="email" label="Correo Electrónico" placeholder="element@sicoe.gob.mx" />
                     <flux:input wire:model="password" type="password" label="Contraseña" :placeholder="$userId ? 'Dejar en blanco para no cambiar' : 'Mínimo 8 caracteres'" />
                     

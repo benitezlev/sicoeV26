@@ -117,7 +117,7 @@
                 <td class="name-cell">
                     {{ strtoupper($alumno->paterno) }} {{ strtoupper($alumno->materno) }} {{ strtoupper($alumno->nombre) }}
                 </td>
-                <td style="font-size: 8px; font-weight: bold;">{{ $alumno->cuip }}</td>
+                <td style="font-size: 8px; font-weight: bold;">{{ $alumno->cuip ?: ($alumno->curp ?: 'S/ID') }}</td>
                 <td style="font-size: 8px; font-weight: bold;">{{ strtoupper($alumno->perfil ?? ($alumno->perfil_data['perfil'] ?? '')) }}</td>
                 <td style="font-size: 8px; font-weight: bold; text-align: left; line-height: 1;">{{ strtoupper($alumno->adscripcion ?? ($alumno->perfil_data['adscripcion'] ?? '')) }}</td>
                 <td class="attendance-col"> @if($alumno->asistencia_l) &bull; @endif </td>

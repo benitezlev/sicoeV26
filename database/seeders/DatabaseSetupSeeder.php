@@ -19,7 +19,7 @@ class DatabaseSetupSeeder extends Seeder
         // 2. Definir Permisos de Operación
         $permisos = [
             'configuarion.total',
-            'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.baja',
+            'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.baja', 'gestionar alumnos', 'usuarios.importar',
             'grupos.ver', 'grupos.crear', 'grupos.editar', 'grupos.baja',
             'asistencias.tomar', 'asistencias.ver',
             'calificaciones.asignar', 'calificaciones.ver',

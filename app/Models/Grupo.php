@@ -71,7 +71,7 @@ class Grupo extends Model
 
         if ($inicio->gt($fin)) return [];
 
-        $map = [1=>'LU', 2=>'MA', 3=>'MI', 4=>'JU', 5=>'VI', 6=>'SA', 7=>'DO'];
+        $map = [1=>'L', 2=>'M', 3=>'M', 4=>'J', 5=>'V', 6=>'S', 7=>'D'];
         $diasConfigurados = $this->dias_clase ?? [1, 2, 3, 4, 5];
         
         // Asegurar que sea un arreglo (caso de doble codificación o string)

@@ -23,6 +23,10 @@ state([
     'docentesAPI' => [],
     'searchDocente' => '',
     'escaneoAsistencia' => null,
+    'sexo' => 'H',
+    'justificacionAlumnoId' => null,
+    'justificacionFecha' => null,
+    'justificacionMotivo' => '',
     'stats' => [],
     'alumnoParaBaja' => null,
     'motivoBaja' => 'Deserción',
@@ -291,40 +295,59 @@ $guardarCalificacion = function ($alumnoId, $unidad, $valor) {
     Flux::toast(heading: 'Nota Guardada', text: 'Se ha registrado la calificación correctamente.', variant: 'success');
 };
 
-$toggleAsistencia = function ($alumnoId, $abbr) {
-    $dias = $this->grupo->diasHabilesEntreFechas();
-    $diaData = collect($dias)->firstWhere('abreviado', $abbr);
-    
-    if (!$diaData) {
-        Flux::toast(heading: 'Error', text: "El día '$abbr' no está programado para este grupo.", variant: 'danger');
-        return;
-    }
-    
-    $fecha = $diaData['fecha']->format('Y-m-d');
-    
+$toggleAsistencia = function ($alumnoId, $fecha) {
     $asistencia = AsistenciaIndividual::where([
         'grupo_id' => $this->grupoId,
         'user_id' => $alumnoId,
         'fecha' => $fecha
     ])->first();
     
-    if ($asistencia) {
-        $asistencia->delete();
-    } else {
+    if (!$asistencia) {
+        // De nada a Presente
         AsistenciaIndividual::create([
             'grupo_id' => $this->grupoId,
             'user_id' => $alumnoId,
             'fecha' => $fecha,
             'estatus' => 'presente'
         ]);
+    } elseif ($asistencia->estatus === 'presente') {
+        // De Presente a Justificado (Abrir Modal)
+        $this->justificacionAlumnoId = $alumnoId;
+        $this->justificacionFecha = $fecha;
+        $this->justificacionMotivo = '';
+        $this->dispatch('modal-show', name: 'modal-justificar-asistencia');
+    } else {
+        // De Justificado a Nada (Falta)
+        $asistencia->delete();
     }
+};
+
+$guardarJustificacion = function () {
+    if (!$this->justificacionAlumnoId || !$this->justificacionFecha) return;
+    
+    $asistencia = AsistenciaIndividual::where([
+        'grupo_id' => $this->grupoId,
+        'user_id' => $this->justificacionAlumnoId,
+        'fecha' => $this->justificacionFecha
+    ])->first();
+    
+    if ($asistencia) {
+        $asistencia->update([
+            'estatus' => 'justificado',
+            'observaciones' => $this->justificacionMotivo
+        ]);
+    }
+    
+    $this->reset(['justificacionAlumnoId', 'justificacionFecha', 'justificacionMotivo']);
+    $this->dispatch('modal-hide', name: 'modal-justificar-asistencia');
+    Flux::toast(heading: 'Justificado', text: 'Se ha registrado el motivo de la inasistencia.', variant: 'success');
 };
 
 $asistenciasMap = computed(function() {
     return AsistenciaIndividual::where('grupo_id', $this->grupoId)
         ->get()
         ->groupBy('user_id')
-        ->map(fn($items) => $items->pluck('fecha')->map(fn($f) => $f->format('Y-m-d'))->toArray());
+        ->map(fn($items) => $items->keyBy(fn($i) => $i->fecha->format('Y-m-d'))->map(fn($i) => $i->estatus)->toArray());
 });
 
 ?>
@@ -485,32 +508,46 @@ $asistenciasMap = computed(function() {
                                         </div>
                                     </td>
                                     <td class="px-6 py-3">
-                                        <span class="px-2 py-1 bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 font-mono text-xs font-bold rounded border border-zinc-200 dark:border-zinc-700">{{ $alumno->curp }}</span>
-                                    </td>
-                                    @if($this->grupo->formato_especial)
+                                        <span class="px-2 py-1 bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 font-mono text-xs font-bold rounded border border-zinc-200 dark:border-zinc-700">{{ $alumno->cuip ?: $alumno->curp }}</span>
+                                       @if($this->grupo->formato_especial)
                                         @php
                                             $notaD_raw = \App\Models\Calificacion::where('grupo_id', $this->grupoId)->where('user_id', $alumno->id)->where('unidad', 'diagnostica')->value('calificacion');
                                             $notaF_raw = \App\Models\Calificacion::where('grupo_id', $this->grupoId)->where('user_id', $alumno->id)->where('unidad', 'final')->value('calificacion');
                                             
-                                            $notaD = $notaD_raw == 10 ? 10 : ($notaD_raw ? number_format($notaD_raw, 1) : null);
-                                            $notaF = $notaF_raw == 10 ? 10 : ($notaF_raw ? number_format($notaF_raw, 1) : null);
+                                            $notaD = $notaD_raw == 10 ? 10 : ($notaD_raw ? number_format((float)$notaD_raw, 1) : null);
+                                            $notaF = $notaF_raw == 10 ? 10 : ($notaF_raw ? number_format((float)$notaF_raw, 1) : null);
 
-                                            $diasAbbr = ['LU', 'MA', 'MI', 'JU', 'VI'];
+                                            $diasSemana = $this->grupo->diasHabilesEntreFechas();
+                                            $diasMap = collect($diasSemana)->take(5)->values();
                                             $asistenciasAlumno = $this->asistenciasMap[$alumno->id] ?? [];
                                         @endphp
 
-                                        @foreach($diasAbbr as $abbr)
+                                        @foreach($diasMap as $diaG)
                                             <td class="px-0.5 py-3 text-center">
                                                 @php
-                                                    $diaG = collect($this->grupo->diasHabilesEntreFechas())->firstWhere('abreviado', $abbr);
-                                                    $presente = $diaG && in_array($diaG['fecha']->format('Y-m-d'), $asistenciasAlumno);
+                                                    $fechaKey = $diaG['fecha']->format('Y-m-d');
+                                                    $estatusAct = $asistenciasAlumno[$fechaKey] ?? 'falta';
                                                 @endphp
-                                                <input type="checkbox" 
-                                                    {{ $presente ? 'checked' : '' }}
-                                                    {{ !$diaG ? 'disabled' : '' }}
-                                                    wire:click="toggleAsistencia({{ $alumno->id }}, '{{ $abbr }}')"
-                                                    wire:loading.attr="disabled"
-                                                    class="size-3.5 rounded border-zinc-300 text-blue-600 shadow-sm focus:ring-blue-500 cursor-pointer disabled:opacity-10 hover:scale-110 transition-transform">
+                                                
+                                                <button wire:click="toggleAsistencia({{ $alumno->id }}, '{{ $fechaKey }}')" 
+                                                        wire:loading.attr="disabled"
+                                                        class="group relative size-6 mx-auto flex items-center justify-center rounded-lg border transition-all 
+                                                        {{ $estatusAct === 'presente' ? 'bg-blue-600 border-blue-500 text-white shadow-sm' : 
+                                                            ($estatusAct === 'justificado' ? 'bg-amber-500 border-amber-400 text-white shadow-sm' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-300 dark:text-zinc-600') }}">
+                                                    
+                                                    @if($estatusAct === 'presente')
+                                                        <flux:icon name="check" variant="micro" class="size-3 font-black" />
+                                                    @elseif($estatusAct === 'justificado')
+                                                        <span class="text-[9px] font-black leading-none">J</span>
+                                                    @else
+                                                        <span class="text-[9px] font-black leading-none opacity-0 group-hover:opacity-100 transition-opacity">F</span>
+                                                    @endif
+
+                                                    <!-- Tooltip simple -->
+                                                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-zinc-900 text-[8px] text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity uppercase font-black tracking-widest z-50 whitespace-nowrap">
+                                                        {{ $diaG['fecha']->format('d/m') }}: {{ $estatusAct === 'presente' ? 'Presente' : ($estatusAct === 'justificado' ? 'Justificado' : 'Falta') }}
+                                                    </div>
+                                                </button>
                                             </td>
                                         @endforeach
 
@@ -959,6 +996,39 @@ $asistenciasMap = computed(function() {
                 <div class="flex gap-3 justify-end pt-2">
                     <flux:button variant="ghost" x-on:click="open = false">Cancelar</flux:button>
                     <flux:button type="submit" variant="danger" class="font-black uppercase tracking-widest text-[10px]">Efectuar Baja Académica</flux:button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Justificar Asistencia -->
+    <div x-data="{ open: false }" 
+         x-on:modal-show.window="if ($event.detail.name === 'modal-justificar-asistencia') open = true" 
+         x-on:modal-hide.window="if ($event.detail.name === 'modal-justificar-asistencia') open = false" 
+         x-show="open" x-cloak 
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-zinc-800 w-full max-w-sm rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-700 p-8 space-y-6 text-left" x-on:click.away="open = false">
+            <form wire:submit="guardarJustificacion" class="space-y-6">
+                <div class="space-y-1">
+                    <h2 class="text-xl font-black text-zinc-900 dark:text-white tracking-tight uppercase">Justificar Inasistencia</h2>
+                    <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-tighter italic">Se registrará el motivo oficial del ausentismo.</p>
+                </div>
+
+                <flux:field>
+                    <flux:label>Causal de Justificación</flux:label>
+                    <flux:select wire:model="justificacionMotivo">
+                        <flux:select.option value="">-- Selecciona Motivo --</flux:select.option>
+                        <flux:select.option value="Licencia Médica / Salud">Licencia Médica / Salud</flux:select.option>
+                        <flux:select.option value="Comisión Institucional">Comisión Institucional</flux:select.option>
+                        <flux:select.option value="Asuntos Personales / Familiares">Asuntos Personales / Familiares</flux:select.option>
+                        <flux:select.option value="Retraso por Transporte/Tránsito">Retraso por Transporte/Tránsito</flux:select.option>
+                        <flux:select.option value="Otro">Otro (Especificar en expediente)</flux:select.option>
+                    </flux:select>
+                </flux:field>
+
+                <div class="flex gap-3 justify-end pt-2">
+                    <flux:button variant="ghost" x-on:click="open = false">Cancelar</flux:button>
+                    <flux:button type="submit" variant="primary" class="font-black uppercase tracking-widest text-[10px]">Justificar Falta</flux:button>
                 </div>
             </form>
         </div>
