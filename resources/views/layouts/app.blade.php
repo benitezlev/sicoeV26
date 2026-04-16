@@ -27,17 +27,21 @@
                 <flux:navlist.item icon="squares-2x2" href="{{ route('dashboard') }}" :current="request()->routeIs('dashboard')">Panel Principal</flux:navlist.item>
 
                 <flux:navlist.group heading="Control Escolar">
-                    <flux:navlist.item icon="users" href="{{ route('alumnos.index') }}" :current="request()->routeIs('alumnos.*')">Usuarios</flux:navlist.item>
-                    <flux:navlist.item icon="academic-cap" href="{{ route('profesores') }}" :current="request()->routeIs('profesores.*')">Docentes</flux:navlist.item>
+                    @can('usuarios.ver')
+                        <flux:navlist.item icon="users" href="{{ route('alumnos.index') }}" :current="request()->routeIs('alumnos.*')">Usuarios</flux:navlist.item>
+                        <flux:navlist.item icon="academic-cap" href="{{ route('profesores') }}" :current="request()->routeIs('profesores.*')">Docentes</flux:navlist.item>
+                    @endcan
                     <flux:navlist.item icon="user-group" href="{{ route('grupos.index') }}" :current="request()->routeIs('grupos.*')">Grupos</flux:navlist.item>
                     <flux:navlist.item icon="folder-open" href="{{ route('expedientes.index') }}" :current="request()->routeIs('expedientes.*')">Expedientes</flux:navlist.item>
                 </flux:navlist.group>
 
-                <flux:navlist.group heading="Academia">
-                    <flux:navlist.item icon="book-open" href="{{ route('cursos.index') }}" :current="request()->routeIs('cursos.*')">Cursos</flux:navlist.item>
-                    <flux:navlist.item icon="bookmark" href="{{ route('materias.index') }}" :current="request()->routeIs('materias.*')">Materias</flux:navlist.item>
-                    <flux:navlist.item icon="link" href="{{ route('panel.materias') }}" :current="request()->routeIs('panel.materias*')">Malla Curricular</flux:navlist.item>
-                </flux:navlist.group>
+                @can('configuarion.total')
+                    <flux:navlist.group heading="Academia">
+                        <flux:navlist.item icon="book-open" href="{{ route('cursos.index') }}" :current="request()->routeIs('cursos.*')">Cursos</flux:navlist.item>
+                        <flux:navlist.item icon="bookmark" href="{{ route('materias.index') }}" :current="request()->routeIs('materias.*')">Materias</flux:navlist.item>
+                        <flux:navlist.item icon="link" href="{{ route('panel.materias') }}" :current="request()->routeIs('panel.materias*')">Malla Curricular</flux:navlist.item>
+                    </flux:navlist.group>
+                @endcan
 
                 <flux:navlist.group heading="Operatividad">
                     <flux:navlist.item icon="check-badge" href="{{ route('asistencias.index') }}" :current="request()->routeIs('asistencias.index')">Asistencias</flux:navlist.item>
@@ -45,11 +49,13 @@
                     <flux:navlist.item icon="pencil-square" href="{{ route('calificaciones.index') }}" :current="request()->routeIs('calificaciones.*')">Calificaciones</flux:navlist.item>
                 </flux:navlist.group>
 
-                <flux:navlist.group heading="Configuración">
-                    <flux:navlist.item icon="building-library" href="{{ route('plantel.index') }}" :current="request()->routeIs('plantel.*')">Planteles</flux:navlist.item>
-                    <flux:navlist.item icon="shield-check" href="{{ route('roles') }}" :current="request()->routeIs('roles')">Roles y Permisos</flux:navlist.item>
-                    <flux:navlist.item icon="cog-6-tooth" href="{{ route('config.index') }}" :current="request()->routeIs('config.*')">Sistema</flux:navlist.item>
-                </flux:navlist.group>
+                @can('configuarion.total')
+                    <flux:navlist.group heading="Configuración">
+                        <flux:navlist.item icon="building-library" href="{{ route('plantel.index') }}" :current="request()->routeIs('plantel.*')">Planteles</flux:navlist.item>
+                        <flux:navlist.item icon="shield-check" href="{{ route('roles') }}" :current="request()->routeIs('roles')">Roles y Permisos</flux:navlist.item>
+                        <flux:navlist.item icon="cog-6-tooth" href="{{ route('config.index') }}" :current="request()->routeIs('config.*')">Sistema</flux:navlist.item>
+                    </flux:navlist.group>
+                @endcan
             </flux:navlist>
 
             <flux:spacer />

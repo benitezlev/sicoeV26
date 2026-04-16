@@ -212,6 +212,8 @@ $save = function () {
     // Sincronizar rol automáticamente según el tipo de usuario
     $roleName = match($this->tipo) {
         'admin' => 'admin_ti',
+        'control' => 'control_escolar',
+        'operador' => 'operador',
         'docente' => 'docente',
         'alumno' => 'alumno',
         default => 'alumno'
@@ -464,9 +466,11 @@ $delete = function ($id) {
                     </flux:select>
 
                     <flux:select wire:model.live="tipo" label="Tipo de Usuario" placeholder="Selecciona tipo...">
-                        <flux:select.option value="alumno">Alumno</flux:select.option>
-                        <flux:select.option value="docente">Docente</flux:select.option>
-                        <flux:select.option value="admin">Administrador</flux:select.option>
+                        <flux:select.option value="alumno">Alumno / Cadete</flux:select.option>
+                        <flux:select.option value="docente">Docente / Instructor</flux:select.option>
+                        <flux:select.option value="operador">Operador de Grupo</flux:select.option>
+                        <flux:select.option value="control">Control Escolar</flux:select.option>
+                        <flux:select.option value="admin">Administrador TI</flux:select.option>
                     </flux:select>
 
                     @if(auth()->user()->hasRole('admin_ti'))

@@ -95,6 +95,7 @@ $alumnosDisponibles = computed(function () {
 });
 
 $asignarAlumnos = function () {
+    abort_if(auth()->user()->cannot('gestionar alumnos'), 403);
     if (empty($this->selectedAlumnos)) {
         Flux::toast(heading: 'Error', text: 'Selecciona al menos un alumno de la lista.', variant: 'danger');
         return;
@@ -136,6 +137,7 @@ $asignarAlumnos = function () {
 };
 
 $abrirModalBaja = function ($alumnoId) {
+    abort_if(auth()->user()->cannot('gestionar alumnos'), 403);
     $this->alumnoParaBaja = User::find($alumnoId);
     $this->dispatch('modal-show', name: 'modal-confirmar-baja');
 };
@@ -157,6 +159,7 @@ $desvincularAlumnoConfirmado = function () {
 };
 
 $reactivarAlumno = function ($alumnoId) {
+    abort_if(auth()->user()->cannot('gestionar alumnos'), 403);
     if (!$this->grupo) return;
 
     $this->grupo->alumnos()->updateExistingPivot($alumnoId, [
@@ -181,11 +184,23 @@ $buscarDocentesAPI = function () {
             ->get(config('services.sad.url') . '/docentes', [
                 'plantel' => $this->grupo->plantel->name,
                 'search' => $this->searchDocente,
-                'per_page' => 10
+                'per_page' => 100 // Mayor rango para filtrado local
             ]);
 
         if ($response->successful()) {
-            $this->docentesAPI = $response->json()['data'] ?? [];
+            $data = $response->json()['data'] ?? [];
+            
+            // Capa de Seguridad: Filtrado Local
+            if (!empty($this->searchDocente)) {
+                $s = strtolower($this->searchDocente);
+                $this->docentesAPI = array_values(array_filter($data, function($d) use ($s) {
+                    return str_contains(strtolower($d['name'] ?? ''), $s) || 
+                           str_contains(strtolower($d['cargo'] ?? ''), $s) || 
+                           str_contains(strtolower($d['email'] ?? ''), $s);
+                }));
+            } else {
+                $this->docentesAPI = $data;
+            }
         } else {
              $mockData = [
                  ['id' => 1, 'name' => 'Juan Pérez', 'cargo' => 'Titular A', 'email' => 'juan@sad.com'],
@@ -225,6 +240,7 @@ $buscarDocentesAPI = function () {
 };
 
 $asignarDocente = function ($docenteId) {
+    abort_if(auth()->user()->cannot('grupos.editar'), 403);
     $grupo = Grupo::find($this->grupoId);
     $grupo->docente_id = $docenteId;
     $grupo->save();
@@ -455,25 +471,19 @@ $asistenciasMap = computed(function() {
 
             <!-- Matrícula de Alumnos -->
             <div class="bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden flex flex-col h-[600px]">
-                <div class="p-6 border-b border-zinc-200 dark:border-zinc-700 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-zinc-50/50 dark:bg-zinc-900/50">
-                    <div>
-                        <h2 class="text-xl font-black text-zinc-900 dark:text-white uppercase tracking-tight">Matrícula del Grupo</h2>
-                        <p class="text-xs text-zinc-500 font-medium">
-                            Hay <strong class="text-blue-600 dark:text-blue-400">{{ $this->stats['total'] }} alumnos</strong> activos 
-                            @if(($this->stats['total_bajas'] ?? 0) > 0)
-                                y <strong class="text-red-500">{{ $this->stats['total_bajas'] }} bajas</strong>
-                            @endif
-                            en la matrícula.
-                        </p>
-                    </div>
-                    @if($this->grupo->formato_especial)
-                        <div class="flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl text-amber-700 dark:text-amber-400 font-black text-[9px] uppercase tracking-widest animate-pulse">
-                            <flux:icon name="pencil" variant="mini" /> Captura Especial Habilitada
+                <div class="flex flex-col md:flex-row justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50 p-6 border-b border-zinc-100 dark:border-zinc-700 gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="size-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow-lg ring-4 ring-blue-500/20">
+                            {{ $this->stats['total'] }}
                         </div>
-                    @endif
-                    <button x-data x-on:click="$dispatch('modal-show', { name: 'modal-asignar-alumnos' })" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all hover:bg-zinc-800 dark:hover:bg-zinc-100 shadow-lg shadow-zinc-900/10">
-                        <flux:icon name="user-plus" variant="mini" /> Inscribir Alumnos
-                    </button>
+                        <div class="flex flex-col">
+                            <h2 class="text-lg font-black text-zinc-900 dark:text-white uppercase tracking-tight">Matrícula del Grupo</h2>
+                            <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{{ $this->stats['hombres'] }} Hombres • {{ $this->stats['mujeres'] }} Mujeres</p>
+                        </div>
+                    </div>
+                    @can('gestionar alumnos')
+                        <flux:button x-on:click="$dispatch('modal-show', { name: 'modal-asignar-alumnos' })" variant="primary" icon="user-plus" class="font-black uppercase tracking-widest text-[10px]">Inscripción Masiva</flux:button>
+                    @endcan
                 </div>
                 
                 <div class="overflow-y-auto flex-1">
@@ -572,16 +582,14 @@ $asistenciasMap = computed(function() {
                                         {{ \Carbon\Carbon::parse($alumno->pivot->fecha_asignacion)->format('d/m/Y') }}
                                     </td>
                                     <td class="px-6 py-3 text-right">
-                                        @if($isBaja)
-                                            <div class="flex items-center justify-end gap-2 text-[10px] font-black uppercase text-red-600 dark:text-red-400">
-                                                <span class="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 rounded" title="Causal: {{ $alumno->pivot->motivo_baja }}">
-                                                    {{ $alumno->pivot->motivo_baja }}: {{ \Carbon\Carbon::parse($alumno->pivot->fecha_baja)->format('d/m/y') }}
-                                                </span>
-                                                <flux:button variant="ghost" size="sm" color="indigo" icon="arrow-path" wire:click="reactivarAlumno({{ $alumno->id }})" title="Reincorporar Alumno" />
-                                            </div>
-                                        @else
-                                            <flux:button variant="ghost" size="sm" color="red" icon="user-minus" wire:click="abrirModalBaja({{ $alumno->id }})" title="Dar de Baja" />
-                                        @endif
+                                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                                            @can('gestionar alumnos')
+                                                <flux:button variant="ghost" size="sm" icon="user-minus" title="Desvincular Alumno" wire:click="abrirModalBaja({{ $alumno->id }})" />
+                                            @endcan
+                                            @if($isBaja && auth()->user()->can('gestionar alumnos'))
+                                                <flux:button variant="ghost" size="sm" icon="arrow-path" title="Reactivar" wire:click="reactivarAlumno({{ $alumno->id }})" />
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
@@ -624,10 +632,12 @@ $asistenciasMap = computed(function() {
                     </div>
                     @if($this->docente)
                         <div class="absolute top-4 right-4 flex gap-2">
-                             <button x-data x-on:click="$dispatch('modal-show', { name: 'modal-asignar-docente' })" 
-                                     class="px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg text-[9px] font-black text-white uppercase tracking-widest border border-white/20 transition-all">
-                                Cambiar Titular
-                             </button>
+                             @can('grupos.editar')
+                                 <button x-data x-on:click="$dispatch('modal-show', { name: 'modal-asignar-docente' })" 
+                                         class="px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg text-[9px] font-black text-white uppercase tracking-widest border border-white/20 transition-all">
+                                    Cambiar Titular
+                                 </button>
+                             @endcan
                         </div>
                     @endif
                 </div>
@@ -662,10 +672,12 @@ $asistenciasMap = computed(function() {
                                 <h3 class="text-sm font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-tight">Sin Docente Asignado</h3>
                                 <p class="text-[10px] text-zinc-500 font-medium px-4">Este grupo requiere un titular para poder procesar asistencias y calificaciones finales.</p>
                             </div>
-                            <button x-data x-on:click="$dispatch('modal-show', { name: 'modal-asignar-docente' })" 
-                                    class="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-blue-500/20">
-                                Asignar desde Directorio SAD
-                            </button>
+                            @can('grupos.editar')
+                                <button x-data x-on:click="$dispatch('modal-show', { name: 'modal-asignar-docente' })" 
+                                        class="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-blue-500/20">
+                                    Asignar desde Directorio SAD
+                                </button>
+                            @endcan
                         </div>
                     @endif
                 </div>

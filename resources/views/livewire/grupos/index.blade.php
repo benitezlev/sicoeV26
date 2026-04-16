@@ -35,6 +35,10 @@ state([
 $grupos = computed(function () {
     return Grupo::query()
         ->with(['plantel', 'curso'])
+        // Seguridad: Filtro por Jurisdicción del Operador
+        ->when(auth()->user()->hasRole('operador'), function ($query) {
+            $query->where('plantel_id', auth()->user()->plantel_id);
+        })
         ->when($this->search, function ($query) {
             $query->where('nombre', 'like', '%' . $this->search . '%')
                   ->orWhereHas('curso', fn($q) => $q->where('nombre', 'like', '%' . $this->search . '%'));
@@ -177,8 +181,9 @@ $eliminar = function ($id) {
                 <h1 class="text-2xl font-black text-zinc-900 dark:text-white tracking-tight uppercase">Directorio de Grupos</h1>
                 <p class="text-xs text-zinc-500 font-medium italic">Administra la apertura, estatus y control de generaciones académicas.</p>
             </div>
-            
-            <flux:button variant="primary" icon="plus" wire:click="abrirModalCrear" size="sm">Aperturar Grupo</flux:button>
+            @can('grupos.crear')
+                <flux:button variant="primary" icon="plus" wire:click="abrirModalCrear" size="sm">Aperturar Grupo</flux:button>
+            @endcan
         </div>
 
         <!-- Filtros Dinámicos -->
@@ -186,14 +191,16 @@ $eliminar = function ($id) {
             <div class="flex-1 w-full">
                 <flux:input wire:model.live.debounce.500ms="search" placeholder="Buscar por clave, nombre o generación..." icon="magnifying-glass" />
             </div>
-            <div class="w-full md:w-64">
-                <flux:select wire:model.live="filtroPlantel" placeholder="Filtrar por Sedes">
-                    <flux:select.option value="">Todas las Sedes / Planteles</flux:select.option>
-                    @foreach($this->planteles as $p)
-                        <flux:select.option value="{{ $p->id }}">{{ $p->name }}</flux:select.option>
-                    @endforeach
-                </flux:select>
-            </div>
+            @cannot('operador')
+                <div class="w-full md:w-64">
+                    <flux:select wire:model.live="filtroPlantel" placeholder="Filtrar por Sedes">
+                        <flux:select.option value="">Todas las Sedes / Planteles</flux:select.option>
+                        @foreach($this->planteles as $p)
+                            <flux:select.option value="{{ $p->id }}">{{ $p->name }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                </div>
+            @endcannot
             <div class="w-full md:w-48">
                 <flux:select wire:model.live="filtroEstado" placeholder="Estatus Académico">
                     <flux:select.option value="">Cualquier Estatus</flux:select.option>
@@ -261,19 +268,23 @@ $eliminar = function ($id) {
                             <td class="px-6 py-4">
                                 <div class="flex justify-end gap-1">
                                     <flux:button variant="ghost" size="sm" icon="eye" href="{{ route('grupos.show', $grupo->id) }}" />
-                                    <flux:button variant="ghost" size="sm" icon="pencil-square" wire:click="editar({{ $grupo->id }})" wire:loading.attr="disabled" />
-                                    <div x-data="{ openConfirm: false }" class="inline-block relative">
-                                        <flux:button variant="ghost" size="sm" color="red" icon="trash" x-on:click="openConfirm = true" />
-                                        
-                                        <!-- Mini Delete Modal/Popover -->
-                                        <div x-show="openConfirm" x-cloak class="absolute right-0 bottom-full mb-2 z-10 w-64 p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl flex flex-col gap-3 items-end">
-                                            <p class="text-[11px] text-left font-bold text-zinc-800 dark:text-white leading-tight">¿Eliminar permanentemente el grupo {{ $grupo->nombre }}?</p>
-                                            <div class="flex gap-2 w-full justify-between mt-1">
-                                                <flux:button variant="ghost" size="sm" x-on:click="openConfirm = false" class="text-[10px]">Cancelar</flux:button>
-                                                <flux:button variant="danger" size="sm" wire:click="eliminar({{ $grupo->id }})" x-on:click="openConfirm = false" class="text-[10px]">Confirmar</flux:button>
+                                    @can('grupos.editar')
+                                        <flux:button variant="ghost" size="sm" icon="pencil-square" wire:click="editar({{ $grupo->id }})" wire:loading.attr="disabled" />
+                                    @endcan
+                                    @can('grupos.baja')
+                                        <div x-data="{ openConfirm: false }" class="inline-block relative">
+                                            <flux:button variant="ghost" size="sm" color="red" icon="trash" x-on:click="openConfirm = true" />
+                                            
+                                            <!-- Mini Delete Modal/Popover -->
+                                            <div x-show="openConfirm" x-cloak class="absolute right-0 bottom-full mb-2 z-10 w-64 p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl flex flex-col gap-3 items-end">
+                                                <p class="text-[11px] text-left font-bold text-zinc-800 dark:text-white leading-tight">¿Eliminar permanentemente el grupo {{ $grupo->nombre }}?</p>
+                                                <div class="flex gap-2 w-full justify-between mt-1">
+                                                    <flux:button variant="ghost" size="sm" x-on:click="openConfirm = false" class="text-[10px]">Cancelar</flux:button>
+                                                    <flux:button variant="danger" size="sm" wire:click="eliminar({{ $grupo->id }})" x-on:click="openConfirm = false" class="text-[10px]">Confirmar</flux:button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

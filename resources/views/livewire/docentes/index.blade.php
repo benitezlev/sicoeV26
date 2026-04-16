@@ -1,6 +1,6 @@
 <?php
 
-use function Livewire\Volt\{state, computed, layout};
+use function Livewire\Volt\{state, computed, layout, updated};
 use Illuminate\Support\Facades\Http;
 use Flux\Flux;
 
@@ -17,11 +17,27 @@ $docentes = computed(function () {
         ->get(config('services.sad.url').'/docentes', [
             'page' => $this->page,
             'search' => $this->search,
-            'per_page' => 15,
+            'per_page' => 100, // Traemos más para filtrar localmente si es necesario
         ]);
 
-    return $response->json();
+    $data = $response->json();
+    
+    // Si hay búsqueda, aplicamos un filtro manual extra por si la API no lo hace
+    if (!empty($this->search) && isset($data['data'])) {
+        $filtered = array_values(array_filter($data['data'], function($doc) {
+            $s = strtolower($this->search);
+            return str_contains(strtolower($doc['name']), $s) || 
+                   str_contains(strtolower($doc['curp']), $s) || 
+                   str_contains(strtolower($doc['email']), $s);
+        }));
+        $data['data'] = $filtered;
+    }
+
+    return $data;
 });
+
+// Resetear página al buscar
+updated(['search' => function() { $this->page = 1; }]);
 
 $gotoPage = function ($page) {
     if ($page > 0) {
@@ -68,7 +84,7 @@ $sincronizar = function ($id) {
         <div class="flex flex-col md:flex-row gap-4 items-center">
             <div class="relative w-full max-w-xl">
                 <flux:input 
-                    wire:model.live.debounce.500ms="search" 
+                    wire:model.live.debounce.300ms="search" 
                     placeholder="Filtrar por nombre, CURP o correo electrónico..." 
                     icon="magnifying-glass" 
                     class="h-12 shadow-inner !bg-zinc-50 dark:!bg-zinc-900/50" 
