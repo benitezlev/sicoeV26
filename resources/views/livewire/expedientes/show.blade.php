@@ -1,12 +1,14 @@
 <?php
 
-use function Livewire\Volt\{state, computed, layout, mount};
+use function Livewire\Volt\{state, computed, layout, mount, uses};
 use App\Models\Expediente;
 use App\Models\DocumentosExpediente;
 use App\Models\DocumentoRequerido;
 use Illuminate\Support\Facades\Log;
 use Livewire\WithFileUploads;
 use Flux\Flux;
+
+uses(WithFileUploads::class);
 
 layout('layouts.app');
 
@@ -17,11 +19,22 @@ state([
     'tipo_documento' => 'IDENTIFICACION',
     'observacion_texto' => '',
     'doc_id_para_observar' => null,
+    'preview_url' => null,
+    'preview_type' => null,
+    'show_preview_modal' => false,
 ]);
 
 // Initialize
 mount(function (Expediente $expediente) {
-    $this->expediente = $expediente->load(['user.movimientos.autor', 'user.movimientos.plantelAnterior', 'user.movimientos.plantelNuevo', 'user.calificaciones.materia', 'user.calificaciones.grupo', 'documentos.cargador']);
+    $this->expediente = $expediente->load([
+        'user.plantel',
+        'user.movimientos.autor', 
+        'user.movimientos.plantelAnterior', 
+        'user.movimientos.plantelNuevo', 
+        'user.calificaciones.materia', 
+        'user.calificaciones.grupo.curso', 
+        'documentos.cargador'
+    ]);
 });
 
 // Actions
@@ -29,11 +42,7 @@ $revalidar = function () {
     $faltantes = $this->expediente->validarDocumentosPorPerfil();
     $this->expediente->refresh();
 
-    Flux::toast(
-        heading: 'Estatus actualizado',
-        text: empty($faltantes) ? 'Expediente completo.' : 'Se detectaron documentos faltantes.',
-        variant: empty($faltantes) ? 'success' : 'warning'
-    );
+    Flux::toast(empty($faltantes) ? 'Expediente completo.' : 'Se detectaron documentos faltantes.');
 };
 
 $validarDocumento = function ($id) {
@@ -45,7 +54,7 @@ $validarDocumento = function ($id) {
 
     Log::channel('expedientes')->info("Documento ID {$id} VALIDADO por " . auth()->user()->name);
     $this->expediente->refresh();
-    Flux::toast(heading: 'Documento validado');
+    Flux::toast('Documento validado');
 };
 
 $abrirModalObservacion = function ($id) {
@@ -68,7 +77,7 @@ $guardarObservacion = function () {
 
     $this->expediente->refresh();
     $this->dispatch('modal-hide', name: 'modal-observar');
-    Flux::toast(heading: 'Observación registrada', variant: 'warning');
+    Flux::toast('Observación registrada');
 };
 
 $cargarDocumento = function () {
@@ -97,7 +106,23 @@ $cargarDocumento = function () {
     $this->archivo = null;
     $this->expediente->refresh();
     $this->dispatch('modal-hide', name: 'modal-cargar');
-    Flux::toast(heading: 'Documento cargado correctamente');
+    Flux::toast('Documento cargado correctamente');
+};
+
+$abrirPreview = function ($id) {
+    \Illuminate\Support\Facades\Log::info("Accediendo a previsualización del documento ID: $id");
+    $doc = DocumentosExpediente::findOrFail($id);
+    $this->preview_url = $doc->hasMedia('archivo') ? $doc->getFirstMediaUrl('archivo') : asset('storage/' . $doc->archivo);
+    
+    // Detectar tipo para el visualizador
+    $ext = pathinfo($this->preview_url, PATHINFO_EXTENSION);
+    $this->preview_type = in_array(strtolower($ext), ['jpg', 'jpeg', 'png']) ? 'image' : 'pdf';
+
+    $this->show_preview_modal = true;
+};
+
+$cerrarPreview = function () {
+    $this->show_preview_modal = false;
 };
 
 ?>
@@ -204,9 +229,9 @@ $cargarDocumento = function () {
 
                                     <td class="px-4 py-3">
                                         <div class="flex flex-col">
-                                            <a href="{{ $doc->hasMedia('archivo') ? $doc->getFirstMediaUrl('archivo') : asset('storage/' . $doc->archivo) }}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                                                <flux:icon name="document-text" variant="mini" /> ver_archivo
-                                            </a>
+                                            <button type="button" wire:click="abrirPreview({{ $doc->id }})" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 font-bold">
+                                                <flux:icon name="eye" variant="mini" /> PREVISUALIZAR
+                                            </button>
                                             <span class="text-[10px] text-zinc-400 font-mono">{{ \Carbon\Carbon::parse($doc->fecha_carga)->format('d/m/Y H:i') }}</span>
                                         </div>
                                     </td>
@@ -253,6 +278,36 @@ $cargarDocumento = function () {
                 <flux:heading size="lg" class="px-2 text-zinc-600">Línea de Tiempo de Adscripción</flux:heading>
                 
                 <div class="relative pl-8 space-y-8 before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-zinc-200 dark:before:bg-zinc-700">
+                    <!-- Estado Actual (Punto de llegada) -->
+                    <div class="relative">
+                        <div class="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 border-white dark:border-zinc-800 bg-emerald-500 shadow-sm animate-pulse"></div>
+                        <div class="bg-emerald-50/30 dark:bg-emerald-900/10 p-5 rounded-2xl border border-emerald-200 dark:border-emerald-800 shadow-sm">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex items-center gap-2">
+                                    <flux:badge size="sm" color="emerald" variant="solid">SITUACIÓN ACTUAL</flux:badge>
+                                    <span class="text-xs text-zinc-400 font-bold uppercase">Estado al día de hoy</span>
+                                </div>
+                                <flux:icon name="check-circle" class="text-emerald-500 size-5" />
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                                <div class="space-y-1">
+                                    <span class="text-[10px] text-zinc-400 font-bold uppercase block">Plantel y Nivel</span>
+                                    <div class="flex items-center gap-2">
+                                        <flux:badge size="xs" color="emerald" variant="outline">{{ ucfirst($expediente->user->nivel) }}</flux:badge>
+                                        <span class="text-sm font-black text-zinc-800 dark:text-zinc-100">{{ $expediente->user->plantel?->name ?? 'Sin plantel asignado' }}</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-1">
+                                    <span class="text-[10px] text-zinc-400 font-bold uppercase block">Adscripción / Dependencia</span>
+                                    <div class="text-xs text-zinc-700 dark:text-zinc-300 font-medium">
+                                        {{ $expediente->user->perfil_data['dependencia'] ?? 'Sin dependencia registrada' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     @forelse ($expediente->user->movimientos->sortByDesc('created_at') as $mov)
                         <div class="relative">
                             <div class="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 border-white dark:border-zinc-800 bg-blue-500 shadow-sm"></div>
@@ -270,7 +325,7 @@ $cargarDocumento = function () {
                                         <span class="text-[10px] text-zinc-400 font-bold uppercase block">Estado Anterior</span>
                                         <div class="flex items-center gap-2">
                                             <flux:badge size="xs" color="zinc" variant="outline">{{ ucfirst($mov->nivel_anterior ?? 'N/A') }}</flux:badge>
-                                            <span class="text-sm text-zinc-600 italic">{{ $mov->plantelAnterior->name ?? 'Sin plantel' }}</span>
+                                            <span class="text-sm text-zinc-600 italic">{{ $mov->plantelAnterior?->name ?? 'Sin plantel' }}</span>
                                         </div>
                                         <div class="text-xs text-zinc-500">
                                             {{ $mov->perfil_data_anterior['dependencia'] ?? 'Sin dependencia' }}
@@ -285,7 +340,7 @@ $cargarDocumento = function () {
                                         <span class="text-[10px] text-blue-400 font-bold uppercase block">Estado Nuevo</span>
                                         <div class="flex items-center gap-2">
                                             <flux:badge size="xs" color="blue" variant="solid">{{ ucfirst($mov->nivel_nuevo) }}</flux:badge>
-                                            <span class="text-sm font-bold text-zinc-800 dark:text-zinc-200">{{ $mov->plantelNuevo->name ?? 'Sin plantel' }}</span>
+                                            <span class="text-sm font-bold text-zinc-800 dark:text-zinc-200">{{ $mov->plantelNuevo?->name ?? 'Sin plantel' }}</span>
                                         </div>
                                         <div class="text-xs text-zinc-700 dark:text-zinc-300 font-medium">
                                             {{ $mov->perfil_data_nuevo['dependencia'] ?? 'Sin dependencia' }}
@@ -295,7 +350,7 @@ $cargarDocumento = function () {
 
                                 <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center text-xs">
                                     <span class="text-zinc-500"><b class="text-zinc-400">Motivo:</b> {{ $mov->motivo }}</span>
-                                    <span class="text-zinc-400">Autorizado por: <b>{{ $mov->autor->nombre ?? 'Sistema' }}</b></span>
+                                    <span class="text-zinc-400">Autorizado por: <b>{{ $mov->autor?->nombre ?? 'Sistema' }}</b></span>
                                 </div>
                             </div>
                         </div>
@@ -328,19 +383,26 @@ $cargarDocumento = function () {
                                 <tr wire:key="cal-{{ $cal->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
                                     <td class="px-4 py-3">
                                         <div class="flex flex-col">
-                                            <span class="font-bold text-zinc-700 dark:text-zinc-200 leading-tight">{{ $cal->materia->nombre }}</span>
-                                            <span class="text-[9px] text-zinc-400 uppercase tracking-widest font-mono">ID: {{ $cal->materia->identificador ?? 'N/A' }}</span>
+                                            <span class="font-bold text-zinc-700 dark:text-zinc-200 leading-tight">
+                                                {{ $cal->materia?->nombre ?? ($cal->grupo?->curso?->nombre ?? 'Materia/Curso no encontrado') }}
+                                            </span>
+                                            <span class="text-[9px] text-zinc-400 uppercase tracking-widest font-mono">
+                                                ID: {{ $cal->materia?->identificador ?? ($cal->grupo?->curso?->identificador ?? 'N/A') }}
+                                            </span>
                                         </div>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <span class="text-xs text-zinc-600">{{ $cal->grupo->nombre }}</span>
+                                        <span class="text-xs text-zinc-600">{{ $cal->grupo?->nombre ?? 'G-N/A' }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         <flux:badge size="xs" color="zinc" variant="outline" class="font-mono px-2">{{ $cal->unidad }}</flux:badge>
                                     </td>
                                     <td class="px-4 py-3 text-center">
+                                        @php
+                                            $nota_val = $cal->calificacion == 10 ? '10' : number_format($cal->calificacion, 1);
+                                        @endphp
                                         <span class="text-base font-black {{ $cal->calificacion >= 6 ? 'text-emerald-600' : 'text-red-500' }}">
-                                            {{ number_format($cal->calificacion, 1) }}
+                                            {{ $nota_val }}
                                         </span>
                                     </td>
                                     <td class="px-4 py-3">
@@ -413,4 +475,33 @@ $cargarDocumento = function () {
             </form>
         </div>
     </div>
+
+    <!-- Modal Preview -->
+    @if($show_preview_modal)
+    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div class="bg-white dark:bg-zinc-800 w-full max-w-5xl h-[90vh] rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-700 flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-zinc-200 dark:border-zinc-700 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900">
+                <flux:heading size="lg">Vista Previa de Documento</flux:heading>
+                <div class="flex gap-2">
+                    <flux:button variant="ghost" icon="arrow-top-right-on-square" size="sm" as="a" href="{{ $preview_url }}" target="_blank">Abrir en nueva pestaña</flux:button>
+                    <flux:button variant="ghost" icon="x-mark" wire:click="cerrarPreview" />
+                </div>
+            </div>
+
+            <div class="flex-1 bg-zinc-100 dark:bg-zinc-950 flex items-center justify-center overflow-auto p-4">
+                @if($preview_type === 'image')
+                    <img src="{{ $preview_url }}" class="max-w-full max-h-full shadow-lg rounded-lg object-contain">
+                @elseif($preview_type === 'pdf')
+                    <iframe src="{{ $preview_url }}#toolbar=0" class="w-full h-full rounded-lg border-0 shadow-lg" loading="lazy"></iframe>
+                @else
+                    <div class="text-zinc-500 italic">Cargando documento...</div>
+                @endif
+            </div>
+            
+            <div class="p-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 flex justify-end">
+                <flux:button variant="primary" wire:click="cerrarPreview">Cerrar Visor</flux:button>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

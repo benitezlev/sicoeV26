@@ -131,6 +131,11 @@ class User extends Authenticatable implements HasMedia
         return $this->hasOne(CardexDocente::class, 'docente_id');
     }
 
+    public function plantel()
+    {
+        return $this->belongsTo(Plantel::class);
+    }
+
     public function expediente()
     {
         return $this->hasOne(Expediente::class);
