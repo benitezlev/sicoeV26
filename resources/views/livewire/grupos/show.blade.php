@@ -1,6 +1,6 @@
 <?php
 
-use function Livewire\Volt\{state, computed, layout, mount, usesFileUploads};
+use function Livewire\Volt\{state, computed, layout, mount, updated, usesFileUploads};
 use App\Models\Grupo;
 use App\Models\User;
 use App\Models\GrupoExpediente;
@@ -169,6 +169,10 @@ $reactivarAlumno = function ($alumnoId) {
     $this->cargarStats();
     Flux::toast(heading: 'Reincorporación', text: 'El alumno ha sido re-activado en el grupo.', variant: 'success');
 };
+
+updated(['searchDocente' => function () {
+    $this->buscarDocentesAPI();
+}]);
 
 $buscarDocentesAPI = function () {
     try {
@@ -603,54 +607,69 @@ $asistenciasMap = computed(function() {
         <!-- Columna Derecha: Docente y Expedientes -->
         <div class="space-y-8">
              
-            <!-- Docente Titular -->
-             <div class="bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden">
-                <div class="p-6 border-b border-zinc-200 dark:border-zinc-700 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/50">
-                    <h2 class="text-lg font-black text-zinc-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
-                        <flux:icon name="star" variant="mini" class="text-yellow-500" /> Docente Titular
-                    </h2>
+            <!-- Docente Titular (Premium Card) -->
+            <div class="bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-xl overflow-hidden group transition-all hover:shadow-2xl hover:border-blue-400/50">
+                <div class="h-24 bg-gradient-to-r from-blue-700 via-indigo-800 to-zinc-900 relative">
+                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+                    <div class="absolute -bottom-10 left-6">
+                        <div class="size-20 rounded-2xl bg-white dark:bg-zinc-800 p-1 shadow-lg border border-zinc-100 dark:border-zinc-700">
+                            <div class="w-full h-full bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-2xl shadow-inner">
+                                @if($this->docente)
+                                    {{ substr($this->docente['name'], 0, 1) }}
+                                @else
+                                    <flux:icon name="user" class="size-8" />
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                     @if($this->docente)
-                        <button x-data x-on:click="$dispatch('modal-show', { name: 'modal-asignar-docente' })" class="text-[10px] font-bold text-zinc-500 hover:text-blue-600 uppercase tracking-widest transition-colors flex items-center gap-1">
-                            <flux:icon name="arrows-right-left" variant="micro" /> Sustituir
-                        </button>
+                        <div class="absolute top-4 right-4 flex gap-2">
+                             <button x-data x-on:click="$dispatch('modal-show', { name: 'modal-asignar-docente' })" 
+                                     class="px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg text-[9px] font-black text-white uppercase tracking-widest border border-white/20 transition-all">
+                                Cambiar Titular
+                             </button>
+                        </div>
                     @endif
                 </div>
 
-                <div class="p-6 text-center text-wrap relative overflow-hidden">
+                <div class="pt-14 pb-6 px-6 space-y-5">
                     @if($this->docente)
-                        <!-- Patrón de fondo ornamental -->
-                        <div class="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-blue-50/50 dark:from-blue-900/10 to-transparent"></div>
-                        
-                        <div class="relative z-10 flex flex-col items-center gap-4">
-                            <div class="size-20 rounded-2xl bg-white dark:bg-zinc-800 shadow-lg border border-zinc-100 dark:border-zinc-700 p-1">
-                                <div class="w-full h-full bg-blue-100 dark:bg-blue-900/50 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-2xl">
-                                    {{ substr($this->docente['name'], 0, 1) }}
-                                </div>
+                        <div class="space-y-1">
+                            <h3 class="text-xl font-black text-zinc-900 dark:text-white leading-none tracking-tight">{{ $this->docente['name'] }}</h3>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{{ $this->docente['cargo'] ?? 'Catedrático Institucional' }}</span>
+                                <span class="size-1 rounded-full bg-zinc-300"></span>
+                                <span class="text-[10px] text-zinc-400 font-bold">Activo en SAD</span>
                             </div>
-                            <div class="space-y-1">
-                                <h3 class="text-lg font-black text-zinc-900 dark:text-white leading-tight">{{ $this->docente['name'] }}</h3>
-                                <p class="text-xs text-zinc-500 font-mono">{{ $this->docente['email'] }}</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-2 border-t border-zinc-100 dark:border-zinc-700 pt-4">
+                            <div class="flex items-center gap-3 p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-transparent hover:border-zinc-200 transition-all">
+                                <flux:icon name="envelope" variant="mini" class="text-zinc-400" />
+                                <span class="text-xs text-zinc-600 dark:text-zinc-300 font-medium truncate">{{ $this->docente['email'] }}</span>
                             </div>
-                            <span class="px-3 py-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-full text-[10px] font-black uppercase text-zinc-600 dark:text-zinc-400 tracking-wider">
-                                {{ $this->docente['cargo'] }}
-                            </span>
+                            <div class="flex items-center gap-3 p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-transparent hover:border-zinc-200 transition-all">
+                                <flux:icon name="identification" variant="mini" class="text-zinc-400" />
+                                <span class="text-xs text-zinc-600 dark:text-zinc-300 font-medium font-mono uppercase">ID: {{ $this->grupo->docente_id }}</span>
+                            </div>
                         </div>
                     @else
-                        <div class="py-8 flex flex-col items-center gap-4 text-zinc-500">
-                            <div class="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-full border border-dashed border-zinc-300 dark:border-zinc-700">
-                                <flux:icon name="user" class="size-8 opacity-40" />
+                        <div class="py-4 flex flex-col items-center gap-4 text-center">
+                            <div class="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-full border border-dashed border-zinc-300 dark:border-zinc-700 group-hover:bg-blue-50 transition-colors">
+                                <flux:icon name="user-group" class="size-10 text-zinc-300 group-hover:text-blue-400 transition-colors" />
                             </div>
                             <div class="space-y-1">
-                                <p class="text-sm font-bold text-zinc-700 dark:text-zinc-300">Plaza Vacante</p>
-                                <p class="text-xs">No hay docente titular asignado.</p>
+                                <h3 class="text-sm font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-tight">Sin Docente Asignado</h3>
+                                <p class="text-[10px] text-zinc-500 font-medium px-4">Este grupo requiere un titular para poder procesar asistencias y calificaciones finales.</p>
                             </div>
-                            <button x-data x-on:click="$dispatch('modal-show', { name: 'modal-asignar-docente' })" class="mt-2 px-5 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-black uppercase tracking-widest hover:border-blue-500 hover:text-blue-600 transition-all shadow-sm">
-                                Asignar del SAD
+                            <button x-data x-on:click="$dispatch('modal-show', { name: 'modal-asignar-docente' })" 
+                                    class="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-blue-500/20">
+                                Asignar desde Directorio SAD
                             </button>
                         </div>
                     @endif
                 </div>
-             </div>
+            </div>
 
              <!-- Expediente Documental -->
              <div class="bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-hidden flex flex-col h-[400px]">
@@ -842,18 +861,22 @@ $asistenciasMap = computed(function() {
 
                 <div wire:loading.remove wire:target="buscarDocentesAPI" class="space-y-2 w-full">
                     @forelse($this->docentesAPI as $d)
-                        <div class="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700 shadow-sm hover:border-blue-300 transition-colors group">
-                            <div class="flex items-center gap-3">
-                                <div class="size-10 rounded-full bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center font-black text-zinc-600 dark:text-zinc-300 uppercase">
+                        <div class="flex items-center justify-between p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm hover:border-blue-500 hover:bg-blue-50/30 transition-all group">
+                            <div class="flex items-center gap-4">
+                                <div class="size-12 rounded-xl bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center font-black text-zinc-600 dark:text-zinc-300 uppercase shadow-inner group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
                                     {{ substr($d['name'], 0, 1) }}
                                 </div>
                                 <div class="flex flex-col">
-                                    <span class="text-[11px] font-black uppercase text-zinc-900 dark:text-white leading-tight">{{ $d['name'] }}</span>
-                                    <span class="text-[9px] text-zinc-500">{{ $d['cargo'] }}</span>
+                                    <span class="text-xs font-black uppercase text-zinc-900 dark:text-white leading-tight tracking-tight">{{ $d['name'] ?? 'Docente Desconocido' }}</span>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span class="text-[9px] font-black text-blue-600 uppercase tracking-widest">{{ $d['cargo'] ?? 'Personal SAD' }}</span>
+                                        <span class="size-0.5 rounded-full bg-zinc-300"></span>
+                                        <span class="text-[9px] text-zinc-400 font-mono">{{ $d['email'] ?? 'sin@correo.com' }}</span>
+                                    </div>
                                 </div>
                             </div>
-                            <button wire:click="asignarDocente({{ $d['id'] }})" class="px-3 py-1 bg-zinc-100 hover:bg-blue-600 text-zinc-600 hover:text-white dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-blue-600 font-bold uppercase tracking-wider text-[10px] rounded border border-transparent hover:border-blue-500 transition-all">
-                                Elegir
+                            <button wire:click="asignarDocente({{ $d['id'] }})" class="px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-wider text-[9px] rounded-xl hover:scale-105 active:scale-95 transition-all shadow-md">
+                                Seleccionar
                             </button>
                         </div>
                     @empty
