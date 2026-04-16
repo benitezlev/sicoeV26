@@ -120,11 +120,20 @@
                 <td style="font-size: 8px; font-weight: bold;">{{ $alumno->cuip ?: ($alumno->curp ?: 'S/ID') }}</td>
                 <td style="font-size: 8px; font-weight: bold;">{{ strtoupper($alumno->perfil ?? ($alumno->perfil_data['perfil'] ?? '')) }}</td>
                 <td style="font-size: 8px; font-weight: bold; text-align: left; line-height: 1;">{{ strtoupper($alumno->adscripcion ?? ($alumno->perfil_data['adscripcion'] ?? '')) }}</td>
-                <td class="attendance-col"> @if($alumno->asistencia_l) &bull; @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_m) &bull; @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_mi) &bull; @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_j) &bull; @endif </td>
-                <td class="attendance-col"> @if($alumno->asistencia_v) &bull; @endif </td>
+                @php
+                    $diasFull = $grupo->diasHabilesEntreFechas();
+                    $checkPresencia = function($abbr) use ($alumno, $diasFull) {
+                        $dia = collect($diasFull)->firstWhere('abreviado', $abbr);
+                        if (!$dia) return false;
+                        $asistencia = $alumno->mapa_asistencia->get($dia['fecha']->format('Y-m-d'));
+                        return $asistencia && $asistencia->estatus === 'presente';
+                    };
+                @endphp
+                <td class="attendance-col"> @if($checkPresencia('L')) &bull; @endif </td>
+                <td class="attendance-col"> @if($checkPresencia('M')) &bull; @endif </td>
+                <td class="attendance-col"> @if($checkPresencia('M')) &bull; @endif </td>
+                <td class="attendance-col"> @if($checkPresencia('J')) &bull; @endif </td>
+                <td class="attendance-col"> @if($checkPresencia('V')) &bull; @endif </td>
                 <td class="grade-col" style="background-color: #f9f9f9;">{{ $alumno->nota_diagnostica == 10 ? '10' : ($alumno->nota_diagnostica ? number_format((float)$alumno->nota_diagnostica, 1) : '') }}</td>
                 <td class="grade-col">{{ $alumno->nota_final == 10 ? '10' : ($alumno->nota_final ? number_format((float)$alumno->nota_final, 1) : '') }}</td>
             </tr>

@@ -4,6 +4,10 @@ Este documento resume el estado actual del proyecto, los cambios recientes y las
 
 ## 🕒 Últimos Cambios Importantes (2026-04-15 17:58)
 
+### 🚀 Optimización y Preparación de Producción [NEW]
+1.  **Eliminación de N+1 (Performance):** Refactorización de controladores para carga masiva de datos en PDF. Reducción de ~200 consultas a 3 por cada lote de 40 alumnos.
+2.  **Plan de Despliegue v1:** Creación del protocolo oficial de actualización y hoja de ruta para módulos de Firma Electrónica y Fiscalía.
+
 ### 📊 Optimización de Reportes y PDF [REFINADO]
 1.  **Formato Compacto de Asistencia:** Se redujeron las cabeceras de días a iniciales únicas (L, M, M, J, V) y se eliminaron las fechas por columna para maximizar espacio.
 2.  **Identidad Visual (Plecas):** Reajuste de logos institucionales (35px) con alineación izquierda (R1) y centrada (R2), apilados verticalmente de forma equilibrada.

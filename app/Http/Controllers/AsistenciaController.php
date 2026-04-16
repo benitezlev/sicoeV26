@@ -49,31 +49,31 @@ class AsistenciaController extends Controller
         $mes = $inicioMes->translatedFormat('F Y');
 
         $alumnos = $grupo->alumnos;
+        // Bulk load calificaciones
+        $calificaciones = \App\Models\Calificacion::where('grupo_id', $grupo->id)
+            ->whereIn('user_id', $alumnos->pluck('id'))
+            ->get()
+            ->groupBy('user_id');
+
+        // Bulk load asistencias para los días del mes
+        $fechasMes = collect($diasDelMes)->map(fn($d) => $d['fecha']->format('Y-m-d'))->toArray();
+        $asistencias = \App\Models\AsistenciaIndividual::where('grupo_id', $grupo->id)
+            ->whereIn('user_id', $alumnos->pluck('id'))
+            ->whereIn('fecha', $fechasMes)
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn($items) => $items->keyBy(fn($i) => $i->fecha->format('Y-m-d')));
+
         foreach ($alumnos as $alumno) {
-            $alumno->nota_diagnostica = \App\Models\Calificacion::where('grupo_id', $grupo->id)
-                ->where('user_id', $alumno->id)
-                ->where('unidad', 'diagnostica')
-                ->value('calificacion') ?? '';
+            $userCalifs = $calificaciones->get($alumno->id, collect());
+            $alumno->nota_diagnostica = $userCalifs->firstWhere('unidad', 'diagnostica')->calificacion ?? '';
+            $alumno->nota_final = $userCalifs->firstWhere('unidad', 'final')->calificacion ?? '';
             
-            $alumno->nota_final = \App\Models\Calificacion::where('grupo_id', $grupo->id)
-                ->where('user_id', $alumno->id)
-                ->where('unidad', 'final')
-                ->value('calificacion') ?? '';
-            
-            $diasFull = $grupo->diasHabilesEntreFechas();
-            $diasMap = ['LU' => 'asistencia_l', 'MA' => 'asistencia_m', 'MI' => 'asistencia_mi', 'JU' => 'asistencia_j', 'VI' => 'asistencia_v'];
-            
-            foreach ($diasMap as $abbr => $prop) {
-                $alumno->$prop = false;
-                $diaData = collect($diasFull)->firstWhere('abreviado', $abbr);
-                if ($diaData) {
-                    $alumno->$prop = \App\Models\AsistenciaIndividual::where('grupo_id', $grupo->id)
-                        ->where('user_id', $alumno->id)
-                        ->whereDate('fecha', $diaData['fecha']->format('Y-m-d'))
-                        ->where('estatus', 'presente')
-                        ->exists();
-                }
-            }
+            $alumno->mapa_asistencia = $asistencias->get($alumno->id, collect());
+
+            // Retrocompatibilidad con propiedades esperadas por el formato horizontal antiguo (si aplica)
+            $mapOld = ['L' => 'asistencia_l', 'M' => 'asistencia_m', 'M_2' => 'asistencia_mi', 'J' => 'asistencia_j', 'V' => 'asistencia_v'];
+            // Nota: Este mapeo antiguo es impreciso para meses largos, solo se mantiene si el formato lo usa de forma fija
         }
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('asistencias.formato_horizontal', [
@@ -98,16 +98,13 @@ class AsistenciaController extends Controller
         $alumnos = $grupo->alumnos;
         $diasFull = $grupo->diasHabilesEntreFechas();
         
-        // Días Inhábiles (Feriados Mexicanos 2026 o configurables)
-        // Podríamos mover esto a la base de datos después, por ahora hardcode para agilidad
         $feriados = [
             '2026-01-01', '2026-02-02', '2026-03-16', '2026-05-01', 
             '2026-09-16', '2026-11-16', '2026-12-25'
         ];
 
-        // Agrupar días por semana académica
         $semanas = collect($diasFull)->groupBy(function($dia) {
-            return $dia['fecha']->format('o-W'); // Año-Semana ISO
+            return $dia['fecha']->format('o-W');
         })->map(function($dias, $key) use ($feriados) {
             return [
                 'identificador' => $key,
@@ -118,24 +115,26 @@ class AsistenciaController extends Controller
             ];
         })->values();
 
-        // Si es más de 40 horas o más de una semana, preparamos la paginación por semana
-        foreach ($alumnos as $alumno) {
-            $alumno->nota_diagnostica = \App\Models\Calificacion::where('grupo_id', $grupo->id)
-                ->where('user_id', $alumno->id)
-                ->where('unidad', 'diagnostica')
-                ->value('calificacion') ?? '';
-            
-            $alumno->nota_final = \App\Models\Calificacion::where('grupo_id', $grupo->id)
-                ->where('user_id', $alumno->id)
-                ->where('unidad', 'final')
-                ->value('calificacion') ?? '';
+        // Bulk load calificaciones
+        $calificaciones = \App\Models\Calificacion::where('grupo_id', $grupo->id)
+            ->whereIn('user_id', $alumnos->pluck('id'))
+            ->get()
+            ->groupBy('user_id');
 
-            // Mapeo de asistencia por fecha real para cada alumno
-            $alumno->asistencias_registradas = \App\Models\AsistenciaIndividual::where('grupo_id', $grupo->id)
-                ->where('user_id', $alumno->id)
-                ->pluck('fecha')
-                ->map(fn($f) => $f->format('Y-m-d'))
-                ->toArray();
+        // Bulk load asistencias individuales (incluyendo justificaciones)
+        $asistencias = \App\Models\AsistenciaIndividual::where('grupo_id', $grupo->id)
+            ->whereIn('user_id', $alumnos->pluck('id'))
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn($items) => $items->keyBy(fn($i) => $i->fecha->format('Y-m-d')));
+
+        foreach ($alumnos as $alumno) {
+            $userCalifs = $calificaciones->get($alumno->id, collect());
+            $alumno->nota_diagnostica = $userCalifs->firstWhere('unidad', 'diagnostica')->calificacion ?? '';
+            $alumno->nota_final = $userCalifs->firstWhere('unidad', 'final')->calificacion ?? '';
+            
+            // Inyectamos el mapa de asistencia pre-cargado para acceso instantáneo
+            $alumno->mapa_asistencia = $asistencias->get($alumno->id, collect());
         }
 
         return \Barryvdh\DomPDF\Facade\Pdf::loadView('asistencias.formato_40hrs', [

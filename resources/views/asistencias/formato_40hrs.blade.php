@@ -205,12 +205,9 @@
                                 INHÁBIL
                             @else
                                 @php
-                                    $asistenciaIndividual = \App\Models\AsistenciaIndividual::where([
-                                        'grupo_id' => $grupo->id,
-                                        'user_id' => $alumno->id,
-                                        'fecha' => $dia['fecha']->format('Y-m-d')
-                                    ])->first();
-                                    $estatus = $asistenciaIndividual ? $asistenciaIndividual->estatus : 'falta';
+                                    $fechaKey = $dia['fecha']->format('Y-m-d');
+                                    $asistencia = $alumno->mapa_asistencia->get($fechaKey);
+                                    $estatus = $asistencia ? $asistencia->estatus : 'falta';
                                 @endphp
                                 
                                 @if($estatus === 'presente')
