@@ -4,9 +4,18 @@ Este documento resume el estado actual del proyecto, los cambios recientes y las
 
 ## 🕒 Últimos Cambios Importantes (2026-04-15 17:58)
 
-### 🚀 Optimización y Preparación de Producción [NEW]
-1.  **Eliminación de N+1 (Performance):** Refactorización de controladores para carga masiva de datos en PDF. Reducción de ~200 consultas a 3 por cada lote de 40 alumnos.
-2.  **Plan de Despliegue v1:** Creación del protocolo oficial de actualización y hoja de ruta para módulos de Firma Electrónica y Fiscalía.
+### 🚀 ESTADO ACTUAL: PRODUCCIÓN V1 (ESTABLE)
+**Última actualización:** 16 de Abril de 2026
+
+### ✅ Hitos Completados
+- **Control de Asistencia:** Optimización N+1 completada. Reportes 40hrs y Horizontal operando con carga masiva de datos (~ -95% carga de BD).
+- **Módulo de Expedientes:** Visor integrado (PDF/IMG), gestión de estatus, validación de documentos y kárdex académico dinámico finalizados.
+- **Estabilización Core:** Correcciones en modelos de usuario, relaciones de plantel y carga de archivos en Volt.
+
+### 🚧 Próximos Pasos (Kraken Server)
+- **Migración a Kraken:** Traslado de base de datos y media a entorno final.
+- **Firma Electrónica:** Generación de folios, firmas digitales y QR en actas.
+- **Reporte FGJEM:** Formatos específicos para fiscalía.
 
 ### 📊 Optimización de Reportes y PDF [REFINADO]
 1.  **Formato Compacto de Asistencia:** Se redujeron las cabeceras de días a iniciales únicas (L, M, M, J, V) y se eliminaron las fechas por columna para maximizar espacio.
