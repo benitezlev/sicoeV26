@@ -29,4 +29,9 @@ class Plantel extends Model implements HasMedia
     {
         return $this->hasMany(User::class);
     }
+
+    public function grupos()
+    {
+        return $this->hasMany(Grupo::class);
+    }
 }

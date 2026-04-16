@@ -32,7 +32,9 @@
                         <flux:navlist.item icon="academic-cap" href="{{ route('profesores') }}" :current="request()->routeIs('profesores.*')">Docentes</flux:navlist.item>
                     @endcan
                     <flux:navlist.item icon="user-group" href="{{ route('grupos.index') }}" :current="request()->routeIs('grupos.*')">Grupos</flux:navlist.item>
-                    <flux:navlist.item icon="folder-open" href="{{ route('expedientes.index') }}" :current="request()->routeIs('expedientes.*')">Expedientes</flux:navlist.item>
+                    @if(!auth()->user()->hasRole('operador'))
+                        <flux:navlist.item icon="folder-open" href="{{ route('expedientes.index') }}" :current="request()->routeIs('expedientes.*')">Expedientes</flux:navlist.item>
+                    @endif
                 </flux:navlist.group>
 
                 @can('configuarion.total')
@@ -43,11 +45,13 @@
                     </flux:navlist.group>
                 @endcan
 
-                <flux:navlist.group heading="Operatividad">
-                    <flux:navlist.item icon="check-badge" href="{{ route('asistencias.index') }}" :current="request()->routeIs('asistencias.index')">Asistencias</flux:navlist.item>
-                    <flux:navlist.item icon="shield-check" href="{{ route('asistencias.pase-lista') }}" :current="request()->routeIs('asistencias.pase-lista')">Estado de Fuerza</flux:navlist.item>
-                    <flux:navlist.item icon="pencil-square" href="{{ route('calificaciones.index') }}" :current="request()->routeIs('calificaciones.*')">Calificaciones</flux:navlist.item>
-                </flux:navlist.group>
+                @if(!auth()->user()->hasRole('operador'))
+                    <flux:navlist.group heading="Operatividad">
+                        <flux:navlist.item icon="check-badge" href="{{ route('asistencias.index') }}" :current="request()->routeIs('asistencias.index')">Asistencias</flux:navlist.item>
+                        <flux:navlist.item icon="shield-check" href="{{ route('asistencias.pase-lista') }}" :current="request()->routeIs('asistencias.pase-lista')">Estado de Fuerza</flux:navlist.item>
+                        <flux:navlist.item icon="pencil-square" href="{{ route('calificaciones.index') }}" :current="request()->routeIs('calificaciones.*')">Calificaciones</flux:navlist.item>
+                    </flux:navlist.group>
+                @endif
 
                 @can('configuarion.total')
                     <flux:navlist.group heading="Configuración">

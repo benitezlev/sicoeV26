@@ -198,7 +198,7 @@
                     @foreach($semana['dias'] as $dia)
                         @php 
                             $esInhabil = ($semana['es_feriado'])($dia['fecha']);
-                            $presente = in_array($dia['fecha']->format('Y-m-d'), $alumno->asistencias_registradas);
+                            $presente = in_array($dia['fecha']->format('Y-m-d'), $alumno->asistencias_registradas ?? []);
                         @endphp
                         <td class="attendance-col" {!! $esInhabil ? 'style="background-color: #eee; font-size: 5px; color: #777;"' : '' !!}>
                             @if($esInhabil)

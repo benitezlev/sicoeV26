@@ -8,18 +8,33 @@ use App\Models\Calificacion;
 use Illuminate\Support\Facades\DB;
 
 $stats = computed(function() {
+    $plantelId = auth()->user()->plantel_id;
+    $isOperador = auth()->user()->hasRole('operador');
+
+    $userQuery = User::query();
+    $grupoQuery = Grupo::query();
+    $califQuery = Calificacion::query();
+    $expQuery = Expediente::query();
+
+    if ($isOperador && $plantelId) {
+        $userQuery->where('plantel_id', $plantelId);
+        $grupoQuery->where('plantel_id', $plantelId);
+        $califQuery->whereHas('user', fn($q) => $q->where('plantel_id', $plantelId));
+        $expQuery->whereHas('user', fn($q) => $q->where('plantel_id', $plantelId));
+    }
+
     return [
-        'total_usuarios' => User::count(),
-        'alumnos' => User::role('alumno')->count(),
-        'docentes' => User::role('docente')->count(),
+        'total_usuarios' => (clone $userQuery)->count(),
+        'alumnos' => (clone $userQuery)->role('alumno')->count(),
+        'docentes' => (clone $userQuery)->role('docente')->count(),
         'expedientes' => [
-            'total' => Expediente::count(),
-            'completos' => Expediente::where('estatus', 'completo')->count(),
-            'incompletos' => Expediente::where('estatus', 'incompleto')->count(),
-            'observados' => Expediente::where('estatus', 'observado')->count(),
+            'total' => (clone $expQuery)->count(),
+            'completos' => (clone $expQuery)->where('estatus', 'completo')->count(),
+            'incompletos' => (clone $expQuery)->where('estatus', 'incompleto')->count(),
+            'observados' => (clone $expQuery)->where('estatus', 'observado')->count(),
         ],
-        'grupos_activos' => Grupo::where('estado', 'activo')->count(),
-        'promedio_general' => round(Calificacion::whereHas('user')->avg('calificacion') ?? 0, 1),
+        'grupos_activos' => (clone $grupoQuery)->where('estado', 'activo')->count(),
+        'promedio_general' => round((clone $califQuery)->whereHas('user')->avg('calificacion') ?? 0, 1),
     ];
 });
 
@@ -28,8 +43,9 @@ $distribution = computed(function() {
 
     $query = User::role('alumno');
     
-    // Si no es admin_ti, el Global Scope de HasJurisdiction ya filtra
-    // pero para la distribución por nivel queremos ver el desglose
+    if (auth()->user()->hasRole('operador') && auth()->user()->plantel_id) {
+        $query->where('plantel_id', auth()->user()->plantel_id);
+    }
     return $query->select('nivel', DB::raw('count(*) as total'))
         ->groupBy('nivel')
         ->get()
@@ -49,7 +65,12 @@ $distribution = computed(function() {
 });
 
 $nestedStats = computed(function() {
-    return \App\Models\Plantel::all()
+    $plantelId = auth()->user()->plantel_id;
+    $isOperador = auth()->user()->hasRole('operador');
+
+    return \App\Models\Plantel::query()
+        ->when($isOperador && $plantelId, fn($q) => $q->where('id', $plantelId))
+        ->get()
         ->map(function($plantel) {
             // Stats de Grupos del Plantel
             $gruposStats = \App\Models\Grupo::where('plantel_id', $plantel->id)
@@ -81,8 +102,8 @@ $nestedStats = computed(function() {
 
             return $plantel;
         })
-        ->filter(function($plantel) {
-            // Ocultar planteles sin alumnos ni grupos activos
+        ->filter(function($plantel) use ($isOperador) {
+            if ($isOperador) return true; // Siempre mostrar su plantel aunque esté vacío
             return $plantel->users_count > 0 || count($plantel->gruposS_stats) > 0;
         });
 });
