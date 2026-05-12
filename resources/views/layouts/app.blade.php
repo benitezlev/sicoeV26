@@ -119,7 +119,9 @@
         </flux:main>
 
         <!-- SICOE Copiloto IA Global Floating Assistant -->
-        <livewire:dashboard.copiloto />
+        @if (auth()->user()?->hasRole('superadmin'))
+            <livewire:dashboard.copiloto />
+        @endif
 
         @fluxScripts
     </body>

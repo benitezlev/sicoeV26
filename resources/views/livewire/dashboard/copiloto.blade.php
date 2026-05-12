@@ -35,15 +35,15 @@ $toggleGlobal = function () {
     Flux::toast(
         heading: $this->activoGlobal ? 'Copiloto IA Activado' : 'Copiloto IA Desactivado',
         text: $this->activoGlobal 
-            ? 'El servicio conversacional local se ha habilitado para todo el personal.'
-            : 'El servicio conversacional se ha deshabilitado para Control Escolar y operadores.',
+            ? 'El servicio conversacional local de Ollama se ha encendido con éxito.'
+            : 'El servicio conversacional se ha puesto en modo Standby (cero consumo).',
         variant: 'info'
     );
 };
 
 $ask = function (OllamaService $ollama) {
-    // Si no está activo globalmente y no es superadmin, no permitir consultas
-    if (!$this->activoGlobal && !auth()->user()->hasRole('superadmin')) {
+    // Si no está activo globalmente, no permitir consultas
+    if (!$this->activoGlobal) {
         return;
     }
 
@@ -180,9 +180,9 @@ $clearChat = function () {
                     <div class="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-tight flex items-center gap-1.5">
                         <span>SICOE COPILOTO IA</span>
                         @if ($activoGlobal)
-                            <span class="inline-block px-1.5 py-0.5 bg-emerald-500 text-white text-[7px] font-black tracking-widest rounded uppercase">LOCAL</span>
+                            <span class="inline-block px-1.5 py-0.5 bg-emerald-500 text-white text-[7px] font-black tracking-widest rounded uppercase">CONECTADO</span>
                         @else
-                            <span class="inline-block px-1.5 py-0.5 bg-zinc-400 text-white text-[7px] font-black tracking-widest rounded uppercase">INACTIVO</span>
+                            <span class="inline-block px-1.5 py-0.5 bg-zinc-400 text-white text-[7px] font-black tracking-widest rounded uppercase">STANDBY</span>
                         @endif
                     </div>
                     <p class="text-[8px] text-zinc-400 font-bold uppercase tracking-wider">Ollama local @ 192.168.3.4 (Llama 3)</p>
@@ -191,17 +191,15 @@ $clearChat = function () {
 
             <div class="flex items-center gap-2">
                 <!-- Interruptor para el Administrador General -->
-                @if (auth()->user()->hasRole('superadmin'))
-                    <button type="button" wire:click="toggleGlobal" class="outline-none focus:outline-none transition-all duration-200 active:scale-95" title="Activar/Desactivar IA globalmente">
-                        @if ($activoGlobal)
-                            <span class="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 text-[8px] font-black uppercase rounded-full border border-emerald-200 dark:border-emerald-900/20">Activo</span>
-                        @else
-                            <span class="inline-flex items-center px-2 py-0.5 bg-zinc-100 text-zinc-600 dark:bg-zinc-950/20 dark:text-zinc-400 text-[8px] font-black uppercase rounded-full border border-zinc-200 dark:border-zinc-800">Inactivo</span>
-                        @endif
-                    </button>
-                @endif
+                <button type="button" wire:click="toggleGlobal" class="outline-none focus:outline-none transition-all duration-200 active:scale-95 text-xs font-black" title="Encender/Apagar conexión a Ollama">
+                    @if ($activoGlobal)
+                        <span class="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 text-[8px] font-black uppercase rounded-full border border-emerald-200 dark:border-emerald-900/20">Encendido</span>
+                    @else
+                        <span class="inline-flex items-center px-2 py-0.5 bg-zinc-100 text-zinc-600 dark:bg-zinc-950/20 dark:text-zinc-400 text-[8px] font-black uppercase rounded-full border border-zinc-200 dark:border-zinc-800">Apagado</span>
+                    @endif
+                </button>
                 
-                @if ($activoGlobal || auth()->user()->hasRole('superadmin'))
+                @if ($activoGlobal)
                     <flux:button variant="ghost" size="xs" icon="arrow-path" wire:click="clearChat" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200" title="Reiniciar chat" />
                 @endif
 
@@ -210,23 +208,15 @@ $clearChat = function () {
         </div>
 
         <!-- Validar Disponibilidad de Uso -->
-        @if ($activoGlobal || auth()->user()->hasRole('superadmin'))
+        @if ($activoGlobal)
             
-            <!-- Si está apagado globalmente pero soy superadmin, mostrar advertencia de simulación -->
-            @if (!$activoGlobal && auth()->user()->hasRole('superadmin'))
-                <div class="mx-5 mt-4 p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2 flex-shrink-0">
-                    <flux:icon name="exclamation-triangle" class="w-3.5 h-3.5 text-amber-500 flex-shrink-0 animate-bounce" />
-                    <span class="text-[9px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-tight">Modo de Simulación (Inactivo para operadores)</span>
-                </div>
-            @endif
-
             <!-- Contenedor del Historial de Mensajes -->
             <div class="flex-1 overflow-y-auto space-y-4 px-5 py-4 scrollbar-thin" x-ref="chatContainer" x-init="$watch('messages', () => $nextTick(() => { $refs.chatContainer.scrollTop = $refs.chatContainer.scrollHeight }))">
                 @foreach ($messages as $msg)
                     <div class="flex flex-col {{ $msg['role'] === 'user' ? 'items-end' : 'items-start' }} gap-1">
                         <!-- Nombre y Rol -->
                         <span class="text-[8px] text-zinc-400 font-bold uppercase tracking-wider px-1">
-                            {{ $msg['role'] === 'user' ? 'Tú (Operador)' : 'SICOE-IA' }}
+                            {{ $msg['role'] === 'user' ? 'Tú (Administrador)' : 'SICOE-IA' }}
                         </span>
 
                         <!-- Burbuja de Mensaje -->
@@ -302,18 +292,20 @@ $clearChat = function () {
             </form>
 
         @else
-            <!-- ================= VISTA DE ESTADO DESACTIVADO (PÚBLICO) ================= -->
-            <div class="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-5">
-                <div class="w-12 h-12 rounded-2xl bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center text-zinc-400 dark:text-zinc-600 border border-zinc-150 dark:border-zinc-800 shadow-inner">
-                    <flux:icon name="cpu-chip" class="w-6 h-6" />
+            <!-- ================= VISTA DE ESTADO EN STANDBY (APAGADO PERSISTENTE) ================= -->
+            <div class="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-5 bg-zinc-50/30 dark:bg-zinc-950/20">
+                <div class="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-400 dark:text-zinc-600 border border-zinc-200 dark:border-zinc-800 shadow-inner">
+                    <flux:icon name="power" class="w-5 h-5 text-zinc-400" />
                 </div>
                 <div class="space-y-2 max-w-xs">
-                    <h3 class="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-tight">Copiloto IA Suspendido</h3>
+                    <h3 class="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-tight">IA en modo Standby</h3>
                     <p class="text-[10px] text-zinc-500 leading-relaxed font-semibold">
-                        El servicio de análisis conversacional de Inteligencia Artificial se encuentra desactivado temporalmente por disposición de la **Dirección de Control Escolar**.
+                        El Copiloto IA se encuentra apagado. **No se realizarán conexiones ni consultas de red** a tu servidor personal Ollama (192.168.3.4) para conservar recursos y memoria.
                     </p>
                 </div>
-                <flux:badge size="sm" color="zinc" variant="solid" class="bg-zinc-500 text-[8px] tracking-widest font-black uppercase">Servicio Inactivo</flux:badge>
+                <flux:button wire:click="toggleGlobal" variant="primary" class="font-black uppercase text-[9px] px-4 py-2 mt-2">
+                    Activar Conexión IA
+                </flux:button>
             </div>
         @endif
     </div>
