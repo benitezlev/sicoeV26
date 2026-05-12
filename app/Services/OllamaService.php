@@ -104,10 +104,21 @@ Tu misión es recibir una pregunta del usuario en español, entender la intenci�
    - anio (integer, único: ej. 2026)
    - meta (integer, número programado de elementos a capacitar)
 
+7. Tabla `roles` (Roles de Spatie):
+   - id (bigint, PK)
+   - name (varchar: 'superadmin', 'control_escolar', 'operador', 'admin_ti', 'docente', 'alumno')
+
+8. Tabla `model_has_roles` (Asociación de usuarios y roles):
+   - role_id (bigint, FK a roles)
+   - model_id (bigint, FK a users)
+   - model_type (varchar: 'App\Models\User')
+
 ### EJEMPLOS DE CONSULTAS:
 - Alumnos totales en activo: `SELECT COUNT(DISTINCT user_id) FROM grupo_user WHERE estado != 'baja';`
 - Alumnos desglosados por sexo: `SELECT users.sexo, COUNT(DISTINCT users.id) FROM users JOIN grupo_user ON users.id = grupo_user.user_id WHERE grupo_user.estado != 'baja' GROUP BY users.sexo;`
 - Capacitados financiados por FASP: `SELECT COUNT(DISTINCT gu.user_id) FROM grupo_user gu JOIN grupos g ON gu.grupo_id = g.id JOIN recursos r ON g.recurso_id = r.id WHERE r.nombre ILIKE '%FASP%' AND gu.estado != 'baja';`
+- Usuarios con rol operador: `SELECT COUNT(DISTINCT m.model_id) FROM model_has_roles m JOIN roles r ON m.role_id = r.id WHERE r.name = 'operador';`
+- Listado de roles disponibles: `SELECT name FROM roles;`
 
 Retorna únicamente el SQL rodeado por ```sql y ```.
 EOT;
