@@ -94,12 +94,44 @@ $statsCapacitacion = computed(function() {
         ->orderByDesc('total')
         ->get();
 
+    // Comparativa de Metas Anuales vs Avance Real
+    $actualsByYear = DB::table('grupo_user')
+        ->join('users', 'grupo_user.user_id', '=', 'users.id')
+        ->join('grupos', 'grupo_user.grupo_id', '=', 'grupos.id')
+        ->where('users.tipo', 'alumno')
+        ->where('grupo_user.estado', '!=', 'baja')
+        ->when($isOperador && $plantelId, fn($q) => $q->where('grupos.plantel_id', $plantelId))
+        ->select(
+            DB::raw("EXTRACT(YEAR FROM COALESCE(grupos.fecha_inicio, grupos.created_at))::integer as anio"),
+            DB::raw('count(*) as total')
+        )
+        ->groupBy(DB::raw("EXTRACT(YEAR FROM COALESCE(grupos.fecha_inicio, grupos.created_at))"))
+        ->get()
+        ->pluck('total', 'anio')
+        ->toArray();
+
+    $goals = \App\Models\MetaCapacitacion::orderBy('anio', 'asc')->get();
+
+    $comparativaMetas = $goals->map(function($g) use ($actualsByYear) {
+        $actual = $actualsByYear[$g->anio] ?? 0;
+        $porcentaje = $g->meta > 0 ? min(100, round(($actual / $g->meta) * 100)) : 0;
+        $exceso = $g->meta > 0 && $actual > $g->meta ? round((($actual - $g->meta) / $g->meta) * 100) : 0;
+        return [
+            'anio' => $g->anio,
+            'meta' => $g->meta,
+            'actual' => $actual,
+            'porcentaje' => $porcentaje,
+            'exceso' => $exceso,
+        ];
+    });
+
     return [
         'total' => $totalCapacitados,
         'hombres' => $hombres,
         'mujeres' => $mujeres,
         'por_recurso' => $porRecurso,
         'por_plantel' => $porPlantel,
+        'comparativa_metas' => $comparativaMetas,
     ];
 });
 
@@ -383,6 +415,78 @@ $nestedStats = computed(function() {
                         <p class="text-xs text-zinc-400 font-bold italic text-center py-6 uppercase tracking-tighter">No hay planteles con alumnos activos registrados.</p>
                     @endforelse
                 </div>
+            </div>
+        </div>
+
+        <!-- 🎯 COMPARATIVA ANUALIZADA: META VS REAL -->
+        <div class="bg-white dark:bg-zinc-800 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm space-y-6">
+            <div class="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-700 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600">
+                        <flux:icon name="chart-bar" variant="mini" />
+                    </div>
+                    <div>
+                        <flux:heading size="lg" class="text-zinc-900 dark:text-white uppercase tracking-tight font-black">Ciclos Fiscales: Metas Anuales vs Avance Real</flux:heading>
+                        <p class="text-[10px] text-zinc-500 font-medium">Histórico acumulativo y comparativa del cumplimiento de metas institucionales de capacitación por año.</p>
+                    </div>
+                </div>
+                <flux:badge size="sm" color="indigo" variant="solid">Anualizado</flux:badge>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                @foreach($this->statsCapacitacion['comparativa_metas'] as $meta)
+                    <div class="p-5 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-2xl border border-zinc-100 dark:border-zinc-700/50 flex flex-col justify-between gap-4 relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Ciclo {{ $meta['anio'] }}
+                            </span>
+                            @if($meta['exceso'] > 0)
+                                <span class="text-[9px] bg-emerald-500/10 text-emerald-600 font-black px-2 py-0.5 rounded-full uppercase tracking-widest">+{{ $meta['exceso'] }}% Superado!</span>
+                            @elseif($meta['porcentaje'] >= 100)
+                                <span class="text-[9px] bg-emerald-500/10 text-emerald-600 font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Meta Cumplida</span>
+                            @else
+                                <span class="text-[9px] bg-amber-500/10 text-amber-600 font-black px-2 py-0.5 rounded-full uppercase tracking-widest">{{ $meta['porcentaje'] }}% Avance</span>
+                            @endif
+                        </div>
+
+                        <!-- Comparación Numérica -->
+                        <div class="grid grid-cols-2 gap-4 border-t border-b border-dashed border-zinc-200 dark:border-zinc-700 py-3">
+                            <div>
+                                <span class="text-[8px] text-zinc-400 font-bold uppercase tracking-wider block">Meta Oficial</span>
+                                <span class="text-base font-black text-zinc-900 dark:text-white block">{{ number_format($meta['meta']) }} <span class="text-[10px] text-zinc-400 font-normal">elem.</span></span>
+                            </div>
+                            <div class="border-l border-zinc-200 dark:border-zinc-700 pl-4">
+                                <span class="text-[8px] text-zinc-400 font-bold uppercase tracking-wider block">Capacitados</span>
+                                <span class="text-base font-black text-emerald-600 dark:text-emerald-400 block">{{ number_format($meta['actual']) }} <span class="text-[10px] text-zinc-400 font-normal">elem.</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Gráfico Comparativo Paralelo Integrado -->
+                        <div class="space-y-2">
+                            <!-- Barra Meta (Azul/Zinc) -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[8px] font-bold text-zinc-400 uppercase">
+                                    <span>Meta Programada</span>
+                                    <span>100%</span>
+                                </div>
+                                <div class="w-full bg-zinc-200 dark:bg-zinc-700 h-1.5 rounded-full overflow-hidden">
+                                    <div class="bg-zinc-400 dark:bg-zinc-500 h-full w-full"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Barra Real (Emerald/Indigo) -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
+                                    <span>Avance Registrado</span>
+                                    <span>{{ $meta['porcentaje'] }}%</span>
+                                </div>
+                                <div class="w-full bg-zinc-200 dark:bg-zinc-700 h-1.5 rounded-full overflow-hidden">
+                                    <div class="bg-emerald-500 h-full transition-all duration-500" style="width: {{ $meta['porcentaje'] }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
             </div>
         </div>
     </div>

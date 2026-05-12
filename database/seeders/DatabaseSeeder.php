@@ -40,6 +40,7 @@ class DatabaseSeeder extends Seeder
             DatabaseSetupSeeder::class,
             ConfiguracionInstitucionalSeeder::class,
             RecursoSeeder::class,
+            MetaCapacitacionSeeder::class,
         ]);
 
         $admin->assignRole('admin_ti');
