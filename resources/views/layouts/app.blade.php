@@ -118,6 +118,9 @@
             {{ $slot }}
         </flux:main>
 
+        <!-- SICOE Copiloto IA Global Floating Assistant -->
+        <livewire:dashboard.copiloto />
+
         @fluxScripts
     </body>
 </html>

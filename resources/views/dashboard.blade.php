@@ -4,15 +4,12 @@
     </x-slot>
 
     <div class="space-y-8">
+        <!-- Estadísticas de matrícula, finanzas y metas de SICOE -->
         <livewire:dashboard.stats />
         
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2">
-                <livewire:dashboard.copiloto />
-            </div>
-            <div class="lg:col-span-1">
-                <livewire:project-status-card />
-            </div>
+        <!-- Estado de Proyecto y Avisos Institucionales -->
+        <div class="grid grid-cols-1 gap-8">
+            <livewire:project-status-card />
         </div>
     </div>
 </x-app-layout>
