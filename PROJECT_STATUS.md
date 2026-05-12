@@ -2,7 +2,7 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-05-12 11:00)
+## 🕒 Últimos Cambios Importantes (2026-05-12 11:15)
 
 ### 🚀 ESTADO ACTUAL: PRODUCCIÓN V1 (ESTABLE - READY)
 **Última actualización:** 12 de Mayo de 2026
@@ -19,14 +19,18 @@ Este documento resume el estado actual del proyecto, los cambios recientes y las
     - **Desglose de Género en Tiempo Real:** Métricas proporcionales de hombres y mujeres inscritos en los programas curriculares.
     - **Desglose por Recurso Financiero:** Tabulación interactiva de capacitados fondeados por cada partida presupuestal (`FASP`, `FORTAMUN`, etc.), desglosados adicionalmente por sexo de cada elemento.
     - **Desglose por Plantel/Campus:** Tabulación proporcional que distribuye la matrícula de capacitados por cada sede operativa del sistema.
+- **Módulo de Metas de Capacitación Anuales:**
+    - **Esquema de Base de Datos:** Creación de la tabla `metas_capacitacion` con restricción de unicidad para el campo `anio`.
+    - **Sembrado (Seeder):** Se registraron metas institucionales para los ciclos fiscales `2024` (2000 elementos), `2025` (2500 elementos) y `2026` (3000 elementos).
+    - **Panel Comparativo en Dashboard:** Incorporación de un bloque visual interactivo que realiza la comparación paralela de la Meta Programada contra el Avance Registrado real de cada año (calculado dinámicamente a partir de la fecha de inicio de los grupos).
+    - **Pest PHP Testing:** Creación de tests unitarios y relacionales en `tests/Feature/Meta/MetaCapacitacionTest.php` verificando la inserción de metas y la restricción de duplicados por ciclo.
 - **Correcciones de Autenticación y Sincronización de Base de Datos (PostgreSQL):**
-    - **Sincronización de Secuencias:** Incorporación de un comando SQL nativo en `DatabaseSeeder` para sincronizar la secuencia de IDs de usuarios (`users_id_seq`) tras la inserción manual del administrador de sistema (`id: 1`). Esto previene colisiones de unicidad en Postgres.
-    - **Orquestación de Seeders:** Vinculación directa del sembrador maestro `DatabaseSetupSeeder` en lugar del obsoleto `RolesAndPermissionsSeeder`, permitiendo poblar correctamente todos los roles operativos, permisos de sistema y los accesos predeterminados del usuario operador, control escolar, y superadmin.
-    - **Robustez en CLI:** Corrección del comando informativo en el seeder para evitar excepciones de puntero nulo (`null pointer`) en ambientes virtuales sin interfaz de salida (Tinker y Pest Testing).
+    - **Sincronización de Secuencias:** Sincronización de la secuencia de IDs de usuarios (`users_id_seq`) tras la inserción manual del administrador de sistema (`id: 1`). Esto previene colisiones de unicidad en Postgres.
+    - **Orquestación de Seeders:** Vinculación directa del sembrador maestro `DatabaseSetupSeeder` en el orquestador principal.
 
 ### 🚧 Próximos Pasos (Kraken Server)
 - **Firma Electrónica:** Generación de folios, firmas digitales y QR en actas.
 - **Migración a Kraken:** Traslado de base de datos y media a entorno final.
 
 ---
-*Última actualización: 2026-05-12 11:00:00*
+*Última actualización: 2026-05-12 11:15:00*
