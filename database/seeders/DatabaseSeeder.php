@@ -31,11 +31,15 @@ class DatabaseSeeder extends Seeder
             'tipo' => 'admin',
         ]);
 
+        // Sincronizar secuencia id en PostgreSQL tras inserción manual para evitar colisiones
+        DB::statement("SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 1) FROM users))");
+
         $this->call([
             MunicipioSeeder::class,
             PlantelSeeder::class,
-            RolesAndPermissionsSeeder::class,
+            DatabaseSetupSeeder::class,
             ConfiguracionInstitucionalSeeder::class,
+            RecursoSeeder::class,
         ]);
 
         $admin->assignRole('admin_ti');

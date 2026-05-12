@@ -12,10 +12,10 @@ class Grupo extends Model
 {
     use HasJurisdiction;
      protected $fillable = [
-        'nombre','plantel_id','curso_id','docente_id','periodo','estado',
+        'nombre','plantel_id','curso_id','docente_id','recurso_id','periodo','estado',
         'fecha_inicio','fecha_fin','hora_inicio','hora_fin','total_horas',
         'dias_clase', 'formato_especial', 'tipo_grupo'
-    ];
+     ];
 
     protected $casts = [
         'fecha_inicio' => 'date',
@@ -34,6 +34,11 @@ class Grupo extends Model
     public function plantel()
     {
         return $this->belongsTo(Plantel::class);
+    }
+
+    public function recurso()
+    {
+        return $this->belongsTo(Recurso::class);
     }
 
     public function alumnos()

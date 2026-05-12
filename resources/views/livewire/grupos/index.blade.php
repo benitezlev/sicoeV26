@@ -20,6 +20,7 @@ state([
     'nombre' => '',
     'plantel_id' => '',
     'curso_id' => '',
+    'recurso_id' => '',
     'periodo' => '',
     'estado' => 'activo',
     'fecha_inicio' => '',
@@ -34,7 +35,7 @@ state([
 
 $grupos = computed(function () {
     return Grupo::query()
-        ->with(['plantel', 'curso'])
+        ->with(['plantel', 'curso', 'recurso'])
         // Seguridad: Filtro por Jurisdicción del Operador
         ->when(auth()->user()->hasRole('operador'), function ($query) {
             $query->where('plantel_id', auth()->user()->plantel_id);
@@ -51,6 +52,7 @@ $grupos = computed(function () {
 
 $planteles = computed(fn() => Plantel::orderBy('name')->get());
 $cursos = computed(fn() => Curso::orderBy('nombre')->get());
+$recursos = computed(fn() => \App\Models\Recurso::where('activo', true)->orderBy('nombre')->get());
 
 updated([
     'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'dias_clase' => function () {
@@ -91,7 +93,7 @@ updated([
 
 $abrirModalCrear = function () {
     $this->resetErrorBag();
-    $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas', 'formato_especial', 'tipo_grupo']);
+    $this->reset(['grupoId', 'nombre', 'plantel_id', 'curso_id', 'periodo', 'estado', 'fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin', 'total_horas', 'formato_especial', 'tipo_grupo', 'recurso_id']);
     $this->estado = 'activo';
     $this->dias_clase = [1, 2, 3, 4, 5];
     $this->formato_especial = false;
@@ -105,6 +107,7 @@ $editar = function (Grupo $grupo) {
         'nombre' => $grupo->nombre,
         'plantel_id' => $grupo->plantel_id,
         'curso_id' => $grupo->curso_id,
+        'recurso_id' => $grupo->recurso_id ?? '',
         'periodo' => $grupo->periodo,
         'estado' => $grupo->estado,
         'fecha_inicio' => $grupo->fecha_inicio?->format('Y-m-d'),
@@ -125,6 +128,7 @@ $guardar = function () {
         'nombre' => 'required|string|max:255',
         'plantel_id' => 'required|exists:planteles,id',
         'curso_id' => 'required|exists:cursos,id',
+        'recurso_id' => 'nullable|exists:recursos,id',
         'periodo' => 'required|string|max:20',
         'estado' => 'required|in:activo,concluido,cancelado',
         'fecha_inicio' => 'required|date',
@@ -229,7 +233,14 @@ $eliminar = function ($id) {
                         <tr wire:key="grupo-{{ $grupo->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
                             <td class="px-6 py-4">
                                 <div class="flex flex-col min-w-48 text-wrap leading-tight">
-                                    <span class="font-black text-zinc-800 dark:text-white uppercase tracking-tight text-sm">{{ $grupo->nombre }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-black text-zinc-800 dark:text-white uppercase tracking-tight text-sm">{{ $grupo->nombre }}</span>
+                                        @if($grupo->recurso)
+                                            <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/10 dark:text-emerald-400 text-[8px] font-black uppercase rounded border border-emerald-200 dark:border-emerald-800/20">
+                                                💰 {{ $grupo->recurso->nombre }}
+                                            </span>
+                                        @endif
+                                    </div>
                                     <span class="text-[10px] text-zinc-500 italic mt-0.5 max-w-[250px] truncate">{{ optional($grupo->curso)->nombre ?? 'Sin programa asignado' }}</span>
                                 </div>
                             </td>
@@ -423,6 +434,22 @@ $eliminar = function ($id) {
                                 </div>
                             </div>
                             <flux:error name="tipo_grupo" />
+                        </flux:field>
+
+                        <flux:field>
+                            <flux:label>Recurso de Financiamiento</flux:label>
+                            <div class="relative group">
+                                <select wire:model.live="recurso_id" class="appearance-none block w-full px-4 py-3 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none">
+                                    <option value="">No definido / Sin asignar...</option>
+                                    @foreach($this->recursos as $r)
+                                        <option value="{{ $r->id }}">{{ $r->nombre }} ({{ $r->clave }})</option>
+                                    @endforeach
+                                </select>
+                                <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-zinc-400">
+                                    <flux:icon name="chevron-down" variant="mini" />
+                                </div>
+                            </div>
+                            <flux:error name="recurso_id" />
                         </flux:field>
                     </div>
 

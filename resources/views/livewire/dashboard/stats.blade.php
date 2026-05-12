@@ -38,6 +38,71 @@ $stats = computed(function() {
     ];
 });
 
+$statsCapacitacion = computed(function() {
+    $plantelId = auth()->user()->plantel_id;
+    $isOperador = auth()->user()->hasRole('operador');
+
+    // Consulta base de inscripciones activas (excluyendo bajas)
+    $baseQuery = DB::table('grupo_user')
+        ->join('users', 'grupo_user.user_id', '=', 'users.id')
+        ->join('grupos', 'grupo_user.grupo_id', '=', 'grupos.id')
+        ->where('users.tipo', 'alumno')
+        ->where('grupo_user.estado', '!=', 'baja');
+
+    if ($isOperador && $plantelId) {
+        $baseQuery->where('grupos.plantel_id', $plantelId);
+    }
+
+    $totalCapacitados = (clone $baseQuery)->count();
+    $hombres = (clone $baseQuery)->where('users.sexo', 'H')->count();
+    $mujeres = (clone $baseQuery)->where('users.sexo', 'M')->count();
+
+    // Desglose por Recurso Financiero
+    $porRecurso = DB::table('grupo_user')
+        ->join('users', 'grupo_user.user_id', '=', 'users.id')
+        ->join('grupos', 'grupo_user.grupo_id', '=', 'grupos.id')
+        ->leftJoin('recursos', 'grupos.recurso_id', '=', 'recursos.id')
+        ->where('users.tipo', 'alumno')
+        ->where('grupo_user.estado', '!=', 'baja')
+        ->when($isOperador && $plantelId, fn($q) => $q->where('grupos.plantel_id', $plantelId))
+        ->select(
+            DB::raw("COALESCE(recursos.nombre, 'No Definido / Propio') as recurso_nombre"),
+            DB::raw("COALESCE(recursos.clave, 'S/C') as recurso_clave"),
+            DB::raw('count(*) as total'),
+            DB::raw("sum(case when users.sexo = 'H' then 1 else 0 end) as hombres"),
+            DB::raw("sum(case when users.sexo = 'M' then 1 else 0 end) as mujeres")
+        )
+        ->groupBy('recursos.nombre', 'recursos.clave')
+        ->orderByDesc('total')
+        ->get();
+
+    // Desglose por Plantel/Campus
+    $porPlantel = DB::table('grupo_user')
+        ->join('users', 'grupo_user.user_id', '=', 'users.id')
+        ->join('grupos', 'grupo_user.grupo_id', '=', 'grupos.id')
+        ->join('planteles', 'grupos.plantel_id', '=', 'planteles.id')
+        ->where('users.tipo', 'alumno')
+        ->where('grupo_user.estado', '!=', 'baja')
+        ->when($isOperador && $plantelId, fn($q) => $q->where('grupos.plantel_id', $plantelId))
+        ->select(
+            'planteles.name as assignment_name',
+            DB::raw('count(*) as total'),
+            DB::raw("sum(case when users.sexo = 'H' then 1 else 0 end) as hombres"),
+            DB::raw("sum(case when users.sexo = 'M' then 1 else 0 end) as mujeres")
+        )
+        ->groupBy('planteles.name')
+        ->orderByDesc('total')
+        ->get();
+
+    return [
+        'total' => $totalCapacitados,
+        'hombres' => $hombres,
+        'mujeres' => $mujeres,
+        'por_recurso' => $porRecurso,
+        'por_plantel' => $porPlantel,
+    ];
+});
+
 $distribution = computed(function() {
     if (!auth()->check()) return null;
 
@@ -184,6 +249,141 @@ $nestedStats = computed(function() {
                 </div>
             </div>
             <flux:icon name="clock" class="absolute -right-4 -bottom-4 w-24 h-24 text-zinc-800 dark:text-zinc-200 opacity-50 group-hover:scale-110 transition-transform" />
+        </div>
+    </div>
+
+    <!-- 💰 SECCIÓN: ANALÍTICA PRESUPUESTARIA Y POBLACIONAL DE CAPACITACIÓN -->
+    <div class="space-y-6">
+        <div class="space-y-1">
+            <h2 class="text-xl font-black text-zinc-900 dark:text-white tracking-tight uppercase flex items-center gap-2">
+                <flux:icon name="banknotes" variant="mini" class="text-emerald-500" /> Analítica y Financiamiento de Capacitación
+            </h2>
+            <p class="text-xs text-zinc-500 font-medium italic">Distribución presupuestaria, eficiencia por plantel operativo y desglose por género de elementos capacitados vigentes.</p>
+        </div>
+
+        <!-- Tarjetas Clave de Capacitación -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Total Capacitados -->
+            <div class="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-3xl text-white shadow-md relative overflow-hidden group">
+                <div class="relative z-10 space-y-1">
+                    <span class="text-[10px] text-emerald-100 uppercase font-black tracking-widest">Matrícula Total Capacitada</span>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-5xl font-black">{{ $this->statsCapacitacion['total'] }}</span>
+                        <span class="text-xs text-emerald-100 font-bold">Inscripciones</span>
+                    </div>
+                    <p class="text-[10px] text-emerald-100/80 leading-relaxed font-medium italic pt-2 border-t border-emerald-400/30">Total de elementos capacitados de forma activa (excluyendo bajas).</p>
+                </div>
+                <flux:icon name="banknotes" class="absolute -right-4 -bottom-4 w-28 h-28 text-emerald-400/20 group-hover:scale-110 transition-transform" />
+            </div>
+
+            <!-- Hombres -->
+            <div class="bg-white dark:bg-zinc-800 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm relative overflow-hidden group">
+                <div class="relative z-10 space-y-1">
+                    <span class="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Población Masculina</span>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-4xl font-black text-blue-600 dark:text-blue-400">{{ $this->statsCapacitacion['hombres'] }}</span>
+                        <span class="text-xs text-zinc-400 font-bold">Elementos ({{ $this->statsCapacitacion['total'] > 0 ? round(($this->statsCapacitacion['hombres'] / $this->statsCapacitacion['total']) * 100) : 0 }}%)</span>
+                    </div>
+                    <div class="w-full bg-zinc-100 dark:bg-zinc-700 h-2 rounded-full overflow-hidden mt-3">
+                        <div class="bg-blue-500 h-full" style="width: {{ $this->statsCapacitacion['total'] > 0 ? round(($this->statsCapacitacion['hombres'] / $this->statsCapacitacion['total']) * 100) : 0 }}%"></div>
+                    </div>
+                </div>
+                <flux:icon name="user" class="absolute -right-4 -bottom-4 w-24 h-24 text-zinc-50 dark:text-zinc-700/30 group-hover:scale-110 transition-transform" />
+            </div>
+
+            <!-- Mujeres -->
+            <div class="bg-white dark:bg-zinc-800 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm relative overflow-hidden group">
+                <div class="relative z-10 space-y-1">
+                    <span class="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Población Femenina</span>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-4xl font-black text-pink-600 dark:text-pink-400">{{ $this->statsCapacitacion['mujeres'] }}</span>
+                        <span class="text-xs text-zinc-400 font-bold">Elementos ({{ $this->statsCapacitacion['total'] > 0 ? round(($this->statsCapacitacion['mujeres'] / $this->statsCapacitacion['total']) * 100) : 0 }}%)</span>
+                    </div>
+                    <div class="w-full bg-zinc-100 dark:bg-zinc-700 h-2 rounded-full overflow-hidden mt-3">
+                        <div class="bg-pink-500 h-full" style="width: {{ $this->statsCapacitacion['total'] > 0 ? round(($this->statsCapacitacion['mujeres'] / $this->statsCapacitacion['total']) * 100) : 0 }}%"></div>
+                    </div>
+                </div>
+                <flux:icon name="user" class="absolute -right-4 -bottom-4 w-24 h-24 text-zinc-50 dark:text-zinc-700/30 group-hover:scale-110 transition-transform" />
+            </div>
+        </div>
+
+        <!-- Tablas de Desglose Cobertura -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Desglose por Recurso de Financiamiento -->
+            <div class="bg-white dark:bg-zinc-800 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm space-y-6">
+                <div class="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-700 pb-3">
+                    <flux:heading size="lg" class="text-zinc-900 dark:text-white uppercase tracking-tight font-black">Por Recurso de Financiamiento</flux:heading>
+                    <flux:icon name="banknotes" variant="mini" class="text-zinc-400" />
+                </div>
+                
+                <div class="space-y-4">
+                    @forelse($this->statsCapacitacion['por_recurso'] as $rec)
+                        @php
+                            $porcentajeRec = $this->statsCapacitacion['total'] > 0 ? round(($rec->total / $this->statsCapacitacion['total']) * 100) : 0;
+                        @endphp
+                        <div class="p-4 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-2xl border border-zinc-100 dark:border-zinc-700/50 flex flex-col gap-2 hover:border-emerald-500/30 transition-colors">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-tight block">{{ $rec->recurso_nombre }}</span>
+                                    <span class="text-[9px] text-zinc-400 font-mono font-bold uppercase">Clave: {{ $rec->recurso_clave }}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-sm font-black text-emerald-600 dark:text-emerald-400 block">{{ $rec->total }} <span class="text-[10px] text-zinc-400 font-normal">elem.</span></span>
+                                    <span class="text-[9px] text-zinc-500 font-bold block">{{ $porcentajeRec }}% del total</span>
+                                </div>
+                            </div>
+                            <!-- Desglose de Género para el Recurso -->
+                            <div class="grid grid-cols-2 gap-4 text-[10px] text-zinc-500 border-t border-dashed border-zinc-200 dark:border-zinc-700 pt-2">
+                                <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Hombres: <strong class="text-zinc-800 dark:text-zinc-200 font-bold">{{ $rec->hombres }}</strong></span>
+                                <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span> Mujeres: <strong class="text-zinc-800 dark:text-zinc-200 font-bold">{{ $rec->mujeres }}</strong></span>
+                            </div>
+                            <div class="w-full bg-zinc-200 dark:bg-zinc-700 h-1 rounded-full overflow-hidden">
+                                <div class="bg-emerald-500 h-full" style="width: {{ $porcentajeRec }}%"></div>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-xs text-zinc-400 font-bold italic text-center py-6 uppercase tracking-tighter">No hay grupos con financiamiento activo registrado.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- Desglose por Plantel/Campus -->
+            <div class="bg-white dark:bg-zinc-800 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm space-y-6">
+                <div class="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-700 pb-3">
+                    <flux:heading size="lg" class="text-zinc-900 dark:text-white uppercase tracking-tight font-black">Por Plantel / Campus Operativo</flux:heading>
+                    <flux:icon name="building-office-2" variant="mini" class="text-zinc-400" />
+                </div>
+                
+                <div class="space-y-4">
+                    @forelse($this->statsCapacitacion['por_plantel'] as $plant)
+                        @php
+                            $porcentajePlant = $this->statsCapacitacion['total'] > 0 ? round(($plant->total / $this->statsCapacitacion['total']) * 100) : 0;
+                        @endphp
+                        <div class="p-4 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-2xl border border-zinc-100 dark:border-zinc-700/50 flex flex-col gap-2 hover:border-blue-500/30 transition-colors">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-tight block">{{ $plant->assignment_name }}</span>
+                                    <span class="text-[9px] text-zinc-400 font-semibold uppercase">Jurisdicción Registrada</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-sm font-black text-blue-600 dark:text-blue-400 block">{{ $plant->total }} <span class="text-[10px] text-zinc-400 font-normal">elem.</span></span>
+                                    <span class="text-[9px] text-zinc-500 font-bold block">{{ $porcentajePlant }}% del total</span>
+                                </div>
+                            </div>
+                            <!-- Desglose de Género para el Plantel -->
+                            <div class="grid grid-cols-2 gap-4 text-[10px] text-zinc-500 border-t border-dashed border-zinc-200 dark:border-zinc-700 pt-2">
+                                <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Hombres: <strong class="text-zinc-800 dark:text-zinc-200 font-bold">{{ $plant->hombres }}</strong></span>
+                                <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span> Mujeres: <strong class="text-zinc-800 dark:text-zinc-200 font-bold">{{ $plant->mujeres }}</strong></span>
+                            </div>
+                            <div class="w-full bg-zinc-200 dark:bg-zinc-700 h-1 rounded-full overflow-hidden">
+                                <div class="bg-blue-500 h-full" style="width: {{ $porcentajePlant }}%"></div>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-xs text-zinc-400 font-bold italic text-center py-6 uppercase tracking-tighter">No hay planteles con alumnos activos registrados.</p>
+                    @endforelse
+                </div>
+            </div>
         </div>
     </div>
 

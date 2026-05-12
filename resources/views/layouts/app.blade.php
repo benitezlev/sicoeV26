@@ -56,6 +56,7 @@
                 @can('configuarion.total')
                     <flux:navlist.group heading="Configuración">
                         <flux:navlist.item icon="building-library" href="{{ route('plantel.index') }}" :current="request()->routeIs('plantel.*')">Planteles</flux:navlist.item>
+                        <flux:navlist.item icon="banknotes" href="{{ route('recursos.index') }}" :current="request()->routeIs('recursos.*')">Recursos</flux:navlist.item>
                         <flux:navlist.item icon="shield-check" href="{{ route('roles') }}" :current="request()->routeIs('roles')">Roles y Permisos</flux:navlist.item>
                         <flux:navlist.item icon="cog-6-tooth" href="{{ route('config.index') }}" :current="request()->routeIs('config.*')">Sistema</flux:navlist.item>
                     </flux:navlist.group>

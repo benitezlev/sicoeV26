@@ -26,6 +26,7 @@ Route::middleware([
 Route::middleware(['auth', 'role:superadmin|admin_ti|control_escolar'])->prefix('admin')->group(function () {
     Volt::route('config', 'configuracion-institucional')->name('config.index');
     Volt::route('plantel', 'planteles.index')->name('plantel.index');
+    Volt::route('/recursos', 'recursos.index')->name('recursos.index');
     Volt::route('/usuarios', 'usuarios.index')->name('alumnos.index');
     Volt::route('/alumnos/importar', 'usuarios.import')->name('alumnos.importar');
     Volt::route('/expedientes/importar-zip', 'expedientes.import-zip')->name('expedientes.import-zip');

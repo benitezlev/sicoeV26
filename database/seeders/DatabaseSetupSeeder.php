@@ -60,7 +60,9 @@ class DatabaseSetupSeeder extends Seeder
         $this->crearUsuario('Control Escolar', 'control_escolar@sicoe.mx', 'Control_2026', 'control_escolar');
         $this->crearUsuario('Operador SICOE', 'operador@sicoe.mx', 'Operador_2026', 'operador');
 
-        $this->command->info('Base de Datos configurada con éxito.');
+        if ($this->command) {
+            $this->command->info('Base de Datos configurada con éxito.');
+        }
     }
 
     private function crearUsuario($nombre, $email, $password, $role)

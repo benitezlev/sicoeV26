@@ -55,7 +55,7 @@ mount(function ($grupo) {
 });
 
 $grupo = computed(function () {
-    return Grupo::with(['plantel', 'curso', 'alumnos', 'expediente'])->findOrFail($this->grupoId);
+    return Grupo::with(['plantel', 'curso', 'recurso', 'alumnos', 'expediente'])->findOrFail($this->grupoId);
 });
 
 $cargarDocente = function () {
@@ -397,6 +397,11 @@ $asistenciasMap = computed(function() {
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase border tracking-widest {{ $badgeColor }}">
                         {{ $this->grupo->estado }}
                     </span>
+                    @if($this->grupo->recurso)
+                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase border tracking-widest bg-emerald-500/20 text-emerald-300 border-emerald-500/30 flex items-center gap-1.5">
+                            💰 {{ $this->grupo->recurso->nombre }}
+                        </span>
+                    @endif
                 </div>
                 <div class="text-sm font-medium text-zinc-400 flex items-center gap-2">
                     <flux:icon name="academic-cap" variant="mini" class="text-zinc-500" />
