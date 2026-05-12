@@ -138,10 +138,12 @@ EOT;
         }
 
         // Remover punto y coma al final si existe
-        $sql = rtrim($sql, ';');
+        $sql = rtrim(trim($sql), ';');
 
         // 2. Sanitización y validación estricta de seguridad
-        $cleanSql = trim($sql);
+        // Remover un literal "sql" o "SQL" al principio de la cadena si el modelo lo incluyó erróneamente en el bloque de código
+        $cleanSql = preg_replace('/^(sql|SQL)\s+/i', '', trim($sql));
+        $cleanSql = trim($cleanSql);
         
         // Debe comenzar estrictamente con SELECT
         if (stripos($cleanSql, 'SELECT') !== 0) {

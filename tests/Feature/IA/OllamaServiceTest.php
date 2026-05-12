@@ -38,3 +38,14 @@ it('blocks queries containing destructive keywords', function () {
     expect($result['success'])->toBeFalse()
         ->and($result['message'])->toContain('Acción denegada por seguridad');
 });
+
+it('handles raw sql blocks that start with literal sql string', function () {
+    $service = new OllamaService();
+    
+    $aiOutput = "```sql\nsql\nSELECT COUNT(*) FROM grupos;\n```";
+    
+    $result = $service->executeSecureQuery($aiOutput);
+    
+    expect($result['success'])->toBeTrue()
+        ->and($result['sql'])->toBe('SELECT COUNT(*) FROM grupos');
+});
