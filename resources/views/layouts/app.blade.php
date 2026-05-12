@@ -119,7 +119,7 @@
         </flux:main>
 
         <!-- SICOE Copiloto IA Global Floating Assistant -->
-        @if (auth()->user()?->hasRole('superadmin'))
+        @if (auth()->user()?->hasRole('superadmin') || auth()->user()?->hasRole('control_escolar'))
             <livewire:dashboard.copiloto />
         @endif
 

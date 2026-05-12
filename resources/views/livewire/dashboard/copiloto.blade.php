@@ -190,14 +190,22 @@ $clearChat = function () {
             </div>
 
             <div class="flex items-center gap-2">
-                <!-- Interruptor para el Administrador General -->
-                <button type="button" wire:click="toggleGlobal" class="outline-none focus:outline-none transition-all duration-200 active:scale-95 text-xs font-black" title="Encender/Apagar conexión a Ollama">
+                <!-- Interruptor para el Administrador General / Badge para Control Escolar -->
+                @if (auth()->user()?->hasRole('superadmin'))
+                    <button type="button" wire:click="toggleGlobal" class="outline-none focus:outline-none transition-all duration-200 active:scale-95 text-xs font-black animate-pulse" title="Encender/Apagar conexión a Ollama">
+                        @if ($activoGlobal)
+                            <span class="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 text-[8px] font-black uppercase rounded-full border border-emerald-200 dark:border-emerald-900/20">Encendido</span>
+                        @else
+                            <span class="inline-flex items-center px-2 py-0.5 bg-zinc-100 text-zinc-600 dark:bg-zinc-950/20 dark:text-zinc-400 text-[8px] font-black uppercase rounded-full border border-zinc-200 dark:border-zinc-800">Apagado</span>
+                        @endif
+                    </button>
+                @else
                     @if ($activoGlobal)
-                        <span class="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 text-[8px] font-black uppercase rounded-full border border-emerald-200 dark:border-emerald-900/20">Encendido</span>
+                        <span class="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 text-[8px] font-black uppercase rounded-full border border-emerald-200 dark:border-emerald-900/20">Activo</span>
                     @else
-                        <span class="inline-flex items-center px-2 py-0.5 bg-zinc-100 text-zinc-600 dark:bg-zinc-950/20 dark:text-zinc-400 text-[8px] font-black uppercase rounded-full border border-zinc-200 dark:border-zinc-800">Apagado</span>
+                        <span class="inline-flex items-center px-2 py-0.5 bg-zinc-100 text-zinc-600 dark:bg-zinc-950/20 dark:text-zinc-400 text-[8px] font-black uppercase rounded-full border border-zinc-200 dark:border-zinc-800">Inactivo</span>
                     @endif
-                </button>
+                @endif
                 
                 @if ($activoGlobal)
                     <flux:button variant="ghost" size="xs" icon="arrow-path" wire:click="clearChat" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200" title="Reiniciar chat" />
