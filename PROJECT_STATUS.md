@@ -9,12 +9,12 @@ Este documento resume el estado actual del proyecto, los cambios recientes y las
 
 ### ✅ Hitos Completados Hoy
 - **SICOE Copiloto IA Local (Ollama 192.168.3.4):**
-    - **Servicio Conector:** Creación de `OllamaService` para comunicar Laravel de forma síncrona y segura con la API local de Ollama en el puerto `11434`.
-    - **Motor de Inferencia Text-to-SQL:** Definición de un System Prompt sumamente robusto con la especificación exacta de las tablas de PostgreSQL (`users`, `grupos`, `recursos`, `planteles`, `metas_capacitacion`) para guiar la generación de queries de solo lectura.
-    - **Blindaje y Sanitización:** Motor de seguridad en Laravel que limpia, extrae y analiza sintácticamente el SQL generado por la IA, denegando comandos destructivos (`INSERT`, `UPDATE`, `DROP`, `DELETE`, `ALTER`) para garantizar una ejecución 100% segura.
-    - **Componente Conversacional en Vivo:** Interfaz de chat ejecutiva en el Dashboard que renderiza el historial de mensajes, muestra estados de carga interactivos y dibuja tablas dinámicas estructuradas con los resultados arrojados por PostgreSQL.
-    - **Interruptor de Activación Global (Superadmin):** Implementación de un control on-the-fly en la cabecera del chat exclusivo para el Administrador General (`superadmin`), permitiendo suspender o habilitar la IA para Control Escolar y operadores instantáneamente. Se diseñó una tarjeta premium de aviso de suspensión para el personal cuando el servicio está inactivo.
-    - **Pruebas de Seguridad (Pest PHP):** Suite de pruebas en `tests/Feature/IA/OllamaServiceTest.php` validando la sanitización correcta del SQL y bloqueando inyecciones sospechosas.
+    - **Servicio Conector:** Creación de `OllamaService` para comunicar Laravel de forma síncrona y segura con la API local de Ollama en el puerto `11434` (utilizando el modelo `llama3:latest` presente en el servidor).
+    - **Motor de Inferencia Text-to-SQL:** Definición de un System Prompt sumamente robusto con la especificación exacta de las tablas de PostgreSQL, incluyendo ahora las tablas de seguridad de Spatie (`roles`, `model_has_roles`), permitiendo consultas analíticas sobre permisos y roles de usuarios.
+    - **Blindaje y Sanitización:** Motor de seguridad en Laravel que limpia, extrae y analiza sintácticamente el SQL generado por la IA, eliminando prefijos redundantes (como bloques con literal `sql`) y denegando comandos destructivos (`INSERT`, `UPDATE`, `DROP`, `DELETE`, `ALTER`) para garantizar una ejecución 100% segura.
+    - **Asistente de Chat Flotante Global:** Transformación del chat en un widget flotante (estilo Intercom) disponible en todas las pantallas de SICOE a través de un Botón de Acción Flotante (FAB) animado con Alpine.js.
+    - **Control y Modo de Standby (Cero Consumo):** Restricción de acceso exclusivo para el Administrador General (`superadmin`). Implementación de un modo Standby que, al apagarse el servicio, suspende por completo toda conexión de red o consulta a la API de Ollama en el servidor personal del usuario, garantizando cero consumo de recursos o ancho de banda en reposo.
+    - **Pruebas de Seguridad (Pest PHP):** Suite de pruebas en `tests/Feature/IA/OllamaServiceTest.php` validando la sanitización correcta del SQL, bloques redundantes y bloqueando inyecciones sospechosas.
 - **Módulo de Recursos Oficiales (Financiamiento):**
     - **Esquema de Base de Datos:** Creación de la tabla `recursos` y llave foránea opcional `recurso_id` en `grupos`.
     - **Modelo Eloquent:** Modelo `Recurso` con relación `hasMany` hacia `Grupo` y relación inversa en `Grupo` integrada.
