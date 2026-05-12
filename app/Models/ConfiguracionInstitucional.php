@@ -34,4 +34,28 @@ class ConfiguracionInstitucional extends Model
         'parametros_adicionales' => 'array',
     ];
 
+    /**
+     * Obtiene si el copiloto IA está activo a nivel institucional.
+     */
+    public static function isCopilotoActivo(): bool
+    {
+        $config = self::first();
+        if (!$config) {
+            return true; // Activo por defecto si no hay registro
+        }
+        $params = $config->parametros_adicionales ?? [];
+        return (bool) ($params['copiloto_ia_activo'] ?? true);
+    }
+
+    /**
+     * Modifica el estado de activación del copiloto IA local.
+     */
+    public static function setCopilotoActivo(bool $activo): void
+    {
+        $config = self::first() ?? new self();
+        $params = $config->parametros_adicionales ?? [];
+        $params['copiloto_ia_activo'] = $activo;
+        $config->parametros_adicionales = $params;
+        $config->save();
+    }
 }
