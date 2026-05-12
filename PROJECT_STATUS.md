@@ -2,35 +2,35 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-05-12 11:15)
+## 🕒 Últimos Cambios Importantes (2026-05-12 12:20)
 
 ### 🚀 ESTADO ACTUAL: PRODUCCIÓN V1 (ESTABLE - READY)
 **Última actualización:** 12 de Mayo de 2026
 
 ### ✅ Hitos Completados Hoy
+- **SICOE Copiloto IA Local (Ollama 192.168.3.4):**
+    - **Servicio Conector:** Creación de `OllamaService` para comunicar Laravel de forma síncrona y segura con la API local de Ollama en el puerto `11434`.
+    - **Motor de Inferencia Text-to-SQL:** Definición de un System Prompt sumamente robusto con la especificación exacta de las tablas de PostgreSQL (`users`, `grupos`, `recursos`, `planteles`, `metas_capacitacion`) para guiar la generación de queries de solo lectura.
+    - **Blindaje y Sanitización:** Motor de seguridad en Laravel que limpia, extrae y analiza sintácticamente el SQL generado por la IA, denegando comandos destructivos (`INSERT`, `UPDATE`, `DROP`, `DELETE`, `ALTER`) para garantizar una ejecución 100% segura.
+    - **Componente Conversacional en Vivo:** Interfaz de chat ejecutiva en el Dashboard que renderiza el historial de mensajes, muestra estados de carga interactivos y dibuja tablas dinámicas estructuradas con los resultados arrojados por PostgreSQL.
+    - **Pruebas de Seguridad (Pest PHP):** Suite de pruebas en `tests/Feature/IA/OllamaServiceTest.php` validando la sanitización correcta del SQL y bloqueando inyecciones sospechosas.
 - **Módulo de Recursos Oficiales (Financiamiento):**
-    - **Esquema de Base de Datos:** Creación de la tabla `recursos` y llave foránea opcional `recurso_id` en `grupos` (`nullOnDelete` habilitado).
-    - **Sembrado (Seeder):** Recursos oficiales base disponibles: `FASP`, `FORTAMUN`, `Recurso Propio`, `Recurso Estatal` y `Recurso Federal`.
-    - **Modelo Eloquent:** Modelo `Recurso` con relación `hasMany` hacia `Grupo` y relación inversa en `Grupo` integrada y registrada en fillable.
+    - **Esquema de Base de Datos:** Creación de la tabla `recursos` y llave foránea opcional `recurso_id` en `grupos`.
+    - **Modelo Eloquent:** Modelo `Recurso` con relación `hasMany` hacia `Grupo` y relación inversa en `Grupo` integrada.
     - **UI Livewire Volt:** Dropdown en el modal de apertura/edición de grupo para asignar el fondo, y un badge distintivo (💰) en el directorio de grupos que indica el origen presupuestal.
-    - **Testing (Pest PHP):** Suite de pruebas unitarias/integración robusta cubriendo la creación de recursos y su correcta vinculación con grupos académica y financieramente.
 - **Cuadro Estadístico y Dashboard Financiero-Poblacional:**
     - **Analítica de Capacitados:** Panel ejecutivo que muestra la matrícula total de alumnos capacitados vigentes (excluyendo bajas de grupos).
     - **Desglose de Género en Tiempo Real:** Métricas proporcionales de hombres y mujeres inscritos en los programas curriculares.
-    - **Desglose por Recurso Financiero:** Tabulación interactiva de capacitados fondeados por cada partida presupuestal (`FASP`, `FORTAMUN`, etc.), desglosados adicionalmente por sexo de cada elemento.
-    - **Desglose por Plantel/Campus:** Tabulación proporcional que distribuye la matrícula de capacitados por cada sede operativa del sistema.
 - **Módulo de Metas de Capacitación Anuales:**
     - **Esquema de Base de Datos:** Creación de la tabla `metas_capacitacion` con restricción de unicidad para el campo `anio`.
-    - **Sembrado (Seeder):** Se registraron metas institucionales para los ciclos fiscales `2024` (2000 elementos), `2025` (2500 elementos) y `2026` (3000 elementos).
-    - **Panel Comparativo en Dashboard:** Incorporación de un bloque visual interactivo que realiza la comparación paralela de la Meta Programada contra el Avance Registrado real de cada año (calculado dinámicamente a partir de la fecha de inicio de los grupos).
-    - **Pest PHP Testing:** Creación de tests unitarios y relacionales en `tests/Feature/Meta/MetaCapacitacionTest.php` verificando la inserción de metas y la restricción de duplicados por ciclo.
+    - **Panel Comparativo en Dashboard:** Incorporación de un bloque visual interactivo que realiza la comparación paralela de la Meta Programada contra el Avance Registrado real de cada año.
 - **Correcciones de Autenticación y Sincronización de Base de Datos (PostgreSQL):**
-    - **Sincronización de Secuencias:** Sincronización de la secuencia de IDs de usuarios (`users_id_seq`) tras la inserción manual del administrador de sistema (`id: 1`). Esto previene colisiones de unicidad en Postgres.
-    - **Orquestación de Seeders:** Vinculación directa del sembrador maestro `DatabaseSetupSeeder` en el orquestador principal.
+    - **Sincronización de Secuencias:** Sincronización de la secuencia de IDs de usuarios (`users_id_seq`) tras la inserción manual del administrador de sistema (`id: 1`).
+    - **Blindaje de Entorno de Tests:** Automatización de borrado de caché de configuración al inicio de cualquier prueba para evitar la limpieza accidental de la base de datos de desarrollo.
 
 ### 🚧 Próximos Pasos (Kraken Server)
 - **Firma Electrónica:** Generación de folios, firmas digitales y QR en actas.
 - **Migración a Kraken:** Traslado de base de datos y media a entorno final.
 
 ---
-*Última actualización: 2026-05-12 11:15:00*
+*Última actualización: 2026-05-12 12:20:00*
