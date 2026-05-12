@@ -41,10 +41,10 @@ class ConfiguracionInstitucional extends Model
     {
         $config = self::first();
         if (!$config) {
-            return true; // Activo por defecto si no hay registro
+            return false; // Desactivado por defecto si no hay registro
         }
         $params = $config->parametros_adicionales ?? [];
-        return (bool) ($params['copiloto_ia_activo'] ?? true);
+        return (bool) ($params['copiloto_ia_activo'] ?? false);
     }
 
     /**

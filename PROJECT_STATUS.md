@@ -2,10 +2,13 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-05-12 12:20)
+## 🕒 Últimos Cambios Importantes (2026-05-12 13:54)
 
 ### 🚀 ESTADO ACTUAL: PRODUCCIÓN V1 (ESTABLE - READY)
 **Última actualización:** 12 de Mayo de 2026
+
+### 🔒 ESTATUS DEL COPILOTO IA: STANDBY / APAGADO (PREVENTIVO)
+*El copiloto IA se encuentra desactivado institucionalmente por defecto para evitar conexiones no deseadas hacia la infraestructura personal del usuario (`192.168.3.4`). El Administrador General puede encenderlo a demanda desde su panel flotante de chat.*
 
 ### ✅ Hitos Completados Hoy
 - **SICOE Copiloto IA Local (Ollama 192.168.3.4):**
