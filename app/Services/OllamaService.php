@@ -20,6 +20,20 @@ class OllamaService
     }
 
     /**
+     * Realiza un healthcheck rápido al servidor Ollama con un timeout bajo.
+     */
+    public function isServerOnline(int $timeoutSeconds = 2): bool
+    {
+        try {
+            $response = Http::timeout($timeoutSeconds)->get($this->host);
+            return $response->status() === 200 || $response->successful();
+        } catch (\Exception $e) {
+            Log::warning("Ollama Server Healthcheck fallido en {$this->host}: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Envía una petición síncrona a la API de Ollama (/api/generate).
      */
     public function generate(string $prompt, string $systemPrompt = ''): ?string

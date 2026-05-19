@@ -18,10 +18,23 @@ state([
     'input' => '',
     'loading' => false,
     'activoGlobal' => true,
+    'serverOffline' => false,
 ]);
 
-mount(function () {
-    $this->activoGlobal = ConfiguracionInstitucional::isCopilotoActivo();
+mount(function (OllamaService $ollama) {
+    $isActivo = ConfiguracionInstitucional::isCopilotoActivo();
+    if ($isActivo) {
+        if ($ollama->isServerOnline(2)) {
+            $this->activoGlobal = true;
+            $this->serverOffline = false;
+        } else {
+            $this->activoGlobal = false;
+            $this->serverOffline = true;
+        }
+    } else {
+        $this->activoGlobal = false;
+        $this->serverOffline = false;
+    }
 });
 
 $toggleGlobal = function () {
@@ -302,18 +315,36 @@ $clearChat = function () {
         @else
             <!-- ================= VISTA DE ESTADO EN STANDBY (APAGADO PERSISTENTE) ================= -->
             <div class="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-5 bg-zinc-50/30 dark:bg-zinc-950/20">
-                <div class="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-400 dark:text-zinc-600 border border-zinc-200 dark:border-zinc-800 shadow-inner">
-                    <flux:icon name="power" class="w-5 h-5 text-zinc-400" />
-                </div>
-                <div class="space-y-2 max-w-xs">
-                    <h3 class="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-tight">IA en modo Standby</h3>
-                    <p class="text-[10px] text-zinc-500 leading-relaxed font-semibold">
-                        El Copiloto IA se encuentra apagado. **No se realizarán conexiones ni consultas de red** a tu servidor personal Ollama (192.168.3.4) para conservar recursos y memoria.
-                    </p>
-                </div>
-                <flux:button wire:click="toggleGlobal" variant="primary" class="font-black uppercase text-[9px] px-4 py-2 mt-2">
-                    Activar Conexión IA
-                </flux:button>
+                @if ($serverOffline)
+                    <div class="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/20 flex items-center justify-center text-rose-500 border border-rose-200 dark:border-rose-900/30 shadow-inner">
+                        <flux:icon name="exclamation-triangle" class="w-5 h-5 text-rose-500 animate-bounce" />
+                    </div>
+                    <div class="space-y-2 max-w-xs">
+                        <h3 class="text-sm font-black text-rose-600 dark:text-rose-400 uppercase tracking-tight">Servidor IA Fuera de Línea</h3>
+                        <p class="text-[10px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-semibold">
+                            El Copiloto IA se ha desactivado temporalmente. El servidor local de Ollama (<span class="font-bold underline text-indigo-500 dark:text-indigo-400">{{ rtrim(config('services.ollama.host'), '/') }}</span>) no responde al healthcheck.
+                        </p>
+                        <p class="text-[8px] text-rose-500 font-bold uppercase tracking-wider">
+                            Por favor, asegúrate de que Ollama está corriendo en el servidor.
+                        </p>
+                    </div>
+                    <flux:button wire:click="$refresh" variant="subtle" class="font-black uppercase text-[9px] px-4 py-2 mt-2">
+                        Reintentar Conexión
+                    </flux:button>
+                @else
+                    <div class="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-400 dark:text-zinc-600 border border-zinc-200 dark:border-zinc-800 shadow-inner">
+                        <flux:icon name="power" class="w-5 h-5 text-zinc-400" />
+                    </div>
+                    <div class="space-y-2 max-w-xs">
+                        <h3 class="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-tight">IA en modo Standby</h3>
+                        <p class="text-[10px] text-zinc-500 leading-relaxed font-semibold">
+                            El Copiloto IA se encuentra apagado. **No se realizarán conexiones ni consultas de red** a tu servidor personal Ollama para conservar recursos y memoria.
+                        </p>
+                    </div>
+                    <flux:button wire:click="toggleGlobal" variant="primary" class="font-black uppercase text-[9px] px-4 py-2 mt-2">
+                        Activar Conexión IA
+                    </flux:button>
+                @endif
             </div>
         @endif
     </div>

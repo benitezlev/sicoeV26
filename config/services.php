@@ -41,7 +41,7 @@ return [
     ],
 
     'ollama' => [
-        'host'  => env('OLLAMA_HOST', 'http://192.168.3.4:11434'),
+        'host'  => env('OLLAMA_API_BASE', 'http://192.168.3.4:11434'),
         'model' => env('OLLAMA_MODEL', 'qwen2.5-coder:7b'),
     ],
 

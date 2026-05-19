@@ -2,15 +2,20 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-05-12 13:54)
+## 🕒 Últimos Cambios Importantes (2026-05-19 17:45)
 
 ### 🚀 ESTADO ACTUAL: PRODUCCIÓN V1 (ESTABLE - READY)
-**Última actualización:** 12 de Mayo de 2026
+**Última actualización:** 19 de Mayo de 2026
 
-### 🔒 ESTATUS DEL COPILOTO IA: STANDBY / APAGADO (PREVENTIVO)
-*El copiloto IA se encuentra desactivado institucionalmente por defecto para evitar conexiones no deseadas hacia la infraestructura personal del usuario (`192.168.3.4`). El Administrador General puede encenderlo a demanda desde su panel flotante de chat.*
+### 🔒 ESTATUS DEL COPILOTO IA: STANDBY DINÁMICO & HEALTHCHECK AUTOMÁTICO (SEGURO - OPTIMIZADO)
+*El copiloto IA se encuentra desactivado por defecto. Se ha integrado un Healthcheck Dinámico con timeout de 2s en el arranque del Dashboard. Si el servidor Ollama no responde, el widget entra en suspensión de forma automática impidiendo peticiones fallidas o retrasos de carga de página. La IP/Endpoint de Ollama ahora es dinámica mediante la variable de entorno `OLLAMA_API_BASE` para producción (Kraken Server).*
 
 ### ✅ Hitos Completados Hoy
+- **Healthcheck Dinámico e Interfaz Reactiva (Ollama):**
+    - Creación del método `isServerOnline` en `OllamaService` con timeout bajo (2 segundos) para probar de forma ultraligera el servidor de IA.
+    - Integración de validación automática en el arranque del dashboard en `copiloto.blade.php`.
+    - Diseño ultra-premium en Livewire Volt y Alpine.js con badge de advertencia animada y botón de reintento si el servidor se encuentra fuera de línea.
+    - Migración de las variables de entorno de `OLLAMA_HOST` a la variable estándar `OLLAMA_API_BASE` en `.env.example`, `.env` y `config/services.php`.
 - **SICOE Copiloto IA Local (Ollama 192.168.3.4):**
     - **Servicio Conector:** Creación de `OllamaService` para comunicar Laravel de forma síncrona y segura con la API local de Ollama en el puerto `11434` (utilizando el modelo `llama3:latest` presente en el servidor).
     - **Motor de Inferencia Text-to-SQL:** Definición de un System Prompt sumamente robusto con la especificación exacta de las tablas de PostgreSQL, incluyendo ahora las tablas de seguridad de Spatie (`roles`, `model_has_roles`), permitiendo consultas analíticas sobre permisos y roles de usuarios.
