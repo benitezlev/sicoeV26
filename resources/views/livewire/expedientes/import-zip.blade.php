@@ -1,6 +1,6 @@
 <?php
 
-use function Livewire\Volt\{state, layout, rules, usesFileUploads};
+use function Livewire\Volt\{state, layout, usesFileUploads};
 use App\Jobs\ProcessZipImport;
 use Flux\Flux;
 
@@ -9,21 +9,25 @@ usesFileUploads();
 
 state([
     'zipFile' => null,
-    'uploading' => false,
 ]);
 
 $importarZip = function () {
+    if (!$this->zipFile) {
+        $this->addError('zipFile', 'Debes seleccionar un archivo ZIP antes de procesar.');
+        return;
+    }
+
     $this->validate([
-        'zipFile' => 'required|mimes:zip|max:102400', // 100MB max
+        'zipFile' => 'required|file|mimes:zip|max:102400', // 100MB max
     ]);
 
     $path = $this->zipFile->store('temp_imports');
-    
+
     // Despachar Job a la cola
     ProcessZipImport::dispatch($path, auth()->id());
 
     $this->zipFile = null;
-    
+
     Flux::toast(
         heading: 'Importación en Cola',
         text: 'El archivo ZIP se está procesando en segundo plano. Los documentos aparecerán en los expedientes en unos minutos.',
@@ -60,7 +64,7 @@ $importarZip = function () {
                         <li><code class="text-zinc-500">CURP123456HDFXRR01_ACTA.pdf</code> &rarr; vincula por CURP</li>
                         <li><code class="text-zinc-500">CUIP1234567890ABCDEF1234_IDENTIFICACION.pdf</code> &rarr; vincula por CUIP</li>
                     </ul>
-                    
+
                     <div class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800">
                         <flux:heading size="sm" class="text-blue-700 dark:text-blue-400 mb-2">Tipos de documentos soportados:</flux:heading>
                         <div class="flex flex-wrap gap-2">
@@ -74,16 +78,51 @@ $importarZip = function () {
             </div>
 
             <form wire:submit="importarZip" class="space-y-6">
-                <flux:field>
-                    <flux:label>Seleccionar Archivo ZIP</flux:label>
-                    <flux:input type="file" wire:model="zipFile" accept=".zip" />
-                    <flux:error name="zipFile" />
-                </flux:field>
+                {{-- Wrapper Alpine.js para eventos de upload de Livewire --}}
+                <div
+                    x-data="{ uploading: false, progress: 0 }"
+                    x-on:livewire-upload-start="uploading = true"
+                    x-on:livewire-upload-finish="uploading = false"
+                    x-on:livewire-upload-error="uploading = false"
+                    x-on:livewire-upload-progress="progress = $event.detail.progress"
+                    class="space-y-3"
+                >
+                    <flux:field>
+                        <flux:label>Seleccionar Archivo ZIP</flux:label>
+                        {{-- Input nativo HTML (flux:input no soporta wire:model para archivos) --}}
+                        <input
+                            type="file"
+                            wire:model="zipFile"
+                            accept=".zip"
+                            class="block w-full text-sm text-zinc-500
+                                   file:mr-4 file:py-2 file:px-4
+                                   file:rounded-xl file:border-0
+                                   file:text-xs file:font-bold file:uppercase file:tracking-widest
+                                   file:bg-blue-50 file:text-blue-700
+                                   hover:file:bg-blue-100
+                                   dark:file:bg-zinc-900 dark:file:text-zinc-400
+                                   border border-zinc-200 dark:border-zinc-700
+                                   rounded-xl p-2 bg-white dark:bg-zinc-900 shadow-sm"
+                        />
+                        <flux:error name="zipFile" />
+                    </flux:field>
+
+                    {{-- Barra de progreso de Livewire --}}
+                    <div x-show="uploading" class="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                        <div class="bg-blue-600 h-full transition-all duration-300" :style="'width: ' + progress + '%'"></div>
+                    </div>
+                </div>
 
                 <div class="flex justify-end gap-2">
-                    <flux:button type="submit" variant="primary" icon="arrow-up-tray" wire:loading.attr="disabled">
-                        <span wire:loading.remove>Subir y Procesar Masivamente</span>
-                        <span wire:loading>Subiendo archivo...</span>
+                    <flux:button
+                        type="submit"
+                        variant="primary"
+                        icon="arrow-up-tray"
+                        wire:loading.attr="disabled"
+                        wire:target="zipFile, importarZip"
+                    >
+                        <span wire:loading.remove wire:target="importarZip">Subir y Procesar Masivamente</span>
+                        <span wire:loading wire:target="importarZip">Procesando...</span>
                     </flux:button>
                 </div>
             </form>
