@@ -172,7 +172,7 @@ $cerrarPreview = function () {
     </div>
 
     <div x-data="{ tab: 'documentos' }" class="space-y-6">
-        <div class="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl w-fit">
+        <div class="flex flex-wrap p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl w-fit gap-0.5">
             <button 
                 @click="tab = 'documentos'" 
                 :class="tab === 'documentos' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700'"
@@ -180,6 +180,18 @@ $cerrarPreview = function () {
             >
                 <flux:icon name="document-text" variant="mini" />
                 Documentación
+            </button>
+            <button 
+                @click="tab = 'constancias'" 
+                :class="tab === 'constancias' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700'"
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+            >
+                <flux:icon name="trophy" variant="mini" />
+                Constancias
+                @php $totalConstancias = $expediente->documentos->where('tipo', 'CONSTANCIA')->count(); @endphp
+                @if($totalConstancias > 0)
+                    <span class="inline-flex items-center justify-center w-4 h-4 text-[9px] font-black bg-blue-500 text-white rounded-full">{{ $totalConstancias }}</span>
+                @endif
             </button>
             <button 
                 @click="tab = 'historial'" 
@@ -199,9 +211,16 @@ $cerrarPreview = function () {
             </button>
         </div>
 
+        {{-- ══════════════════════════════════════════
+             TAB: DOCUMENTACIÓN PERSONAL
+             (excluye CONSTANCIAS — van en su propio tab)
+        ══════════════════════════════════════════ --}}
         <div x-show="tab === 'documentos'" x-cloak class="animate-in fade-in duration-300">
             <div class="space-y-4">
-                <flux:heading size="lg" class="px-2 text-zinc-600">Documentación Cargada</flux:heading>
+                <div class="flex items-center justify-between px-2">
+                    <flux:heading size="lg" class="text-zinc-600">Documentación Personal</flux:heading>
+                    <p class="text-xs text-zinc-400 italic">Las constancias de cursos se gestionan en el tab <strong>Constancias</strong>.</p>
+                </div>
                 
                 <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm overflow-x-auto">
                     <table class="w-full text-left border-collapse">
@@ -215,8 +234,12 @@ $cerrarPreview = function () {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
-                            @forelse ($expediente->documentos as $doc)
-                                <tr wire:key="{{ $doc->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                            @php
+                                // Regla de negocio: CONSTANCIA solo aparece en el tab de Constancias
+                                $docsPersonales = $expediente->documentos->where('tipo', '!=', 'CONSTANCIA');
+                            @endphp
+                            @forelse ($docsPersonales as $doc)
+                                <tr wire:key="doc-p-{{ $doc->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
                                     <td class="px-4 py-3">
                                         <span class="font-bold text-zinc-700 dark:text-zinc-200">{{ $doc->tipo }}</span>
                                         @if($doc->observaciones)
@@ -255,7 +278,6 @@ $cerrarPreview = function () {
                                             @if($doc->estatus !== 'validado')
                                                 <flux:button variant="ghost" size="sm" icon="check-circle" color="green" wire:click="validarDocumento({{ $doc->id }})" />
                                             @endif
-                                            
                                             <flux:button variant="ghost" size="sm" icon="chat-bubble-bottom-center-text" color="amber" wire:click="abrirModalObservacion({{ $doc->id }})" />
                                         </div>
                                     </td>
@@ -263,7 +285,116 @@ $cerrarPreview = function () {
                             @empty
                                 <tr>
                                     <td colspan="5" class="py-12 text-center text-zinc-400">
-                                        No hay documentos registrados en este expediente.
+                                        No hay documentos personales registrados en este expediente.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {{-- ══════════════════════════════════════════
+             TAB: CONSTANCIAS DE CURSOS
+             Regla: tipo = CONSTANCIA
+             Formato de archivo: CURP_CONSTANCIA.ext o CUIP_CONSTANCIA.ext
+        ══════════════════════════════════════════ --}}
+        <div x-show="tab === 'constancias'" x-cloak class="animate-in fade-in duration-300">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between px-2">
+                    <flux:heading size="lg" class="text-zinc-600">Constancias de Cursos</flux:heading>
+                </div>
+
+                {{-- Regla de negocio informativa --}}
+                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl flex items-start gap-3 text-xs text-blue-700 dark:text-blue-400">
+                    <flux:icon name="information-circle" class="w-4 h-4 shrink-0 mt-0.5" />
+                    <div>
+                        <span class="font-bold block">Regla de nomenclatura para carga masiva</span>
+                        El archivo debe nombrarse como 
+                        <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded font-mono">CURP_CONSTANCIA.pdf</code>
+                        o 
+                        <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded font-mono">CUIP_CONSTANCIA.pdf</code>
+                        para que el sistema los clasifique aquí automáticamente.
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50">
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Constancia</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Archivo / Fecha</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500">Cargado Por</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500 text-center">Estatus</th>
+                                <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
+                            @php
+                                $constancias = $expediente->documentos->where('tipo', 'CONSTANCIA')->sortByDesc('fecha_carga');
+                            @endphp
+                            @forelse ($constancias as $doc)
+                                <tr wire:key="doc-c-{{ $doc->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center border border-amber-100 dark:border-amber-800">
+                                                <flux:icon name="trophy" class="w-4 h-4 text-amber-500" />
+                                            </div>
+                                            <div>
+                                                <span class="font-bold text-zinc-700 dark:text-zinc-200 block">CONSTANCIA</span>
+                                                @if($doc->observaciones)
+                                                    <div class="text-xs text-red-500 italic flex items-center gap-1 mt-0.5">
+                                                        <flux:icon name="exclamation-circle" variant="mini" />
+                                                        {{ $doc->observaciones }}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-4 py-3">
+                                        <div class="flex flex-col">
+                                            <button type="button" wire:click="abrirPreview({{ $doc->id }})" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 font-bold">
+                                                <flux:icon name="eye" variant="mini" /> PREVISUALIZAR
+                                            </button>
+                                            <span class="text-[10px] text-zinc-400 font-mono">{{ \Carbon\Carbon::parse($doc->fecha_carga)->format('d/m/Y H:i') }}</span>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-4 py-3">
+                                        <span class="text-xs text-zinc-600">{{ $doc->cargador?->nombre ?? 'Sistema' }}</span>
+                                    </td>
+
+                                    <td class="px-4 py-3 text-center">
+                                        <flux:badge size="sm" :color="match($doc->estatus) {
+                                            'validado' => 'green',
+                                            'observado' => 'red',
+                                            default => 'zinc'
+                                        }" variant="inset">
+                                            {{ ucfirst($doc->estatus) }}
+                                        </flux:badge>
+                                    </td>
+
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="flex gap-2 justify-center">
+                                            @if($doc->estatus !== 'validado')
+                                                <flux:button variant="ghost" size="sm" icon="check-circle" color="green" wire:click="validarDocumento({{ $doc->id }})" />
+                                            @endif
+                                            <flux:button variant="ghost" size="sm" icon="chat-bubble-bottom-center-text" color="amber" wire:click="abrirModalObservacion({{ $doc->id }})" />
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="py-16 text-center">
+                                        <div class="flex flex-col items-center gap-3 text-zinc-400">
+                                            <flux:icon name="trophy" class="w-10 h-10 text-zinc-200 dark:text-zinc-700" />
+                                            <div>
+                                                <p class="font-medium">Sin constancias registradas</p>
+                                                <p class="text-xs mt-1">Las constancias se agregan mediante carga masiva ZIP o manualmente con tipo <code>CONSTANCIA</code>.</p>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforelse
@@ -379,7 +510,13 @@ $cerrarPreview = function () {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
-                            @forelse ($expediente->user->calificaciones->sortByDesc('created_at') as $cal)
+                            @php
+                                {{-- Regla de negocio: el Kárdex excluye la calificación diagnóstica --}}
+                                $calificacionesKardex = $expediente->user->calificaciones
+                                    ->where('unidad', '!=', 'diagnostica')
+                                    ->sortByDesc('created_at');
+                            @endphp
+                            @forelse ($calificacionesKardex as $cal)
                                 <tr wire:key="cal-{{ $cal->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
                                     <td class="px-4 py-3">
                                         <div class="flex flex-col">
@@ -395,7 +532,18 @@ $cerrarPreview = function () {
                                         <span class="text-xs text-zinc-600">{{ $cal->grupo?->nombre ?? 'G-N/A' }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-center">
-                                        <flux:badge size="xs" color="zinc" variant="outline" class="font-mono px-2">{{ $cal->unidad }}</flux:badge>
+                                        @php
+                                            $labelUnidad = match($cal->unidad) {
+                                                '1'               => '1ra Unidad',
+                                                '2'               => '2da Unidad',
+                                                '3'               => '3ra Unidad',
+                                                'PROMEDIO_FINAL'  => 'Final',
+                                                'EXTRAORDINARIO'  => 'Extraordinario',
+                                                'final'           => 'Final',
+                                                default           => $cal->unidad,
+                                            };
+                                        @endphp
+                                        <flux:badge size="xs" color="zinc" variant="outline" class="font-mono px-2">{{ $labelUnidad }}</flux:badge>
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         @php
