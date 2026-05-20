@@ -188,7 +188,11 @@ $cerrarPreview = function () {
             >
                 <flux:icon name="trophy" variant="mini" />
                 Constancias
-                @php $totalConstancias = $expediente->documentos->where('tipo', 'CONSTANCIA')->count(); @endphp
+                @php
+                    $totalConstancias = $expediente->documentos
+                        ->filter(fn($d) => str_starts_with($d->tipo, 'CONSTANCIA'))
+                        ->count();
+                @endphp
                 @if($totalConstancias > 0)
                     <span class="inline-flex items-center justify-center w-4 h-4 text-[9px] font-black bg-blue-500 text-white rounded-full">{{ $totalConstancias }}</span>
                 @endif
@@ -235,8 +239,10 @@ $cerrarPreview = function () {
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @php
-                                // Regla de negocio: CONSTANCIA solo aparece en el tab de Constancias
-                                $docsPersonales = $expediente->documentos->where('tipo', '!=', 'CONSTANCIA');
+                                // Regla de negocio: excluir TODOS los tipos CONSTANCIA*
+                                // (CONSTANCIA, CONSTANCIA_PFA2024, CONSTANCIA_LIDERAZGO, etc.)
+                                $docsPersonales = $expediente->documentos
+                                    ->filter(fn($d) => !str_starts_with($d->tipo, 'CONSTANCIA'));
                             @endphp
                             @forelse ($docsPersonales as $doc)
                                 <tr wire:key="doc-p-{{ $doc->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
@@ -310,12 +316,14 @@ $cerrarPreview = function () {
                 <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl flex items-start gap-3 text-xs text-blue-700 dark:text-blue-400">
                     <flux:icon name="information-circle" class="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
-                        <span class="font-bold block">Regla de nomenclatura para carga masiva</span>
-                        El archivo debe nombrarse como 
-                        <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded font-mono">CURP_CONSTANCIA.pdf</code>
-                        o 
-                        <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded font-mono">CUIP_CONSTANCIA.pdf</code>
-                        para que el sistema los clasifique aquí automáticamente.
+                        <span class="font-bold block">Regla de nomenclatura para carga masiva (formato 3 partes)</span>
+                        Nombra el archivo como
+                        <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded font-mono">CURP_CONSTANCIA_CODIGOCURSO.pdf</code>
+                        o
+                        <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded font-mono">CUIP_CONSTANCIA_CODIGOCURSO.pdf</code>
+                        &mdash; el código del curso diferencia constancias de cursos distintos y evita reemplazos accidentales.
+                        <br>
+                        <span class="text-blue-500 mt-1 block">Ejemplo: <code class="bg-blue-100 dark:bg-blue-900 px-1 rounded">CURP123456HDFXRR01_CONSTANCIA_PFA2024.pdf</code></span>
                     </div>
                 </div>
 
@@ -332,7 +340,11 @@ $cerrarPreview = function () {
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @php
-                                $constancias = $expediente->documentos->where('tipo', 'CONSTANCIA')->sortByDesc('fecha_carga');
+                                // Filtrar todos los documentos cuyo tipo empiece con 'CONSTANCIA'
+                                // Cubre: 'CONSTANCIA', 'CONSTANCIA_PFA2024', 'CONSTANCIA_LIDERAZGO', etc.
+                                $constancias = $expediente->documentos
+                                    ->filter(fn($d) => str_starts_with($d->tipo, 'CONSTANCIA'))
+                                    ->sortByDesc('fecha_carga');
                             @endphp
                             @forelse ($constancias as $doc)
                                 <tr wire:key="doc-c-{{ $doc->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
@@ -342,7 +354,18 @@ $cerrarPreview = function () {
                                                 <flux:icon name="trophy" class="w-4 h-4 text-amber-500" />
                                             </div>
                                             <div>
+                                                @php
+                                                    // Extraer el código de curso del tipo (CONSTANCIA_CODIGOCURSO)
+                                                    $codigoCurso = str_contains($doc->tipo, '_')
+                                                        ? str_replace('CONSTANCIA_', '', $doc->tipo)
+                                                        : null;
+                                                @endphp
                                                 <span class="font-bold text-zinc-700 dark:text-zinc-200 block">CONSTANCIA</span>
+                                                @if($codigoCurso)
+                                                    <span class="inline-block mt-0.5 px-2 py-0.5 text-[10px] font-bold tracking-wider bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-800">
+                                                        {{ $codigoCurso }}
+                                                    </span>
+                                                @endif
                                                 @if($doc->observaciones)
                                                     <div class="text-xs text-red-500 italic flex items-center gap-1 mt-0.5">
                                                         <flux:icon name="exclamation-circle" variant="mini" />
@@ -392,7 +415,7 @@ $cerrarPreview = function () {
                                             <flux:icon name="trophy" class="w-10 h-10 text-zinc-200 dark:text-zinc-700" />
                                             <div>
                                                 <p class="font-medium">Sin constancias registradas</p>
-                                                <p class="text-xs mt-1">Las constancias se agregan mediante carga masiva ZIP o manualmente con tipo <code>CONSTANCIA</code>.</p>
+                                                <p class="text-xs mt-1">Las constancias se agregan mediante carga masiva ZIP con el formato <code>CURP_CONSTANCIA_CODIGOCURSO.pdf</code>.</p>
                                             </div>
                                         </div>
                                     </td>

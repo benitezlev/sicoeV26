@@ -230,15 +230,28 @@ $reiniciar = function () {
                     <flux:heading size="lg">¿Cómo funciona?</flux:heading>
                     <div class="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
                         <p>1. Crea un archivo ZIP con los documentos (PDF, JPG, PNG).</p>
-                        <p>2. Nombra cada archivo con el formato:</p>
-                        <div class="flex flex-wrap gap-2 pl-4">
-                            <code class="bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded font-bold text-blue-600">CURP_TIPO.extension</code>
-                            <span class="text-zinc-400 self-center">ó</span>
-                            <code class="bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded font-bold text-purple-600">CUIP_TIPO.extension</code>
+                        <p>2. El nombre de cada archivo debe seguir este formato:</p>
+                        <div class="pl-2 space-y-1">
+                            <p>
+                                Documentos personales: <code class="bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded font-bold text-blue-600">CURP_TIPO.ext</code>
+                                &nbsp;/&nbsp;
+                                <code class="bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded font-bold text-purple-600">CUIP_TIPO.ext</code>
+                            </p>
+                            <p>
+                                Constancias de cursos: <code class="bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded font-bold text-amber-600">CURP_CONSTANCIA_CODIGOCURSO.ext</code>
+                            </p>
                         </div>
                         <p class="text-xs text-zinc-400">
-                            El sistema detecta automáticamente: <strong>CURP</strong> = 18 caracteres · <strong>CUIP</strong> = 22 caracteres
+                            El sistema detecta <strong>CURP</strong> (18 chars) y <strong>CUIP</strong> (22 chars) automáticamente.
+                            Las constancias requieren el código del curso para no borrar constancias de otros cursos.
                         </p>
+                        <p class="text-zinc-500 font-medium">Ejemplos:</p>
+                        <ul class="list-disc list-inside space-y-1 text-zinc-500">
+                            <li><code>CURP123456HDFXRR01_ACTA.pdf</code> &rarr; Documentación personal</li>
+                            <li><code>CUIP1234567890ABCDEF1234_IDENTIFICACION.pdf</code> &rarr; Documentación personal</li>
+                            <li><code class="text-amber-600 font-bold">CURP123456HDFXRR01_CONSTANCIA_PFA2024.pdf</code> &rarr; Tab Constancias (curso PFA2024)</li>
+                            <li><code class="text-amber-600 font-bold">CURP123456HDFXRR01_CONSTANCIA_LIDERAZGO-ENE25.pdf</code> &rarr; Tab Constancias (otro curso)</li>
+                        </ul>
                     </div>
 
                     <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 flex flex-wrap gap-2 items-center">
