@@ -2,7 +2,7 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-05-20 10:04)
+## 🕒 Últimos Cambios Importantes (2026-05-20 12:54)
 
 ### 🚀 ESTADO ACTUAL: PRODUCCIÓN V1 (ESTABLE - READY)
 **Última actualización:** 20 de Mayo de 2026
@@ -11,6 +11,11 @@ Este documento resume el estado actual del proyecto, los cambios recientes y las
 *El copiloto IA ahora incluye memoria conversacional completa, inyección de límites de rendimiento en queries y prevención activa de colisión de columnas duplicadas. Se ha integrado un Healthcheck Dinámico con timeout de 2s en el arranque del Dashboard. Si el servidor Ollama no responde, el widget entra en suspensión de forma automática impidiendo peticiones fallidas o retrasos de carga de página. La IP/Endpoint de Ollama ahora es dinámica mediante la variable de entorno `OLLAMA_API_BASE` para producción (Kraken Server).*
 
 ### ✅ Hitos Completados Hoy
+- **Optimización y Estabilización de Carga Masiva (ZIP):**
+    - **Corrección de Subida de Archivos:** Solución definitiva de la excepción `MissingFileUploadsTraitException` en el componente Volt `expedientes.import-zip` integrando el helper `usesFileUploads()`.
+    - **Soporte Dinámico de Identificadores (CURP/CUIP):** Reestructuración del Job `ProcessZipImport` para procesar archivos de manera asíncrona mediante longitud de cadena: detecta si es una CURP (18 caracteres) o CUIP (22 caracteres) para realizar la consulta correspondiente en base de datos.
+    - **Búsqueda Robusta Fallback:** Integración de un fallback que busca en ambas columnas en caso de formatos no estándar.
+    - **Prevención de Acumulación y Limpieza:** Implementación de limpieza automática que elimina del expediente físico (Spatie MediaLibrary) y base de datos cualquier documento anterior del mismo tipo antes de guardar el nuevo archivo importado, conservando la integridad de almacenamiento.
 - **Infraestructura de Git y Sincronización Remota:**
     - Configuración y generación de llave segura SSH Ed25519 para autenticación sin contraseña en WSL.
     - Reconfiguración del repositorio remoto `origin` para utilizar el protocolo SSH (`git@github.com:benitezlev/sicoeV26.git`).

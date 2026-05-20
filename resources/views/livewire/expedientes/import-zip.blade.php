@@ -1,11 +1,11 @@
 <?php
 
-use function Livewire\Volt\{state, layout, rules};
-use Livewire\WithFileUploads;
+use function Livewire\Volt\{state, layout, rules, usesFileUploads};
 use App\Jobs\ProcessZipImport;
 use Flux\Flux;
 
 layout('layouts.app');
+usesFileUploads();
 
 state([
     'zipFile' => null,
@@ -47,10 +47,19 @@ $importarZip = function () {
                 <flux:heading size="lg">¿Cómo funciona?</flux:heading>
                 <div class="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
                     <p>1. Crea un archivo ZIP con los documentos (PDF, JPG, PNG).</p>
-                    <p>2. El nombre de cada archivo dentro del ZIP debe seguir este formato: <br>
+                    <p>2. El nombre de cada archivo debe seguir este formato: <br>
                        <code class="bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded font-bold text-blue-600">CURP_TIPO.extension</code>
+                       &nbsp;ó&nbsp;
+                       <code class="bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded font-bold text-purple-600">CUIP_TIPO.extension</code>
                     </p>
-                    <p>Ejemplo: <code class="text-zinc-500">CURP123456HDFXRR01_ACTA.pdf</code></p>
+                    <p class="text-xs text-zinc-500">
+                        El sistema detecta automáticamente si el identificador es <strong>CURP</strong> (18 caracteres) o <strong>CUIP</strong> (22 caracteres).
+                    </p>
+                    <p>Ejemplos:</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li><code class="text-zinc-500">CURP123456HDFXRR01_ACTA.pdf</code> &rarr; vincula por CURP</li>
+                        <li><code class="text-zinc-500">CUIP1234567890ABCDEF1234_IDENTIFICACION.pdf</code> &rarr; vincula por CUIP</li>
+                    </ul>
                     
                     <div class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800">
                         <flux:heading size="sm" class="text-blue-700 dark:text-blue-400 mb-2">Tipos de documentos soportados:</flux:heading>

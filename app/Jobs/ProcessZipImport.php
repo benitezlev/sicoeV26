@@ -36,16 +36,32 @@ class ProcessZipImport implements ShouldQueue
             $files = \Illuminate\Support\Facades\File::allFiles($extractPath);
 
             foreach ($files as $file) {
-                $filename = $file->getFilename(); // Ejemplo: CURP_ACTA.pdf
+                $filename = $file->getFilename(); // Ejemplo: IDENTIFIER_ACTA.pdf
                 $parts = explode('_', pathinfo($filename, PATHINFO_FILENAME));
 
                 if (count($parts) < 2) continue;
 
-                $curp = strtoupper($parts[0]);
-                $tipo = strtoupper($parts[1]);
+                $identifier = strtoupper(trim($parts[0]));
+                $tipo = strtoupper(trim($parts[1]));
 
-                // Buscar usuario
-                $user = \App\Models\User::where('curp', $curp)->first();
+                // Detectar si el identificador es CURP (18 caracteres) o CUIP (22 caracteres)
+                $isCurp = (strlen($identifier) === 18);
+                $isCuip = (strlen($identifier) === 22);
+
+                // Buscar usuario por el campo correspondiente
+                $user = null;
+                if ($isCurp) {
+                    $user = \App\Models\User::where('curp', $identifier)->first();
+                } elseif ($isCuip) {
+                    $user = \App\Models\User::where('cuip', $identifier)->first();
+                }
+
+                // Fallback general por robustez
+                if (!$user) {
+                    $user = \App\Models\User::where('curp', $identifier)
+                        ->orWhere('cuip', $identifier)
+                        ->first();
+                }
                 
                 if ($user) {
                     $expediente = \App\Models\Expediente::firstOrCreate(
@@ -56,6 +72,17 @@ class ProcessZipImport implements ShouldQueue
                             'fecha_apertura' => now(),
                         ]
                     );
+
+                    // Eliminar documentos duplicados anteriores del mismo tipo en el expediente para evitar acumulación
+                    $existingDocs = \App\Models\DocumentosExpediente::where('expediente_id', $expediente->id)
+                        ->where('tipo', $tipo)
+                        ->get();
+
+                    foreach ($existingDocs as $oldDoc) {
+                        // Elimina los archivos físicos asociados de Spatie MediaLibrary y limpia base de datos
+                        $oldDoc->clearMediaCollection('archivo');
+                        $oldDoc->delete();
+                    }
 
                     $doc = \App\Models\DocumentosExpediente::create([
                         'user_id' => $user->id,
@@ -71,7 +98,7 @@ class ProcessZipImport implements ShouldQueue
                         ->usingFileName($filename)
                         ->toMediaCollection('archivo');
                     
-                    \Log::info("Documento {$tipo} procesado para CURP: {$curp}");
+                    \Log::info("Documento {$tipo} procesado para identificador (CURP/CUIP): {$identifier}");
                 }
             }
 
