@@ -77,8 +77,29 @@ $ask = function (OllamaService $ollama) {
     $this->input = '';
     
     try {
-        $schema = $ollama->getSicoeSchemaPrompt();
-        $rawResponse = $ollama->generate($userQuestion, $schema);
+        // Construir historial de conversación completo con System Prompt al inicio
+        $formattedHistory = [];
+        $formattedHistory[] = [
+            'role' => 'system',
+            'content' => $ollama->getSicoeSchemaPrompt()
+        ];
+
+        foreach ($this->messages as $msg) {
+            $role = $msg['role'];
+            $content = $msg['text'];
+            
+            // Si el mensaje anterior del asistente tiene SQL, lo inyectamos en el contexto
+            if ($role === 'assistant' && !empty($msg['sql'])) {
+                $content .= "\n\n```sql\n" . $msg['sql'] . "\n```";
+            }
+            
+            $formattedHistory[] = [
+                'role' => $role,
+                'content' => $content
+            ];
+        }
+
+        $rawResponse = $ollama->chat($formattedHistory);
 
         if (!$rawResponse) {
             $this->messages[] = [
@@ -86,7 +107,8 @@ $ask = function (OllamaService $ollama) {
                 'text' => 'Disculpa, no logré comunicarme con el servidor local de Inteligencia Artificial (Ollama) en la IP 192.168.3.4. Por favor, verifica que el servicio esté encendido.',
                 'sql' => null,
                 'data' => null,
-                'success' => false
+                'success' => false,
+                'limited' => false
             ];
             return;
         }
@@ -99,7 +121,8 @@ $ask = function (OllamaService $ollama) {
                 'text' => $queryResult['message'],
                 'sql' => $queryResult['sql'],
                 'data' => null,
-                'success' => false
+                'success' => false,
+                'limited' => false
             ];
             return;
         }
@@ -119,7 +142,8 @@ $ask = function (OllamaService $ollama) {
             'text' => $assistantText,
             'sql' => $sqlUsed,
             'data' => $dataResult,
-            'success' => true
+            'success' => true,
+            'limited' => $queryResult['limited'] ?? false
         ];
 
     } catch (\Exception $e) {
@@ -128,7 +152,8 @@ $ask = function (OllamaService $ollama) {
             'text' => 'Ocurrió un error inesperado al procesar la analítica: ' . $e->getMessage(),
             'sql' => null,
             'data' => null,
-            'success' => false
+            'success' => false,
+            'limited' => false
         ];
     }
 };
@@ -246,6 +271,13 @@ $clearChat = function () {
 
                             <!-- Tabla de Resultados Dinámica -->
                             @if (!empty($msg['data']))
+                                @if (!empty($msg['limited']))
+                                    <div class="mt-2.5 flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-[8px] font-black uppercase rounded-xl border border-amber-200/60 dark:border-amber-900/40">
+                                        <flux:icon name="exclamation-circle" class="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                                        <span>Optimización de Memoria: Mostrando las primeras 100 filas.</span>
+                                    </div>
+                                @endif
+
                                 <div class="mt-3 border border-zinc-200/60 dark:border-zinc-800 rounded-xl overflow-hidden overflow-x-auto shadow-sm max-w-full">
                                     <table class="w-full text-left border-collapse text-[9px]">
                                         <thead>

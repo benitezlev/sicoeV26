@@ -60,6 +60,35 @@ class OllamaService
     }
 
     /**
+     * Envía una petición síncrona a la API de chat de Ollama (/api/chat).
+     * Soporta memoria y múltiples roles (system, user, assistant).
+     *
+     * @param array $messages Historial estructurado de mensajes.
+     * @return string|null
+     */
+    public function chat(array $messages): ?string
+    {
+        try {
+            $response = Http::timeout(35)->post("{$this->host}/api/chat", [
+                'model'    => $this->model,
+                'messages' => $messages,
+                'stream'   => false,
+                'options'  => [
+                    'temperature' => 0.1, // Baja temperatura para precisión en código/SQL
+                ]
+            ]);
+
+            if ($response->successful()) {
+                return $response->json('message.content');
+            }
+        } catch (\Exception $e) {
+            Log::error("Error de comunicación con Ollama chat local (192.168.3.4): " . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
      * Obtiene el esquema resumido de la base de datos de SICOE para instruir a la IA.
      */
     public function getSicoeSchemaPrompt(): string
@@ -77,6 +106,7 @@ Tu misión es recibir una pregunta del usuario en español, entender la intenci�
 3. Asegúrate de que las búsquedas de texto usen "ILIKE" para que sean insensibles a mayúsculas y acentos.
 4. No asumas columnas que no existan. Sigue estrictamente la descripción de tablas abajo.
 5. No des explicaciones en lenguaje natural dentro del bloque de SQL. Solo pon el SQL limpio.
+6. NUNCA utilices `SELECT *` o selecciones de columnas completas sin calificar, especialmente al unir tablas (joins). Selecciona explícitamente solo las columnas necesarias y define alias únicos con la cláusula `AS` (por ejemplo, `u.nombre AS usuario_nombre, p.name AS plantel_nombre`) para evitar colisiones y claves duplicadas al deserializar en PHP.
 
 ### ESQUEMA DE TABLAS DISPONIBLES EN POSTGRESQL:
 
@@ -157,7 +187,8 @@ EOT;
                     'success' => false,
                     'message' => 'No se pudo identificar una consulta SQL válida en la respuesta del agente.',
                     'sql' => null,
-                    'rows' => []
+                    'rows' => [],
+                    'limited' => false
                 ];
             }
         }
@@ -176,7 +207,8 @@ EOT;
                 'success' => false,
                 'message' => 'Acción denegada por seguridad: La consulta generada no es de solo lectura.',
                 'sql' => $cleanSql,
-                'rows' => []
+                'rows' => [],
+                'limited' => false
             ];
         }
 
@@ -188,12 +220,20 @@ EOT;
                     'success' => false,
                     'message' => "Acción denegada por seguridad: Palabra reservada prohibida '{$keyword}' detectada.",
                     'sql' => $cleanSql,
-                    'rows' => []
+                    'rows' => [],
+                    'limited' => false
                 ];
             }
         }
 
-        // 3. Ejecución segura con manejo de excepciones
+        // 3. Inyección automática de límites (LIMIT 100) para resguardar rendimiento
+        $limited = false;
+        if (!preg_match('/\bLIMIT\s+\d+/i', $cleanSql)) {
+            $cleanSql .= ' LIMIT 100';
+            $limited = true;
+        }
+
+        // 4. Ejecución segura con manejo de excepciones
         try {
             $results = DB::select($cleanSql);
             
@@ -206,14 +246,16 @@ EOT;
                 'success' => true,
                 'message' => 'Consulta ejecutada con éxito de forma local.',
                 'sql' => $cleanSql,
-                'rows' => $rows
+                'rows' => $rows,
+                'limited' => $limited
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
                 'message' => 'Error de sintaxis SQL al ejecutar: ' . $e->getMessage(),
                 'sql' => $cleanSql,
-                'rows' => []
+                'rows' => [],
+                'limited' => $limited
             ];
         }
     }

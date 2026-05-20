@@ -49,3 +49,46 @@ it('handles raw sql blocks that start with literal sql string', function () {
     expect($result['success'])->toBeTrue()
         ->and($result['sql'])->toBe('SELECT COUNT(*) FROM grupos');
 });
+
+it('automatically injects LIMIT 100 on queries without a LIMIT clause', function () {
+    $service = new OllamaService();
+    
+    $aiOutput = "```sql\nSELECT id, nombre FROM users;\n```";
+    
+    $result = $service->executeSecureQuery($aiOutput);
+    
+    expect($result['sql'])->toContain('LIMIT 100')
+        ->and($result['limited'])->toBeTrue();
+});
+
+it('does not modify queries that already have a LIMIT clause', function () {
+    $service = new OllamaService();
+    
+    $aiOutput = "```sql\nSELECT id, nombre FROM users LIMIT 50;\n```";
+    
+    $result = $service->executeSecureQuery($aiOutput);
+    
+    expect($result['sql'])->toBe('SELECT id, nombre FROM users LIMIT 50')
+        ->and($result['limited'])->toBeFalse();
+});
+
+it('sends structured chat history to Ollama and returns assistant content', function () {
+    \Illuminate\Support\Facades\Http::fake([
+        '*/api/chat' => \Illuminate\Support\Facades\Http::response([
+            'message' => [
+                'role' => 'assistant',
+                'content' => '```sql\nSELECT COUNT(*) FROM users;\n```'
+            ]
+        ], 200)
+    ]);
+    
+    $service = new OllamaService();
+    $messages = [
+        ['role' => 'system', 'content' => 'Prompt del sistema'],
+        ['role' => 'user', 'content' => '¿Cuántos alumnos hay?']
+    ];
+    
+    $response = $service->chat($messages);
+    
+    expect($response)->toContain('SELECT COUNT(*) FROM users');
+});

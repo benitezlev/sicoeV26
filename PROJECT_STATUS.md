@@ -2,13 +2,13 @@
 
 Este documento resume el estado actual del proyecto, los cambios recientes y las tareas pendientes para facilitar la continuidad del desarrollo.
 
-## 🕒 Últimos Cambios Importantes (2026-05-20 09:41)
+## 🕒 Últimos Cambios Importantes (2026-05-20 10:04)
 
 ### 🚀 ESTADO ACTUAL: PRODUCCIÓN V1 (ESTABLE - READY)
 **Última actualización:** 20 de Mayo de 2026
 
-### 🔒 ESTATUS DEL COPILOTO IA: STANDBY DINÁMICO & HEALTHCHECK AUTOMÁTICO (SEGURO - OPTIMIZADO)
-*El copiloto IA se encuentra desactivado por defecto. Se ha integrado un Healthcheck Dinámico con timeout de 2s en el arranque del Dashboard. Si el servidor Ollama no responde, el widget entra en suspensión de forma automática impidiendo peticiones fallidas o retrasos de carga de página. La IP/Endpoint de Ollama ahora es dinámica mediante la variable de entorno `OLLAMA_API_BASE` para producción (Kraken Server).*
+### 🔒 ESTATUS DEL COPILOTO IA: CHAT CON MEMORIA CONTEXTUAL & LÍMITES DE SEGURIDAD (COMPLETO - OPTIMIZADO)
+*El copiloto IA ahora incluye memoria conversacional completa, inyección de límites de rendimiento en queries y prevención activa de colisión de columnas duplicadas. Se ha integrado un Healthcheck Dinámico con timeout de 2s en el arranque del Dashboard. Si el servidor Ollama no responde, el widget entra en suspensión de forma automática impidiendo peticiones fallidas o retrasos de carga de página. La IP/Endpoint de Ollama ahora es dinámica mediante la variable de entorno `OLLAMA_API_BASE` para producción (Kraken Server).*
 
 ### ✅ Hitos Completados Hoy
 - **Infraestructura de Git y Sincronización Remota:**
@@ -22,11 +22,14 @@ Este documento resume el estado actual del proyecto, los cambios recientes y las
     - Migración de las variables de entorno de `OLLAMA_HOST` a la variable estándar `OLLAMA_API_BASE` en `.env.example`, `.env` y `config/services.php`.
 - **SICOE Copiloto IA Local (Ollama 192.168.3.4):**
     - **Servicio Conector:** Creación de `OllamaService` para comunicar Laravel de forma síncrona y segura con la API local de Ollama en el puerto `11434` (utilizando el modelo `llama3:latest` presente en el servidor).
+    - **Optimización de Memoria Conversacional (Endpoint `/api/chat`):** Migración del servicio síncrono al endpoint `/api/chat`, permitiendo mantener un contexto y memoria completos del chat. Mapeo de todo el historial de Livewire a roles (`system`, `user`, `assistant`), incluyendo el System Prompt dinámico.
+    - **Inyección Automática de Límites (`LIMIT 100`):** Blindaje preventivo que intercepta y formatea consultas SELECT de PostgreSQL. Si la consulta generada no define un límite, se le inyecta automáticamente un `LIMIT 100` por seguridad del servidor, alertando en la interfaz al operador con un badge premium en color ámbar.
+    - **Prevención de Alias Duplicados:** Modificación del System Prompt para forzar al modelo a evitar consultas ambiguas o duplicadas (`SELECT *`) en relaciones JOIN y exigir alias claros (`AS`) en cada columna para impedir errores de mapeo en PHP.
     - **Motor de Inferencia Text-to-SQL:** Definición de un System Prompt sumamente robusto con la especificación exacta de las tablas de PostgreSQL, incluyendo ahora las tablas de seguridad de Spatie (`roles`, `model_has_roles`), permitiendo consultas analíticas sobre permisos y roles de usuarios.
     - **Blindaje y Sanitización:** Motor de seguridad en Laravel que limpia, extrae y analiza sintácticamente el SQL generado por la IA, eliminando prefijos redundantes (como bloques con literal `sql`) y denegando comandos destructivos (`INSERT`, `UPDATE`, `DROP`, `DELETE`, `ALTER`) para garantizar una ejecución 100% segura.
     - **Asistente de Chat Flotante Global:** Transformación del chat en un widget flotante (estilo Intercom) disponible en todas las pantallas de SICOE a través de un Botón de Acción Flotante (FAB) animado con Alpine.js.
     - **Control y Modo de Standby (Cero Consumo):** Habilitación del componente para los roles `superadmin` y `control_escolar` (para que el equipo de Control Escolar pueda realizar sus pruebas). Implementación de un modo Standby que, al apagarse el servicio, suspende por completo toda conexión de red o consulta a la API de Ollama en tu servidor de Ollama para conservar recursos. El botón interactivo de encendido/apagado está reservado exclusivamente para el `superadmin`, mientras que el equipo de `control_escolar` visualiza un badge informativo estático del estatus ("Activo"/"Inactivo").
-    - **Pruebas de Seguridad (Pest PHP):** Suite de pruebas en `tests/Feature/IA/OllamaServiceTest.php` validando la sanitización correcta del SQL, bloques redundantes y bloqueando inyecciones de queries no autorizadas.
+    - **Pruebas de Seguridad (Pest PHP):** Suite de pruebas en `tests/Feature/IA/OllamaServiceTest.php` validando la sanitización correcta del SQL, bloques redundantes, inyección de límites de queries (`LIMIT 100`) y bloqueando inyecciones de queries no autorizadas.
 - **Módulo de Recursos Oficiales (Financiamiento):**
     - **Esquema de Base de Datos:** Creación de la tabla `recursos` y llave foránea opcional `recurso_id` en `grupos`.
     - **Modelo Eloquent:** Modelo `Recurso` con relación `hasMany` hacia `Grupo` y relación inversa en `Grupo` integrada.
