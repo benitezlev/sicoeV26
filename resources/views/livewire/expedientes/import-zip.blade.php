@@ -2,35 +2,73 @@
 
 use function Livewire\Volt\{state, layout, usesFileUploads};
 use App\Jobs\ProcessZipImport;
+use Illuminate\Support\Facades\Log;
 use Flux\Flux;
 
 layout('layouts.app');
 usesFileUploads();
 
 state([
-    'zipFile' => null,
+    'zipFile'       => null,
+    'archivoNombre' => null,   // Nombre visual del archivo seleccionado
+    'listo'         => false,  // Si el archivo fue subido correctamente
 ]);
+
+// Livewire llama esto automáticamente cuando el archivo termina de subirse
+$updatedZipFile = function () {
+    // Al actualizar el archivo, registramos el nombre y marcamos como listo
+    if ($this->zipFile) {
+        $this->archivoNombre = $this->zipFile->getClientOriginalName();
+        $this->listo = true;
+        $this->resetErrorBag('zipFile');
+    }
+};
 
 $importarZip = function () {
     if (!$this->zipFile) {
-        $this->addError('zipFile', 'Debes seleccionar un archivo ZIP antes de procesar.');
+        $this->addError('zipFile', 'Selecciona un archivo ZIP primero.');
         return;
     }
 
-    $this->validate([
-        'zipFile' => 'required|file|mimes:zip|max:102400', // 100MB max
-    ]);
+    try {
+        // Validación flexible: acepta cualquier extensión .zip independiente del MIME
+        $this->validate([
+            'zipFile' => [
+                'required',
+                'file',
+                'max:102400', // 100MB
+                function ($attribute, $value, $fail) {
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    if ($ext !== 'zip') {
+                        $fail('El archivo debe tener extensión .zip');
+                    }
+                },
+            ],
+        ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::warning('Validación ZIP fallida: ' . json_encode($e->errors()));
+        throw $e;
+    }
 
     $path = $this->zipFile->store('temp_imports');
+
+    Log::info('ZIP cargado para importación masiva', [
+        'path'     => $path,
+        'archivo'  => $this->archivoNombre,
+        'user_id'  => auth()->id(),
+    ]);
 
     // Despachar Job a la cola
     ProcessZipImport::dispatch($path, auth()->id());
 
-    $this->zipFile = null;
+    // Limpiar estado
+    $this->zipFile       = null;
+    $this->archivoNombre = null;
+    $this->listo         = false;
 
     Flux::toast(
         heading: 'Importación en Cola',
-        text: 'El archivo ZIP se está procesando en segundo plano. Los documentos aparecerán en los expedientes en unos minutos.',
+        text: 'El archivo ZIP se está procesando. Los documentos aparecerán en los expedientes en unos minutos.',
         variant: 'success'
     );
 };
@@ -47,6 +85,7 @@ $importarZip = function () {
         </div>
 
         <div class="bg-white dark:bg-zinc-800 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-700 shadow-sm space-y-8">
+            {{-- Instrucciones --}}
             <div class="space-y-4">
                 <flux:heading size="lg">¿Cómo funciona?</flux:heading>
                 <div class="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
@@ -59,8 +98,7 @@ $importarZip = function () {
                     <p class="text-xs text-zinc-500">
                         El sistema detecta automáticamente si el identificador es <strong>CURP</strong> (18 caracteres) o <strong>CUIP</strong> (22 caracteres).
                     </p>
-                    <p>Ejemplos:</p>
-                    <ul class="list-disc list-inside space-y-1">
+                    <ul class="list-disc list-inside space-y-1 mt-1">
                         <li><code class="text-zinc-500">CURP123456HDFXRR01_ACTA.pdf</code> &rarr; vincula por CURP</li>
                         <li><code class="text-zinc-500">CUIP1234567890ABCDEF1234_IDENTIFICACION.pdf</code> &rarr; vincula por CUIP</li>
                     </ul>
@@ -77,8 +115,9 @@ $importarZip = function () {
                 </div>
             </div>
 
-            <form wire:submit="importarZip" class="space-y-6">
-                {{-- Wrapper Alpine.js para eventos de upload de Livewire --}}
+            {{-- Formulario --}}
+            <div class="space-y-6">
+                {{-- Zona de selección de archivo con Alpine para progreso --}}
                 <div
                     x-data="{ uploading: false, progress: 0 }"
                     x-on:livewire-upload-start="uploading = true"
@@ -89,7 +128,8 @@ $importarZip = function () {
                 >
                     <flux:field>
                         <flux:label>Seleccionar Archivo ZIP</flux:label>
-                        {{-- Input nativo HTML (flux:input no soporta wire:model para archivos) --}}
+
+                        {{-- Input HTML nativo — wire:model en file input requiere input nativo, no flux:input --}}
                         <input
                             type="file"
                             wire:model="zipFile"
@@ -104,28 +144,48 @@ $importarZip = function () {
                                    border border-zinc-200 dark:border-zinc-700
                                    rounded-xl p-2 bg-white dark:bg-zinc-900 shadow-sm"
                         />
-                        <flux:error name="zipFile" />
+
+                        {{-- Error visible --}}
+                        @error('zipFile')
+                            <p class="text-sm text-red-600 mt-1 flex items-center gap-1">
+                                <flux:icon name="exclamation-circle" class="w-4 h-4" />
+                                {{ $message }}
+                            </p>
+                        @enderror
                     </flux:field>
 
-                    {{-- Barra de progreso de Livewire --}}
-                    <div x-show="uploading" class="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
-                        <div class="bg-blue-600 h-full transition-all duration-300" :style="'width: ' + progress + '%'"></div>
+                    {{-- Barra de progreso durante la carga del archivo a Livewire --}}
+                    <div x-show="uploading" x-transition class="space-y-1">
+                        <p class="text-xs text-zinc-500">Subiendo archivo...</p>
+                        <div class="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                            <div class="bg-blue-600 h-full transition-all duration-300" :style="'width: ' + progress + '%'"></div>
+                        </div>
                     </div>
+
+                    {{-- Confirmación visual una vez subido el archivo --}}
+                    @if ($listo && $archivoNombre)
+                        <div class="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 text-sm text-emerald-700 dark:text-emerald-400">
+                            <flux:icon name="check-circle" class="w-5 h-5 shrink-0" />
+                            <span>Archivo listo: <strong>{{ $archivoNombre }}</strong></span>
+                        </div>
+                    @endif
                 </div>
 
+                {{-- Botón de procesar --}}
                 <div class="flex justify-end gap-2">
                     <flux:button
-                        type="submit"
+                        wire:click="importarZip"
                         variant="primary"
                         icon="arrow-up-tray"
                         wire:loading.attr="disabled"
                         wire:target="zipFile, importarZip"
+                        :disabled="!$listo"
                     >
-                        <span wire:loading.remove wire:target="importarZip">Subir y Procesar Masivamente</span>
+                        <span wire:loading.remove wire:target="importarZip">Procesar Masivamente</span>
                         <span wire:loading wire:target="importarZip">Procesando...</span>
                     </flux:button>
                 </div>
-            </form>
+            </div>
         </div>
 
         <div class="p-4 bg-zinc-900 rounded-2xl flex items-center gap-4 text-white">
