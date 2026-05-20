@@ -534,7 +534,7 @@ $cerrarPreview = function () {
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                             @php
-                                {{-- Regla de negocio: el Kárdex excluye la calificación diagnóstica --}}
+                                // Regla de negocio: el Kárdex excluye la calificación diagnóstica
                                 $calificacionesKardex = $expediente->user->calificaciones
                                     ->where('unidad', '!=', 'diagnostica')
                                     ->sortByDesc('created_at');
